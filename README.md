@@ -89,9 +89,16 @@ framework link, template contracts). Appium and JMeter need the local stack runn
 ```bash
 make emulators            # terminal 1
 make backend-emulated     # terminal 2
-make test-appium          # starts its own Appium server (pinned in e2e/appium)
+make test-appium          # installs the current debug build, starts Appium (pinned in e2e/appium)
 make test-perf            # HTML dashboard in build/perf/report/index.html
 ```
+
+`make test-appium` needs `FIREBASE_EMULATOR_HOST=10.0.2.2` in `mobile/local.properties`; without
+it the app signs in to the real Firebase project. Prefer an emulator with a window and hardware
+GPU. Under host load (emulators, backend, and Gradle daemons together), a headless `-no-window`
+`swiftshader` emulator can raise a system "not responding" dialog. That dialog takes focus, so
+a test reports that **Skip** was not found. If that happens, dismiss the dialog or restart the
+emulator, then rerun.
 
 JMeter on a laptop against the local emulators (5 users, 20 iterations each, 5 s ramp-up;
 205 requests in 4 s, 49 req/s overall):

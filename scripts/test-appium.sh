@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Runs the Appium UI tests (e2e/) on the connected Android emulator or device, starting an Appium
-# server for the duration. The debug app must be installed and talking to the local stack:
+# server for the duration. It first builds and installs the debug app from the working tree, so the
+# tests never run against a stale build. The app must talk to the local stack:
 #   make emulators            # terminal 1: Firebase Auth + Firestore emulators
 #   make backend-emulated     # terminal 2: the API against them
-#   make apk-install          # with FIREBASE_EMULATOR_HOST=10.0.2.2 in mobile/local.properties
-#   make test-appium
+#   make test-appium          # with FIREBASE_EMULATOR_HOST=10.0.2.2 in mobile/local.properties
 # Extra arguments go to Gradle, for example --tests '*sentPayment*'.
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -22,6 +22,17 @@ if [[ -z "${ANDROID_HOME:-}" ]]; then
 fi
 [[ -n "$ANDROID_HOME" ]] || die 'Set ANDROID_HOME or sdk.dir in mobile/local.properties'
 export ANDROID_HOME
+
+# Without the emulator host the debug app signs in to the real Firebase project, and the tests fail.
+if [[ -z "${FIREBASE_EMULATOR_HOST:-}" ]]; then
+  FIREBASE_EMULATOR_HOST="$(awk -F= '$1=="FIREBASE_EMULATOR_HOST" { print $2 }' "$ROOT/mobile/local.properties" 2>/dev/null)"
+fi
+[[ -n "$FIREBASE_EMULATOR_HOST" ]] ||
+  die 'Set FIREBASE_EMULATOR_HOST=10.0.2.2 in mobile/local.properties so the app uses the emulators'
+
+# Gradle's installDebug replaces whatever build is on the device (adb install -r).
+(cd "$ROOT/mobile" && ./gradlew :androidApp:installDebug)
+
 # Appium and its UiAutomator2 driver are pinned in e2e/appium/package.json.
 export APPIUM_HOME="$ROOT/e2e/appium"
 [[ -d "$APPIUM_HOME/node_modules" ]] || npm --prefix "$APPIUM_HOME" ci --ignore-scripts

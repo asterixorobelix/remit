@@ -60,6 +60,6 @@ Keep the Emulator Suite UI open at <http://localhost:4000/firestore> to watch do
 ```bash
 make test-bdd        # Cucumber scenarios; report in mobile/shared/build/reports/cucumber/index.html
 make test-rules      # Firestore security rules
-make test-appium     # UI tests on the running emulator
+make test-appium     # installs the current build, then runs the UI tests on the emulator
 make test-perf       # JMeter, 5 concurrent users; dashboard in build/perf/report/index.html
 ```
