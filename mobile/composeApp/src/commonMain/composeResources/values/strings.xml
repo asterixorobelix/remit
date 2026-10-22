@@ -8,7 +8,8 @@
     <string name="settings_terms_url">https://example.com/terms</string>
 
     <!-- Screen Titles -->
-    <string name="screen_home_title">Home</string>
+    <string name="screen_send_title">Send</string>
+    <string name="screen_history_title">History</string>
     <string name="screen_settings_title">Settings</string>
 
     <!-- Button Labels -->
@@ -85,11 +86,6 @@
     <string name="force_update_button">Update Now</string>
 
     <!-- Home Screen -->
-    <string name="home_greeting_morning">Good morning</string>
-    <string name="home_greeting_afternoon">Good afternoon</string>
-    <string name="home_greeting_evening">Good evening</string>
-    <string name="home_empty_title">Nothing here yet</string>
-    <string name="home_empty_description">Your activity will show up here.</string>
 
     <!-- Countdown -->
     <string name="countdown_starts_in">STARTS IN</string>
@@ -108,4 +104,46 @@
     <string name="external_link_title">Open external link</string>
     <string name="external_link_message">This will open an external website. Do you want to continue?</string>
     <string name="external_link_open">Open</string>
+
+    <!-- Payments: send -->
+    <string name="send_title">Send money</string>
+    <string name="send_description">Payments are processed by the Remit API and appear in your history once they go through.</string>
+    <string name="send_recipient_label">Recipient email</string>
+    <string name="send_amount_label">Amount</string>
+    <string name="send_currency_label">Currency</string>
+    <string name="send_submit">Send payment</string>
+    <string name="send_success">Sent %1$s to %2$s</string>
+    <string name="send_view_history">View</string>
+    <string name="send_retry">Retry</string>
+    <string name="currency_usd">USD · US dollar</string>
+    <string name="currency_eur">EUR · Euro</string>
+    <string name="error_email_blank">Enter the recipient's email</string>
+    <string name="error_email_too_long">That email address is too long</string>
+    <string name="error_email_invalid">Invalid recipient email</string>
+    <string name="error_amount_blank">Enter an amount</string>
+    <string name="error_amount_not_a_number">Enter a number, like 10.50</string>
+    <string name="error_amount_not_positive">The amount must be more than zero</string>
+    <string name="error_amount_too_many_decimals">Use at most two decimal places</string>
+    <string name="error_amount_above_limit">You can send at most %1$s at a time</string>
+    <string name="error_currency_missing">Choose a currency</string>
+    <string name="error_currency_unsupported">That currency is not supported</string>
+    <string name="payment_failed_network">Couldn't reach the server, so the payment wasn't sent.</string>
+    <string name="payment_failed_timeout">The payment timed out. Retrying is safe: it can't be sent twice.</string>
+    <string name="payment_failed_server">The server had a problem. Retrying is safe: it can't be sent twice.</string>
+    <string name="payment_failed_rate_limited">Too many attempts. Wait a moment, then retry.</string>
+    <string name="payment_failed_unauthorized">We couldn't sign you in. Check your connection and try again.</string>
+    <string name="payment_failed_conflict">The payment changed while it was being sent. Check the details and send again.</string>
+    <string name="payment_failed_unexpected">Unexpected response. Check your history before sending again.</string>
+
+    <!-- Payments: history -->
+    <string name="history_title">Transaction history</string>
+    <string name="history_empty_title">No payments yet</string>
+    <string name="history_empty_description">Payments you send appear here as soon as they are processed.</string>
+    <string name="history_error_title">Couldn't load your history</string>
+    <string name="history_error_message">Check your connection and try again.</string>
+    <string name="history_status_completed">Completed</string>
+    <string name="history_status_pending">Pending</string>
+    <string name="history_status_failed">Failed</string>
+    <string name="history_status_unknown">Processing</string>
+    <string name="cd_payment_row">%1$s to %2$s on %3$s, %4$s</string>
 </resources>

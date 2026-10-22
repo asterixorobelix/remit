@@ -19,13 +19,7 @@ internal val networkModule = module {
     single<HttpClient> {
         val preferences: AppPreferences = get()
         val appConfig: AppConfig = get()
-        createApiHttpClient(
-            config = get(),
-            // Debug builds honour the Developer-screen override; release builds never do.
-            apiBaseUrl = {
-                preferences.getApiBaseUrlOverride()?.takeIf { appConfig.isDebug } ?: appConfig.apiBaseUrl
-            },
-        )
+        createApiHttpClient(config = get(), apiBaseUrl = { appConfig.resolveApiBaseUrl(preferences) })
     }
 }
 

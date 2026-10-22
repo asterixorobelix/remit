@@ -11,8 +11,9 @@ import com.asterixorobelix.remit.platform.Capability
 import com.asterixorobelix.remit.presentation.app.AppViewModel
 import com.asterixorobelix.remit.presentation.developer.DeveloperViewModel
 import com.asterixorobelix.remit.presentation.feedback.FeedbackViewModel
-import com.asterixorobelix.remit.presentation.home.HomeViewModel
 import com.asterixorobelix.remit.presentation.onboarding.OnboardingViewModel
+import com.asterixorobelix.remit.presentation.payments.history.PaymentHistoryViewModel
+import com.asterixorobelix.remit.presentation.payments.send.SendPaymentViewModel
 import com.asterixorobelix.remit.presentation.settings.SettingsViewModel
 import com.asterixorobelix.remit.testing.FakeAppConfig
 import kotlinx.coroutines.Dispatchers
@@ -50,6 +51,7 @@ class NavigationGraphTest {
     private val allRoutes: List<AppRoute> = listOf(
         AppRoute.Onboarding,
         AppRoute.Home,
+        AppRoute.History,
         AppRoute.Settings,
         AppRoute.Feedback,
         AppRoute.WebView("https://example.com", "Web"),
@@ -59,7 +61,8 @@ class NavigationGraphTest {
 
     private fun viewModelsFor(route: AppRoute): List<KClass<out ViewModel>> = when (route) {
         AppRoute.Onboarding -> listOf(OnboardingViewModel::class)
-        AppRoute.Home -> listOf(HomeViewModel::class)
+        AppRoute.Home -> listOf(SendPaymentViewModel::class)
+        AppRoute.History -> listOf(PaymentHistoryViewModel::class)
         AppRoute.Settings -> listOf(SettingsViewModel::class)
         AppRoute.Feedback -> listOf(FeedbackViewModel::class)
         is AppRoute.WebView -> emptyList()
@@ -112,7 +115,7 @@ class NavigationGraphTest {
         val features = NavigationFeatures.from(config)
 
         assertEquals(false, AppRoute.Developer.isAvailable(features), "Developer tools are debug-only")
-        assertEquals(listOf(AppRoute.Home, AppRoute.Settings), features.tabs())
+        assertEquals(listOf(AppRoute.Home, AppRoute.History, AppRoute.Settings), features.tabs())
         assertNull(koin.getOrNull<CheckForceUpdateUseCase>(), "backend module must not load without backend")
     }
 

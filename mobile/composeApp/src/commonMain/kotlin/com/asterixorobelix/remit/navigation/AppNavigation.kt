@@ -6,9 +6,11 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.automirrored.outlined.Send
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -32,12 +34,14 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.toRoute
 import com.asterixorobelix.remit.domain.settings.StartDestination
 import com.asterixorobelix.remit.generated.resources.Res
-import com.asterixorobelix.remit.generated.resources.screen_home_title
+import com.asterixorobelix.remit.generated.resources.screen_history_title
+import com.asterixorobelix.remit.generated.resources.screen_send_title
 import com.asterixorobelix.remit.generated.resources.screen_settings_title
 import com.asterixorobelix.remit.presentation.developer.DeveloperScreen
 import com.asterixorobelix.remit.presentation.feedback.FeedbackScreen
-import com.asterixorobelix.remit.presentation.home.HomeScreen
 import com.asterixorobelix.remit.presentation.onboarding.OnboardingScreen
+import com.asterixorobelix.remit.presentation.payments.history.PaymentHistoryScreen
+import com.asterixorobelix.remit.presentation.payments.send.SendPaymentScreen
 import com.asterixorobelix.remit.presentation.settings.SettingsNavigation
 import com.asterixorobelix.remit.presentation.settings.SettingsScreen
 import com.asterixorobelix.remit.presentation.webview.WebViewScreen
@@ -54,8 +58,16 @@ private data class TabSpec(
 )
 
 private fun AppRoute.tabSpec(): TabSpec? = when (this) {
-    AppRoute.Home -> TabSpec(Res.string.screen_home_title, Icons.Filled.Home, Icons.Outlined.Home)
+    AppRoute.Home -> TabSpec(
+        Res.string.screen_send_title,
+        Icons.AutoMirrored.Filled.Send,
+        Icons.AutoMirrored.Outlined.Send,
+    )
+
+    AppRoute.History -> TabSpec(Res.string.screen_history_title, Icons.Filled.History, Icons.Outlined.History)
+
     AppRoute.Settings -> TabSpec(Res.string.screen_settings_title, Icons.Filled.Settings, Icons.Outlined.Settings)
+
     else -> null
 }
 
@@ -143,7 +155,13 @@ private fun NavGraphBuilder.tabGraph(navController: NavHostController, features:
         enterTransition = { fadeIn(tween(TAB_FADE_MS)) },
         exitTransition = { fadeOut(tween(TAB_FADE_MS)) },
     ) {
-        HomeScreen()
+        SendPaymentScreen(onViewHistory = { navController.navigateToTab(AppRoute.History) })
+    }
+    composable<AppRoute.History>(
+        enterTransition = { fadeIn(tween(TAB_FADE_MS)) },
+        exitTransition = { fadeOut(tween(TAB_FADE_MS)) },
+    ) {
+        PaymentHistoryScreen()
     }
     composable<AppRoute.Settings>(
         enterTransition = { fadeIn(tween(TAB_FADE_MS)) },

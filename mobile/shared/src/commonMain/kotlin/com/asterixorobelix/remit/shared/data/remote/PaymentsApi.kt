@@ -6,6 +6,7 @@ import com.asterixorobelix.remit.shared.domain.repository.SendPaymentResult
 import com.asterixorobelix.remit.shared.domain.validation.ValidationError
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.HttpRequestTimeoutException
+import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.header
 import io.ktor.client.request.post
@@ -25,6 +26,14 @@ fun interface ApiEndpoint {
     fun baseUrl(): String
 }
 
+/**
+ * Lets the host app add its own request options, such as opting the payment POST in to automatic
+ * retries: safe here because every attempt carries the same idempotency key.
+ */
+fun interface PaymentRequestConfigurer {
+    fun configure(request: HttpRequestBuilder)
+}
+
 interface PaymentsApi {
     suspend fun createPayment(request: PaymentRequest, idempotencyKey: String, idToken: String): SendPaymentResult
 }
@@ -37,6 +46,7 @@ interface PaymentsApi {
 class KtorPaymentsApi(
     private val client: HttpClient,
     private val endpoint: ApiEndpoint,
+    private val configurer: PaymentRequestConfigurer = PaymentRequestConfigurer { },
 ) : PaymentsApi {
     override suspend fun createPayment(
         request: PaymentRequest,
@@ -47,6 +57,7 @@ class KtorPaymentsApi(
             header(IDEMPOTENCY_KEY_HEADER, idempotencyKey)
             bearerAuth(idToken)
             setBody(TextContent(json.encodeToString(request.toDto()), ContentType.Application.Json))
+            configurer.configure(this)
         }.toResult()
     } catch (expected: HttpRequestTimeoutException) {
         SendPaymentResult.Failed(PaymentFailure.TIMEOUT)

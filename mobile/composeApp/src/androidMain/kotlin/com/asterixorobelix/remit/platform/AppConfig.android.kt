@@ -33,6 +33,9 @@ class AndroidAppConfig : AppConfig {
 
     override val crashReportingEnabled: Boolean =
         BuildConfig.CRASH_REPORTING_ENABLED
+
+    override val firebaseEmulatorHost: String? =
+        BuildConfig.FIREBASE_EMULATOR_HOST.takeIf { BuildConfig.DEBUG && it.isNotBlank() }
 }
 
 /**

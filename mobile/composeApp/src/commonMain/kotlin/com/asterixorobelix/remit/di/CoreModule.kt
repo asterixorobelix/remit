@@ -12,7 +12,6 @@ import com.asterixorobelix.remit.domain.developer.ResetDevelopmentStateUseCase
 import com.asterixorobelix.remit.domain.developer.SetApiBaseUrlOverrideUseCase
 import com.asterixorobelix.remit.domain.feedback.BuildFeedbackEmailUseCase
 import com.asterixorobelix.remit.domain.feedback.ValidateFeedbackUseCase
-import com.asterixorobelix.remit.domain.home.GetDayPeriodUseCase
 import com.asterixorobelix.remit.domain.settings.AppSettingsRepository
 import com.asterixorobelix.remit.domain.settings.CompleteOnboardingUseCase
 import com.asterixorobelix.remit.domain.settings.MarkReviewRequestedUseCase
@@ -36,7 +35,6 @@ import com.asterixorobelix.remit.presentation.app.AppLaunchUseCases
 import com.asterixorobelix.remit.presentation.app.AppViewModel
 import com.asterixorobelix.remit.presentation.developer.DeveloperViewModel
 import com.asterixorobelix.remit.presentation.feedback.FeedbackViewModel
-import com.asterixorobelix.remit.presentation.home.HomeViewModel
 import com.asterixorobelix.remit.presentation.onboarding.OnboardingViewModel
 import com.asterixorobelix.remit.presentation.settings.SettingsViewModel
 import org.koin.core.module.Module
@@ -74,7 +72,6 @@ internal val coreFeaturesModule = module {
     factoryOf(::RecordAppOpenUseCase)
     factoryOf(::MarkReviewRequestedUseCase)
     factoryOf(::ResolveStartDestinationUseCase)
-    factoryOf(::GetDayPeriodUseCase)
     factoryOf(::ValidateFeedbackUseCase)
     factoryOf(::BuildFeedbackEmailUseCase)
     factoryOf(::GetApiBaseUrlOverrideUseCase)
@@ -84,7 +81,6 @@ internal val coreFeaturesModule = module {
     factoryOf(::AppLaunchUseCases)
     // The force-update check exists only with the backend capability.
     viewModel { AppViewModel(get(), get(), get(), getOrNull()) }
-    viewModelOf(::HomeViewModel)
     viewModelOf(::OnboardingViewModel)
     viewModelOf(::SettingsViewModel)
     viewModelOf(::FeedbackViewModel)

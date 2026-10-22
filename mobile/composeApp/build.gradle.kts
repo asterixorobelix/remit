@@ -84,6 +84,7 @@ kotlin {
             implementation(libs.sqlDelight.androidDriver)
         }
         commonMain.dependencies {
+            implementation(project(":shared"))
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material3)
@@ -198,6 +199,13 @@ android {
                 "API_BASE_URL",
                 "\"${getAppProperty("API_BASE_URL_DEBUG")}\"",
             )
+            // Debug only: FIREBASE_EMULATOR_HOST in local.properties or the environment (10.0.2.2 from
+            // the Android emulator) points Auth and Firestore at the local Firebase Emulator Suite.
+            buildConfigField(
+                "String",
+                "FIREBASE_EMULATOR_HOST",
+                "\"${getLocalProperty("FIREBASE_EMULATOR_HOST", "")}\"",
+            )
             buildConfigField("boolean", "ANALYTICS_ENABLED", "false")
             buildConfigField("boolean", "CRASH_REPORTING_ENABLED", "false")
         }
@@ -210,6 +218,7 @@ android {
                 "API_BASE_URL",
                 "\"${getAppProperty("API_BASE_URL_RELEASE")}\"",
             )
+            buildConfigField("String", "FIREBASE_EMULATOR_HOST", "\"\"")
             buildConfigField("boolean", "ANALYTICS_ENABLED", "true")
             buildConfigField("boolean", "CRASH_REPORTING_ENABLED", "true")
         }
@@ -219,6 +228,7 @@ android {
     buildTypes.create("staging") {
         initWith(buildTypes.getByName("debug"))
         buildConfigField("String", "ENVIRONMENT", "\"staging\"")
+        buildConfigField("String", "FIREBASE_EMULATOR_HOST", "\"\"")
         buildConfigField(
             "String",
             "API_BASE_URL",
@@ -264,6 +274,8 @@ android {
 
 dependencies {
     debugImplementation(libs.compose.ui.tooling)
+    // One coverage report and floor for the app, including the shared payments module.
+    kover(project(":shared"))
     // Compose-specific detekt rules (the "Compose" rule set in detekt-mobile.yml).
     detektPlugins(libs.compose.rules.detekt)
 }

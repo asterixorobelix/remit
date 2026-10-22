@@ -6,12 +6,35 @@ Scope: `mobile/**`. Read `../docs/AI_AGENT_GUIDE.md` for the cross-stack behavio
 
 | Target | Entry point |
 |---|---|
+| Payments logic (KMP, no UI) | `shared/src/commonMain/kotlin/com/asterixorobelix/remit/shared` |
 | Shared UI/domain/data | `composeApp/src/commonMain/kotlin/com/asterixorobelix/remit` |
 | Android app | `androidApp`, `MainActivity`, `RemitApplication` |
 | iOS app | `iosApp/iosApp/iOSApp.swift`, shared `MainViewController.kt` |
 | Desktop gallery | `composeApp/src/desktopMain/.../ComponentGallery.kt` |
 
-Build Android with `:androidApp:*`; `composeApp` is the shared library, not the APK.
+Build Android with `:androidApp:*`; `composeApp` is the shared library, not the APK. `shared`
+holds the payments domain, validation, use cases, API client, and Firebase (expect/actual) with
+no Compose dependency, so a SwiftUI or desktop app could use it as is.
+
+## Payments (`shared` + `composeApp/presentation/payments`)
+
+- Money is `Money(minorUnits: Long, currency)`; never `Double`. `DecimalAmount.parse` reads typed
+  or JSON text exactly. `PaymentValidator` must agree with the backend's: both run
+  `../testdata/payment-validation-cases.json`; extend it when a rule changes.
+- `SendPaymentUseCase` serializes sends and keeps one idempotency key per payment
+  (`IdempotencyKeys`): a retry or double tap reuses it; `startNewPayment()` (after success) or an
+  edited draft gets a new one. The POST opts in to `allowRetry()` through
+  `PaymentRequestConfigurer`, which is safe only because of that key.
+- `KtorPaymentsApi` maps every outcome to `SendPaymentResult`; `PaymentRepositoryImpl` refreshes
+  an expired Firebase ID token once under the same key. The app never writes to Firestore; the
+  backend does, and History listens (`platformPaymentHistorySource`, a snapshot listener on
+  Android; iOS and desktop fail clearly).
+- Firebase: anonymous auth. Debug builds use the Firebase emulators when `FIREBASE_EMULATOR_HOST`
+  is set in `local.properties` (`10.0.2.2` from the Android emulator; `make emulators` and
+  `make backend-emulated` at the root).
+- Test tags in `PaymentTestTags` are exposed as Android resource ids (`MainActivity`) for Appium;
+  keep them stable.
+- Kover: `shared` has its own 90% floor and is merged into `composeApp`'s report.
 
 ## Runtime composition
 
@@ -35,8 +58,7 @@ Build Android with `:androidApp:*`; `composeApp` is the shared library, not the 
 
 ## App shell
 
-- Tabs: Home (a placeholder greeting, to be replaced by the app's main feature) and
-  Settings, each with its own back stack.
+- Tabs: Send (the `AppRoute.Home` route), History, and Settings, each with its own back stack.
 - Settings: theme, feedback, rate the app, privacy/terms (in-app web view), version, and
   debug-only Developer tools (validated API URL override and a reset of onboarding and
   local settings).

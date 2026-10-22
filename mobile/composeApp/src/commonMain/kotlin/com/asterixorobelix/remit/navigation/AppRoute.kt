@@ -11,6 +11,9 @@ sealed interface AppRoute {
     data object Home : AppRoute
 
     @Serializable
+    data object History : AppRoute
+
+    @Serializable
     data object Settings : AppRoute
 
     @Serializable

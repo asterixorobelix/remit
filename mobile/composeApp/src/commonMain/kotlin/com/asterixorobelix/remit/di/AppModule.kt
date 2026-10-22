@@ -17,5 +17,6 @@ fun appModules(config: AppConfig, platformModule: Module): List<Module> = buildL
     add(coreFeaturesModule)
     add(platformModule)
     if (Capability.BACKEND in capabilities) add(backendModule)
+    addAll(paymentsModules(config))
     // create-feature:modules
 }

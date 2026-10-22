@@ -154,5 +154,22 @@ class KtorPaymentsApiTest {
         assertEquals(true, PaymentFailure.TIMEOUT.retryable && PaymentFailure.NETWORK.retryable)
     }
 
+    @Test
+    fun hostAppCanConfigureThePaymentRequest() = runTest {
+        val api = KtorPaymentsApi(
+            HttpClient(
+                MockEngine { request ->
+                    requests += request
+                    json(HttpStatusCode.Created, created)
+                },
+            ),
+            ApiEndpoint { "https://api.example.test" },
+            PaymentRequestConfigurer { it.headers.append("X-Retry-Allowed", "true") },
+        )
+        send(api)
+        assertEquals("true", requests.single().headers["X-Retry-Allowed"])
+        assertEquals("https://api.example.test/api/v1/payments", requests.single().url.toString())
+    }
+
     private fun failed(reason: PaymentFailure) = SendPaymentResult.Failed(reason)
 }

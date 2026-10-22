@@ -34,6 +34,13 @@ interface AppConfig {
     /** Application package/bundle identifier */
     val applicationId: String
 
+    /**
+     * Debug builds only: the host of a local Firebase Emulator Suite (for example `10.0.2.2` from
+     * the Android emulator). Null means the real Firebase project.
+     */
+    val firebaseEmulatorHost: String?
+        get() = null
+
     /** Whether analytics collection is enabled */
     val analyticsEnabled: Boolean
         get() = environment != Environment.DEVELOPMENT

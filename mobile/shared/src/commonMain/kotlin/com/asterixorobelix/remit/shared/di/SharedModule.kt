@@ -5,6 +5,7 @@ import com.asterixorobelix.remit.shared.data.PaymentRepositoryImpl
 import com.asterixorobelix.remit.shared.data.auth.platformAuthSession
 import com.asterixorobelix.remit.shared.data.history.platformPaymentHistorySource
 import com.asterixorobelix.remit.shared.data.remote.KtorPaymentsApi
+import com.asterixorobelix.remit.shared.data.remote.PaymentRequestConfigurer
 import com.asterixorobelix.remit.shared.data.remote.PaymentsApi
 import com.asterixorobelix.remit.shared.domain.repository.PaymentRepository
 import com.asterixorobelix.remit.shared.domain.usecase.IdempotencyKeys
@@ -21,13 +22,16 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 /**
- * The payments feature for any host app. The host provides an `HttpClient` and an `ApiEndpoint`;
- * everything else, including the platform Firebase pieces, comes from here.
+ * The payments feature for any host app. The host provides an `HttpClient` and an `ApiEndpoint`,
+ * and optionally a `PaymentRequestConfigurer`; everything else, including the platform Firebase
+ * pieces, comes from here.
  */
 fun paymentsModule(firebase: FirebaseSettings): Module = module {
     single { platformAuthSession(firebase) }
     single { platformPaymentHistorySource(firebase) }
-    singleOf(::KtorPaymentsApi) bind PaymentsApi::class
+    single<PaymentsApi> {
+        KtorPaymentsApi(get(), get(), getOrNull<PaymentRequestConfigurer>() ?: PaymentRequestConfigurer { })
+    }
     singleOf(::PaymentRepositoryImpl) bind PaymentRepository::class
     factoryOf(::PaymentValidator)
     factory { IdempotencyKeys(::newIdempotencyKey) }

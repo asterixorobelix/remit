@@ -23,6 +23,7 @@ fun AppRoute.isAvailable(features: NavigationFeatures): Boolean = when (this) {
 
     AppRoute.Onboarding,
     AppRoute.Home,
+    AppRoute.History,
     AppRoute.Settings,
     AppRoute.Feedback,
     is AppRoute.WebView,
@@ -30,6 +31,6 @@ fun AppRoute.isAvailable(features: NavigationFeatures): Boolean = when (this) {
     -> true
 }
 
-/** Bottom-bar tabs in display order. */
+/** Bottom-bar tabs in display order. Home is the Send screen. */
 fun NavigationFeatures.tabs(): List<AppRoute> =
-    listOf(AppRoute.Home, AppRoute.Settings).filter { it.isAvailable(this) }
+    listOf(AppRoute.Home, AppRoute.History, AppRoute.Settings).filter { it.isAvailable(this) }
