@@ -7,6 +7,7 @@ import com.asterixorobelix.remit.shared.data.remote.CreatePaymentRequestDto
 import com.asterixorobelix.remit.shared.data.remote.ErrorResponseDto
 import com.asterixorobelix.remit.shared.data.remote.KtorPaymentsApi
 import com.asterixorobelix.remit.shared.data.remote.PaymentResponseDto
+import com.asterixorobelix.remit.shared.domain.model.PaymentRequest
 import com.asterixorobelix.remit.shared.domain.validation.PaymentDraft
 import com.asterixorobelix.remit.shared.domain.validation.PaymentValidator
 import com.asterixorobelix.remit.shared.domain.validation.ValidationResult
@@ -70,11 +71,14 @@ class TestAuthSession(var uid: String = "user-a") : AuthSession {
 /**
  * The payments API as an HTTP fake behind Ktor's MockEngine, so scenarios exercise the real client:
  * JSON with an exact amount, the Idempotency-Key header, and status code handling. Like the real
- * backend it validates, records each key once per user, and writes the payment to Firestore.
+ * backend it validates, records each key once per user (a replay of the same payment returns the
+ * original; a different payment under that key is 409), and writes the payment to Firestore.
  */
 class FakePaymentsBackend(private val firestore: FakeFirestore) {
     private val json = Json { ignoreUnknownKeys = true }
-    private val processed = mutableMapOf<Pair<String, String>, Pair<String, PaymentResponseDto>>()
+
+    /** Per (user, key): the payment's fingerprint, as the server compares it, and the response. */
+    private val processed = mutableMapOf<Pair<String, String>, Pair<Fingerprint, PaymentResponseDto>>()
 
     val requests = mutableListOf<Pair<String, CreatePaymentRequestDto>>()
     var timeoutAfterProcessingOnce = false
@@ -82,18 +86,18 @@ class FakePaymentsBackend(private val firestore: FakeFirestore) {
     fun handle(scope: MockRequestHandleScope, request: HttpRequestData): HttpResponseData {
         val uid = request.headers[HttpHeaders.Authorization]?.removePrefix("Bearer token-").orEmpty()
         val key = request.headers[KtorPaymentsApi.IDEMPOTENCY_KEY_HEADER].orEmpty()
-        val body = (request.body as TextContent).text
-        val dto = json.decodeFromString<CreatePaymentRequestDto>(body)
+        val dto = json.decodeFromString<CreatePaymentRequestDto>((request.body as TextContent).text)
         requests += key to dto
-        val response = processed[uid to key]?.let { (originalBody, original) ->
-            if (originalBody ==
-                body
-            ) {
-                scope.json(HttpStatusCode.Created, json.encodeToString(original), replayed = true)
-            } else {
-                null
+        val response = when (
+            val validation = PaymentValidator().validate(PaymentDraft(dto.recipientEmail, dto.amount, dto.currency))
+        ) {
+            is ValidationResult.Invalid -> {
+                val error = ErrorResponseDto("Invalid payment", "VALIDATION_FAILED", validation.errors.map { it.name })
+                scope.json(HttpStatusCode.BadRequest, json.encodeToString(error))
             }
-        } ?: process(scope, uid, key, body, dto)
+
+            is ValidationResult.Valid -> record(scope, uid, key, validation.request)
+        }
         if (timeoutAfterProcessingOnce) {
             timeoutAfterProcessingOnce = false
             throw HttpRequestTimeoutException(request.url.toString(), TIMEOUT_MILLIS)
@@ -101,25 +105,22 @@ class FakePaymentsBackend(private val firestore: FakeFirestore) {
         return response
     }
 
-    private fun process(
+    private fun record(
         scope: MockRequestHandleScope,
         uid: String,
         key: String,
-        body: String,
-        dto: CreatePaymentRequestDto,
+        request: PaymentRequest,
     ): HttpResponseData {
-        val validation = PaymentValidator().validate(PaymentDraft(dto.recipientEmail, dto.amount, dto.currency))
-        if (validation is ValidationResult.Invalid) {
-            val error = ErrorResponseDto("Invalid payment", "VALIDATION_FAILED", validation.errors.map { it.name })
-            return scope.json(HttpStatusCode.BadRequest, json.encodeToString(error))
+        val fingerprint = Fingerprint(request.recipient.value, request.amount.minorUnits, request.amount.currency.code)
+        processed[uid to key]?.let { (original, payment) ->
+            return if (original == fingerprint) {
+                scope.json(HttpStatusCode.Created, json.encodeToString(payment), replayed = true)
+            } else {
+                val error = ErrorResponseDto("Idempotency-Key was already used", "IDEMPOTENCY_KEY_REUSED")
+                scope.json(HttpStatusCode.Conflict, json.encodeToString(error))
+            }
         }
-        val request = (validation as ValidationResult.Valid).request
-        val record = firestore.record(
-            uid,
-            request.recipient.value,
-            request.amount.minorUnits,
-            request.amount.currency.code,
-        )
+        val record = firestore.record(uid, fingerprint.recipient, fingerprint.amountMinor, fingerprint.currency)
         val payment = PaymentResponseDto(
             id = record.id,
             recipientEmail = request.recipient.value,
@@ -128,9 +129,12 @@ class FakePaymentsBackend(private val firestore: FakeFirestore) {
             status = "COMPLETED",
             createdAt = Instant.fromEpochMilliseconds(checkNotNull(record.createdAtEpochMillis)).toString(),
         )
-        processed[uid to key] = body to payment
+        processed[uid to key] = fingerprint to payment
         return scope.json(HttpStatusCode.Created, json.encodeToString(payment))
     }
+
+    /** What makes two requests the same payment on the server: normalized recipient, cents, currency. */
+    private data class Fingerprint(val recipient: String, val amountMinor: Long, val currency: String)
 
     private fun MockRequestHandleScope.json(status: HttpStatusCode, body: String, replayed: Boolean = false) =
         respond(

@@ -36,6 +36,16 @@ Feature: Send a payment
     Then the payment is accepted
     And exactly 1 payment to "carol@example.com" is recorded
 
+  Scenario: Changing the details after a failure sends them as a new payment
+    Given the payments API times out once after processing the payment
+    And I enter a payment of "25" "EUR" to "frank@example.com"
+    When I submit the payment
+    Then the payment fails with "TIMEOUT"
+    When I change the amount to "30"
+    And I submit the payment again
+    Then the payment is accepted
+    And exactly 2 payments to "frank@example.com" are recorded
+
   Scenario: A payment interrupted by the app closing is finished safely after reopening
     Given the payments API times out once after processing the payment
     And I enter a payment of "40" "USD" to "erin@example.com"

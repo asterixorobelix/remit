@@ -101,6 +101,11 @@ class PaymentSteps {
         draft = PaymentDraft(recipient, amount, currency)
     }
 
+    @When("I change the amount to {string}")
+    fun changeAmount(amount: String) {
+        draft = checkNotNull(draft) { "No payment entered" }.copy(amount = amount)
+    }
+
     @Given("the payments API times out once after processing the payment")
     fun timeoutOnce() {
         backend.timeoutAfterProcessingOnce = true
