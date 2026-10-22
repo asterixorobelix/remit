@@ -4,13 +4,13 @@ Full-stack Kotlin app template: Compose Multiplatform/KMP client plus Ktor backe
 
 For current functionality and source locations, read [AGENTS.md](AGENTS.md) and
 [docs/AI_AGENT_GUIDE.md](docs/AI_AGENT_GUIDE.md). Those documents are authoritative;
-do not assume authentication, offline storage, or release automation are placeholders.
+do not assume release automation is a placeholder.
 
 ## Start and iterate
 
 ```bash
 ./setup.sh --name Focus --package dev.example.focus \
-  --features auth,offline,backend --dry-run
+  --features backend --dry-run
 make doctor
 make check
 make ui
@@ -22,7 +22,7 @@ features such as Share app, endpoints, legal links, GitHub secrets, and store se
 items are reminders, not implemented features. When the user asks what is left before
 launch, start from that checklist and `make doctor` (which lists missing release secrets).
 
-`app.properties` is the single identity/version/endpoint/capability/product source.
+`app.properties` is the single identity/version/endpoint/capability source.
 Use `setup.sh` for package renaming, `bump-version.sh` for versions, and
 `scripts/sync-app-config.sh` after editing `app.properties` (it mirrors the iOS xcconfig).
 
@@ -31,10 +31,10 @@ Use `setup.sh` for package renaming, `bump-version.sh` for versions, and
 | Path | Purpose |
 |---|---|
 | `mobile/` | Android, iOS, desktop gallery, shared domain/data/UI |
-| `backend/` | Ktor, JWT, Exposed, Flyway, PostgreSQL/H2 |
+| `backend/` | Ktor API (health, status, remote config), OpenAPI spec, Dockerfile |
 | `scripts/` | Doctor, config sync, resource checks, initializer and feature generator tests |
 | `.github/workflows/` | CI, device smoke, CodeQL, transactional Mobile CD |
-| `docs/` | Workflow, releasing, Firebase, billing, and agent guides |
+| `docs/` | Workflow, releasing, Firebase, and agent guides; privacy/terms templates |
 
 Read `mobile/AGENTS.md` or `backend/AGENTS.md` before editing that module.
 

@@ -28,8 +28,8 @@ flag these project rules (AGENTS.md):
   StateFlow, events up and state down, one-time effects through a Channel.
 - No literal user-facing strings, colors, or dimensions in UI code: stringResource, MaterialTheme,
   Dimens. Interactive and image elements need contentDescription.
-- Database changes need migrations (Flyway V<n>__*.sql, SQLDelight .sqm); applied migrations must
-  never be edited.
+- Mobile database changes need SQLDelight .sqm migrations; applied migrations must never be
+  edited.
 - New logic needs ViewModel and use-case tests; tests must assert behavior, not just run code.
 - Auth, tokens, and secrets: never log or commit them; validate input at API boundaries.
 - Workflows: actions pinned to commit SHAs, least-privilege permissions, timeout-minutes, path

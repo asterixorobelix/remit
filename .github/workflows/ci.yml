@@ -232,8 +232,8 @@ jobs:
           scripts/ci/patch-coverage.sh HEAD^1 backend/build/reports/kover/report.xml
           backend/src/main/kotlin
 
-      # Builds the production image and checks it starts and reports healthy (development
-      # mode with in-memory H2, since production mode rejects placeholder configuration).
+      # Builds the production image and checks that it starts and reports healthy (run in
+      # development mode, as docker-compose does).
       - name: Build and smoke-test the Docker image
         if: needs.template.outputs.image == 'true'
         working-directory: .

@@ -44,33 +44,17 @@ whether the iOS xcconfig matches `app.properties`.
 - **Kotlin changes not picked up:** the Xcode build phase runs
   `./gradlew :composeApp:embedAndSignAppleFrameworkForXcode`. Clean the build folder
   (⇧⌘K) if Xcode keeps an old framework.
-- **Signed out on every launch / login does not stick (simulator):** the session lives in the
-  Keychain, which needs a signed app. Builds with `CODE_SIGNING_ALLOWED=NO` (`make ios-app`,
-  a compile gate) cannot store it. Run from Xcode, which signs simulator builds locally.
 - **Debug vs Release endpoints:** Debug uses `http://localhost:8085` and shows Developer
   tools. Release (TestFlight/App Store) uses `API_BASE_URL_RELEASE` and hides them.
 - **Signing errors in CI:** run `bundle exec fastlane ios certificates` locally once to
   seed Match, and check the secrets in [docs/RELEASING.md](docs/RELEASING.md).
-- **`iosSimulatorArm64Test` fails to link:** maplibre-compose needs `MapLibre.framework`
-  from the Xcode SPM package; run iOS tests through Xcode.
 
 ## Backend
 
-- **Exits at startup listing configuration problems:** it defaults to production. Locally,
-  use `make backend-h2`, `./gradlew run`, or `APP_ENVIRONMENT=development`. In production,
-  set a real `JWT_SECRET` (32+ chars, `openssl rand -base64 48`), `JWT_ISSUER`,
-  `JWT_AUDIENCE`, and a PostgreSQL `DATABASE_URL`.
+- **`Unsupported application environment` at startup:** set `APP_ENVIRONMENT` to
+  `development`, `staging`, or `production`; unset means production. Locally, `make backend`
+  and `./gradlew run` set `development`.
 - **Port 8085 in use:** `lsof -i :8085`, stop that process or set `PORT`.
-- **Everyone gets 401 after an upgrade:** refresh tokens are single-use and stored
-  server-side. Tokens issued before that change, or reused after rotation, are rejected.
-  Users sign in again.
-- **429 on login/refresh:** rate limits are per client IP. Behind a proxy set
-  `TRUSTED_PROXY_HOPS` to the number of proxies; set `RATE_LIMITING_ENABLED=false` only
-  for local load tests.
-- **Flyway checksum or validation errors:** never edit a migration that has run
-  anywhere. Add the next `Vn__*.sql`. Locally, `make db-reset` recreates PostgreSQL.
-- **PostgreSQL connection refused:** `make db` (needs Docker), then `make backend`.
-  `docker compose logs db` shows startup errors.
 
 ## Mobile database
 

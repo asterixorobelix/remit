@@ -35,17 +35,11 @@
 /setup.sh                                          @asterixorobelix
 /gradle/libs.versions.toml                         @asterixorobelix
 
-# Data that cannot be rolled back: database migrations and schemas.
-/backend/src/main/resources/db/                    @asterixorobelix
+# Data that cannot be rolled back: mobile database migrations and schemas.
 /mobile/composeApp/src/commonMain/sqldelight/      @asterixorobelix
 
 # Security-sensitive code, permissions, and privacy declarations.
-/backend/src/main/kotlin/**/plugins/Security.kt    @asterixorobelix
-/backend/src/main/kotlin/**/service/AuthService.kt @asterixorobelix
-/backend/src/main/kotlin/**/service/JwtTokens.kt   @asterixorobelix
-/backend/src/main/kotlin/**/routes/AuthRoutes.kt   @asterixorobelix
 /backend/src/main/kotlin/**/configuration/         @asterixorobelix
-/mobile/composeApp/src/commonMain/kotlin/**/auth/  @asterixorobelix
 /mobile/androidApp/src/main/AndroidManifest.xml    @asterixorobelix
 /mobile/androidApp/proguard-rules.pro              @asterixorobelix
 /mobile/iosApp/iosApp/Info.plist                   @asterixorobelix

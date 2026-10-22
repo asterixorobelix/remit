@@ -28,8 +28,6 @@ updates:
         patterns: ["com.android*", "androidx.*"]
       ktor:
         patterns: ["io.ktor*"]
-      exposed-and-db:
-        patterns: ["org.jetbrains.exposed*", "org.flywaydb*", "org.postgresql*", "com.h2database*"]
       testing:
         patterns: ["*junit*", "io.mockk*", "app.cash.turbine*"]
       # Everything else that is not a major version bump.

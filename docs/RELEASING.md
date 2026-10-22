@@ -165,7 +165,7 @@ Local lanes that bump the version edit `app.properties` and the iOS xcconfig thr
 
 `scripts/protect-main.sh` (`make protect-main`) protects `main` for AI-agent pull requests:
 every CI job and the AI review must pass, every review thread must be resolved, pull
-requests touching `.github/CODEOWNERS` paths (workflows, Fastlane, migrations, auth,
-permissions) need the owner's approval, and force pushes and deletion are blocked. It also
+requests touching `.github/CODEOWNERS` paths (workflows, Fastlane, database schemas,
+backend configuration, permissions) need the owner's approval, and force pushes and deletion are blocked. It also
 enables auto-merge, so an agent can run `gh pr merge --auto --squash`. Admins can still
 push directly. Requires an authenticated `gh`.

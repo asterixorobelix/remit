@@ -34,42 +34,35 @@ sheet is not proof that someone completed a share.
 
 ## Replace app-specific defaults
 
-- [ ] Choose capabilities in `app.properties` and delete code for ones the app will
-      never use (including the maps SPM package and location permissions below).
+- [ ] Choose capabilities (`backend`, `firebase`) in `app.properties` and delete code
+      for ones the app will never use.
 - [ ] Set `API_BASE_URL_STAGING` and `API_BASE_URL_RELEASE` in `app.properties`, then
-      `scripts/sync-app-config.sh`. Verify auth and offline sync against them.
+      `scripts/sync-app-config.sh`. Verify staging and release builds against them.
 - [ ] Replace placeholder string resources in `composeResources/values/strings.xml`:
       `support_email` (Feedback opens the mail app), `app_store_id` (force update on
       iOS), `settings_privacy_url`, and `settings_terms_url`.
-- [ ] Replace onboarding copy, paywall copy, branding, colors, and icons.
-- [ ] **Password reset:** the backend has no reset endpoint and the template ships no
-      reset screen. Add both (email provider, expiring single-use tokens) or state
-      how users recover accounts.
-- [ ] Implement real search and notification sources if the app keeps those screens
-      (defaults: search over local Tasks, empty notifications).
+- [ ] Replace the placeholder Home screen, onboarding copy, branding, colors, and icons.
 - [ ] Set `minVersion` for force updates in the backend `/api/v1/config` when needed.
-- [ ] Configure billing products and test purchases, restores, and pending purchases
-      if billing is enabled ([docs/BILLING_TESTING.md](docs/BILLING_TESTING.md)).
-- [ ] Verify sign-out, account deletion (required by App Store guideline 5.1.1(v)),
-      and session expiry on both platforms.
 - [ ] Verify light/dark themes, accessibility, localization, and offline/error states.
+- [ ] Template leftovers that nothing in the app reads: `PLAY_BILLING_PRODUCT` and
+      `IOS_BILLING_PRODUCT` in `app.properties` (mirrored into the iOS xcconfig), and the
+      `auth`, `offline`, `maps`, and `billing` capability names that `setup.sh` still
+      accepts. Remove them together with `scripts/sync-app-config.sh` and
+      `scripts/test-initializer.sh`.
 
 ## Privacy, permissions, and legal
 
-- [ ] Remove location permissions from `androidApp/src/main/AndroidManifest.xml` and
-      `NSLocationWhenInUseUsageDescription` from `iosApp/iosApp/Info.plist` if the app
-      does not use maps.
-- [ ] Update `iosApp/iosApp/PrivacyInfo.xcprivacy` collected data types (email, name,
-      diagnostics, location as applicable) and complete Play's Data safety form.
+- [ ] Update `iosApp/iosApp/PrivacyInfo.xcprivacy` collected data types (diagnostics and
+      whatever the app's features collect) and complete Play's Data safety form.
 - [ ] Host the privacy policy and terms (templates in `docs/`) and link them in the stores.
 - [ ] Choose a license for the repository if it will be public.
 
 ## Backend deployment
 
-- [ ] Set `JWT_SECRET`, `JWT_ISSUER`, `JWT_AUDIENCE`, `DATABASE_URL`, and `CORS_ALLOWED_HOSTS`
-      in the hosting platform ([backend/README.md](backend/README.md)). The server
-      refuses to start in production with unsafe values.
-- [ ] Point `/health` (liveness) and `/ready` (readiness) at the platform's checks.
+- [ ] Configure the hosting platform ([backend/README.md](backend/README.md#deploy)): keep
+      `APP_ENVIRONMENT=production`, set `TRUSTED_PROXY_HOPS` to the number of proxies in
+      front of the API, and `CORS_ALLOWED_HOSTS` only if browser clients call it.
+- [ ] Point the platform's liveness check at `/health`.
 
 ## GitHub, CI, and store delivery
 

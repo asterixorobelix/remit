@@ -37,7 +37,7 @@ else
 fi
 
 if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then ok docker 'docker compose available'
-else optional docker 'local PostgreSQL (make db); make backend-h2 works without it'; fi
+else optional docker 'backend container (docker compose up); make backend works without it'; fi
 tool bundle optional 'Fastlane store releases (cd mobile && bundle install)'
 tool gh optional 'GitHub automation (scripts/protect-main.sh)'
 # Lint and hook tools (make bootstrap installs them from the Brewfile).

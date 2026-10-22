@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Builds the Debug app for the booted iOS simulator (booting an iPhone if none is), then
-# installs and launches it. The build is unsigned, so Keychain-backed sign-in does not persist;
-# use Xcode for signed runs. Usage: scripts/ios-run.sh [simulator name or UDID]
+# installs and launches it. The build is unsigned; use Xcode for signed runs.
+# Usage: scripts/ios-run.sh [simulator name or UDID]
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUNDLE_ID="$(awk -F= '$1=="PACKAGE_NAME" { print $2 }' "$ROOT/app.properties")"

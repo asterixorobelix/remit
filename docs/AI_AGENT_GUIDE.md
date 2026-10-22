@@ -13,78 +13,43 @@ app.properties ──┬─ Android BuildConfig / desktop system properties (rea
 
 Compose UI → ViewModel → Use Case → Domain Repository
                                       ↓ implementation
-                           SQLDelight cache + Ktor client
+                              SQLDelight + Ktor client
                                       ↓
-                         Ktor routes → service → Exposed → PostgreSQL/H2
+                              Ktor routes → service
 ```
 
 `app.properties` is authoritative for the app name, package, semantic and integer versions,
-API endpoints, capabilities, and store product IDs. Never hand-edit the synced xcconfig
-keys; run `scripts/sync-app-config.sh`. `--check` runs in CI, doctor, and pre-commit.
+API endpoints, and capabilities. Never hand-edit the synced xcconfig keys; run
+`scripts/sync-app-config.sh`. `--check` runs in CI, doctor, and pre-commit.
 
 ## Capability model
 
-`FEATURES` accepts `minimal`, `auth`, `offline`, `backend`, `maps`, `billing`, and `firebase`.
-The default is `auth,offline,backend`. Capabilities control Koin composition and which
+`FEATURES` lists the optional capabilities, `backend` and `firebase`; unknown values
+(including `minimal`) are ignored. Capabilities control Koin composition and which
 navigation routes exist (`navigation/NavigationFeatures.kt`). They do not remove source
 files or Gradle dependencies.
 
 | Capability | Working behavior | Main source |
 |---|---|---|
-| Core | Theme, preferences, navigation shell, settings, gallery | `di/AppModule.kt` |
-| `auth` | Register/login, rotating refresh, profile edit, sign-out, account deletion | `data/auth`, `presentation/profile` |
-| `offline` | Local-first Tasks; synced only when `auth` and `backend` are also enabled | `data/task`, `di/TaskModule.kt` |
-| `backend` | Server-backed features, force-update check via `/api/v1/config` | `presentation/app/AppViewModel.kt` |
-| `maps` | Map screen and location | `di/LocationModule.kt` |
-| `billing` | Play Billing 8 / StoreKit 2 premium repository and paywall | `di/PurchaseModule.kt` |
+| Core | Theme, preferences, onboarding, Home and Settings tabs, developer tools, gallery | `di/AppModule.kt` |
+| `backend` | Force-update check via `GET /api/v1/config` | `presentation/app/AppViewModel.kt` |
 | `firebase` | Android Crashlytics/Analytics when a real `google-services.json` exists | `androidApp/build.gradle.kts` |
 
 `NavigationGraphTest` (desktopTest) resolves every reachable ViewModel for several
 capability sets. Add new routes to it.
 
-## Authentication contract
-
-- Endpoints: `POST /api/v1/auth/register|login|refresh|logout`, `GET/PUT/DELETE /api/v1/users/me`.
-- Refresh tokens are single-use JWTs tracked server-side. Every refresh returns a new pair.
-  Reusing a rotated or logged-out token returns 401 and revokes all of that user's sessions.
-- The mobile client (`data/network/ApiHttpClient.kt`) attaches bearer tokens only to the
-  API origin, stores rotated tokens compare-and-set, and clears the session only when
-  `/refresh` returns 401/403. 429, 5xx, and offline errors keep the session.
-- Sign-out calls `/logout` (best effort), clears stored and Ktor-cached tokens, and wipes
-  user data (`UserDataCleaner`). Account deletion calls `DELETE /users/me`, then signs out.
-- Errors are always `{"error": "..."}`. Rate limits return 429 on auth routes.
-
-If DTO fields change, update mobile and backend together and keep route, ViewModel, and
-use-case tests passing.
-
-## Offline Tasks contract
-
-Tasks is the canonical vertical slice for data-backed features:
-
-1. `observeTasks()` reads SQLDelight and never blocks on the network.
-2. Create, toggle, and delete update the local row and enqueue a durable operation under
-   one write mutex. Deletes are tombstones.
-3. Sync sends only rows with queued changes, at most 500 per request, to
-   `POST /api/v1/tasks/sync`. Each batch commit removes only the operations it sent and
-   keeps rows edited while the request was in flight.
-4. The server keys rows by `(user_id, id)` and applies last-write-wins on `updatedAt`
-   with a conditional update, clamping client timestamps to at most 5 minutes ahead.
-5. Failures back off exponentially. The UI shows sync status, a typed error with retry,
-   and pull-to-refresh. Titles are capped at 240 characters on both sides.
-
 ## UI and extension points
 
-Implemented: onboarding and auth gating (start destination resolved once in
-`AppViewModel`), typed Compose Navigation with capability-gated routes, Material 3
-theming with `Dimens`, Home linked to real routes and recent tasks, Tasks, Search over
-local tasks, Profile, Settings, force update, and debug-only Developer tools (validated API
-override that applies immediately, plus a local reset).
+Implemented: onboarding (start destination resolved once in `AppViewModel`), typed
+Compose Navigation with capability-gated routes, Material 3 theming with `Dimens`, a
+placeholder Home tab (to be replaced by the app's main feature), Settings (theme, feedback,
+rate the app, privacy/terms in an in-app web view, version), force update, the in-app
+review prompt, and debug-only Developer tools (validated API override that applies
+immediately, plus a reset of onboarding and local settings).
 
-Honest defaults to replace per app, listed in `APP_CHECKLIST.md`: notifications
-(`EmptyNotificationsRepository`), feedback (opens mail to `support_email`), the
-`app_store_id` and privacy/terms URL string resources, and paywall copy. There is no
-password reset; the template removed its fake screen. Do not describe these as
-backend integrations.
+Honest defaults to replace per app, listed in `APP_CHECKLIST.md`: feedback (opens mail to
+`support_email`) and the `app_store_id` and privacy/terms URL string resources. Do not
+describe these as backend integrations.
 
 **Share app is an explicit per-app reminder in `APP_CHECKLIST.md`**, not an implemented
 feature.
@@ -109,11 +74,12 @@ feature.
 
 Every mobile request gets a fresh `X-Request-ID`. The backend accepts well-formed IDs,
 echoes them, and logs them via MDC in every line. Shared startup emits a release-health
-event with version, environment, and capabilities. Non-fatal error context redacts common
+event with the app version. Non-fatal error context redacts common
 secret fields. Keep PII and credentials out of logs.
 
-The backend defaults to production and fails fast on unsafe configuration. Local runs use
-`make backend-h2`, `make run`, or `./gradlew run`, which set development.
+The backend defaults to production (no Swagger UI, no CORS origins) and refuses to start
+with an unknown `APP_ENVIRONMENT`. `make backend`, `./gradlew run`, and docker-compose set
+development.
 
 ## CI, delivery, and infrastructure
 
@@ -153,7 +119,7 @@ The backend defaults to production and fails fast on unsafe configuration. Local
   secrets Mobile CD and Mobile Promote use (pull request workflows cannot read them).
 - `bump-version.sh`: updates `app.properties` and the xcconfig only. It never commits or tags.
 - `backend/Dockerfile` (production default, non-root, UTC) and root `docker-compose.yml`
-  (development + PostgreSQL on loopback). `/health` is liveness; `/ready` checks the database.
+  (the backend alone, in development mode). `/health` is liveness.
 
 Do not weaken transactional release ordering.
 
@@ -179,13 +145,13 @@ compile, migrations; architecture and template contracts). It does not replace t
 
 | Change | Minimum validation |
 |---|---|
-| Backend route/service/schema | `make check-backend` (tests, detekt, ktlint, Kover); route changes also update `openapi/documentation.yaml` (`OpenApiContractTest`) |
+| Backend route/service | `make check-backend` (tests, detekt, ktlint, Kover); route changes also update `openapi/documentation.yaml` (`OpenApiContractTest`) |
 | Shared mobile/domain/UI | `make check-mobile` (tests, detekt + Compose rules, ktlint, Android Lint, builds) |
 | Visible UI change | CI screenshot verification; then `scripts/update-screenshots.sh` and commit the images |
 | New logic | Tests that cover at least 80% of changed lines (CI checks pull requests); `make coverage` shows the report |
 | SQLDelight schema/migration | `:composeApp:verifySqlDelightMigration` (part of `check-mobile`) |
 | iOS/Kotlin Native | `:composeApp:linkDebugFrameworkIosSimulatorArm64` |
-| Swift, Xcode, StoreKit, xcconfig | `make ios-app`, SwiftLint (`make lint-repo`) |
+| Swift, Xcode, xcconfig | `make ios-app`, SwiftLint (`make lint-repo`) |
 | Navigation or capabilities | `NavigationGraphTest` (desktopTest, part of `test`) |
 | Resources | `scripts/check-resources.sh` |
 | `app.properties` | `scripts/sync-app-config.sh --check` |

@@ -1,7 +1,7 @@
 # Project Setup Template — Agent Entry Point
 
 A reusable full-stack template for shipping Android and iOS apps: Compose
-Multiplatform/KMP client, Ktor server, SQLDelight/Flyway storage, Koin DI, Fastlane, and
+Multiplatform/KMP client, Ktor server, SQLDelight storage, Koin DI, Fastlane, and
 GitHub Actions.
 
 ## Starting a new app from this template
@@ -15,7 +15,7 @@ never mark an item done without implementing and verifying it.
    without `--dry-run`. It renames the package, types, bundle IDs, and slugs across Kotlin,
    Swift, Gradle, Xcode, Fastlane, and Docker. Never rename these by hand.
 2. **Work through [APP_CHECKLIST.md](APP_CHECKLIST.md)** (`make app-checklist`). It covers
-   features each app must add (Share app, password reset), defaults to replace (API
+   features each app must add (Share app), defaults to replace (API
    endpoints, support email, store IDs, privacy/terms URLs, branding, copy), permissions
    and privacy manifests, backend environment variables, and GitHub/store delivery
    (secrets, `RELEASE_TOKEN`, `CODEOWNERS`, tester groups). These are reminders, not
@@ -29,18 +29,16 @@ app: they read identity from `app.properties`, and `setup.sh` renames the rest.
 ## Read before changing code
 
 - [AI functionality guide](docs/AI_AGENT_GUIDE.md): capabilities, cross-stack
-  contracts (auth, sync, config), source locations, and the validation matrix.
+  contracts (remote config, request IDs), source locations, and the validation matrix.
 - `mobile/AGENTS.md` and `backend/AGENTS.md`: scoped rules for those directories.
 - [Developer workflow](docs/DEVELOPER_WORKFLOW.md) and [Releasing](docs/RELEASING.md).
-- `app.properties`: the source of truth for identity, versions, endpoints, products, and
+- `app.properties`: the source of truth for identity, versions, endpoints, and
   capabilities. `APP_CHECKLIST.md` lists per-app work (see above).
 - `.github/workflows` read identity from `app.properties`; never hardcode a package or app
   name there. Keep actions pinned to commit SHAs, keep path filters and `timeout-minutes`,
   and avoid adding macOS jobs (10x minutes) where Linux works.
 
-Authentication (rotating refresh tokens, logout, account deletion) and offline Tasks
-sync work end to end. The Android app module is `:androidApp`; `:composeApp` is the
-shared library.
+The Android app module is `:androidApp`; `:composeApp` is the shared library.
 
 ## Working through pull requests
 
@@ -58,8 +56,8 @@ is the review. Do not try to get around one.
 5. Address every AI review suggestion: apply it, or reply why not, then resolve the thread.
    A "Possible security concern" label needs a maintainer.
 6. Enable auto-merge (`gh pr merge --auto --squash`). Changes to `.github/CODEOWNERS` paths
-   (workflows, Fastlane, migrations, auth, permissions, these instructions) wait for the
-   owner's approval.
+   (workflows, Fastlane, database schemas, backend configuration, permissions, these
+   instructions) wait for the owner's approval.
 7. Never disable a lint rule, test, or check, add a lint baseline entry, lower a coverage
    threshold, or edit CI to make a pull request pass; fix the code, or explain in the pull
    request why a rule is wrong.
@@ -72,8 +70,8 @@ Codex: `.codex/hooks.json`). When it reports a problem, fix it; never work aroun
 
 - **Before an edit** it blocks generated files (`build/`, `generated/`), credentials and
   machine-local files (`.env`, `keystore.properties`, `local.properties`, signing keys,
-  `google-services.json`), lint baselines, and migrations main already has (Flyway `Vn__*.sql`,
-  SQLDelight `.sqm`, schema `.db`).
+  `google-services.json`), lint baselines, and migrations main already has (SQLDelight `.sqm`,
+  schema `.db`).
 - **After an edit** it formats and checks the file with whichever tools are installed
   (`make bootstrap`): ktlint for Kotlin, SwiftLint for Swift, ShellCheck for scripts and Git
   hooks, actionlint for workflows, and typos for everything.
@@ -90,7 +88,7 @@ needs the owner's approval.
 ## Common commands
 
 ```bash
-./setup.sh --name Focus --package dev.example.focus --features auth,offline,backend --dry-run
+./setup.sh --name Focus --package dev.example.focus --features backend --dry-run
 make doctor
 make quick                 # inner loop: fast checks for modules changed on this branch
 make check                 # template contracts + backend gate + mobile gate
@@ -100,7 +98,7 @@ make format                # ktlint and SwiftLint auto-fixes
 make coverage              # Kover HTML reports and totals (backend and mobile)
 make bootstrap             # install lint/hook tools (Brewfile) and Git hooks, then doctor
 make release-notes         # notes from conventional commits since the last tag
-make backend-h2            # API on :8085 with H2
+make backend               # API on :8085 in development mode
 make mobile / make ios-run # build, install, and launch on Android / iOS simulator
 make ui                    # desktop component gallery
 make feature NAME=Bookmarks  # scaffold and wire a feature (scripts/create-feature.sh)
@@ -138,9 +136,8 @@ Static analysis and coverage, per build:
   literal user-facing strings, colors, or dimensions: use resources, `MaterialTheme`, and `Dimens`.
 - Use Ktor, kotlinx.serialization, SQLDelight, kotlinx-datetime, Compose Navigation,
   Material 3, Compose resources, and accessible content descriptions.
-- Database changes require migrations: Flyway `Vn__*.sql` on the backend; SQLDelight `.sqm`
-  plus an updated schema baseline after the mobile DB has shipped. Never edit an applied
-  migration.
+- Mobile database changes require migrations: SQLDelight `.sqm` plus an updated schema
+  baseline after the database has shipped. Never edit an applied migration.
 - Never add Hilt/Dagger, Voyager, LiveData, Retrofit, Gson, or a public MutableStateFlow.
   `scripts/check-architecture.sh` enforces these and the layer, Koin, and UI-literal rules.
 - Change identity only through `setup.sh`. Change versions through `bump-version.sh`,

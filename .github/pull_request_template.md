@@ -12,7 +12,7 @@
 - [ ] New logic has ViewModel / use-case / backend tests that assert behaviour
 - [ ] UI changes: screenshot tests updated and the flow exercised on Android and iOS
       (add the `preview` label for an installable Android build)
-- [ ] Database changes include a Flyway `Vn__*.sql` and/or SQLDelight `.sqm` migration
+- [ ] Mobile database changes include a SQLDelight `.sqm` migration
 - [ ] No secrets, keystores, or `google-services.json` committed
 
 ## Review
