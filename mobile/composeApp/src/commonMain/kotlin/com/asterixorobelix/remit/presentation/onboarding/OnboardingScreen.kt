@@ -19,9 +19,9 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Explore
-import androidx.compose.material.icons.outlined.RocketLaunch
-import androidx.compose.material.icons.outlined.Stars
+import androidx.compose.material.icons.automirrored.outlined.Send
+import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.VerifiedUser
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -63,9 +63,9 @@ private data class OnboardingPage(
 )
 
 private val pages = listOf(
-    OnboardingPage(Icons.Outlined.Explore, Res.string.onboarding_title_1, Res.string.onboarding_desc_1),
-    OnboardingPage(Icons.Outlined.Stars, Res.string.onboarding_title_2, Res.string.onboarding_desc_2),
-    OnboardingPage(Icons.Outlined.RocketLaunch, Res.string.onboarding_title_3, Res.string.onboarding_desc_3),
+    OnboardingPage(Icons.AutoMirrored.Outlined.Send, Res.string.onboarding_title_1, Res.string.onboarding_desc_1),
+    OnboardingPage(Icons.Outlined.History, Res.string.onboarding_title_2, Res.string.onboarding_desc_2),
+    OnboardingPage(Icons.Outlined.VerifiedUser, Res.string.onboarding_title_3, Res.string.onboarding_desc_3),
 )
 
 @Composable

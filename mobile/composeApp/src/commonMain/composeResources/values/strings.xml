@@ -64,12 +64,12 @@
     <!-- Onboarding Screen -->
     <string name="onboarding_skip">Skip</string>
     <string name="onboarding_get_started">Get Started</string>
-    <string name="onboarding_title_1">Welcome</string>
-    <string name="onboarding_desc_1">Discover a powerful app built for you. Swipe to learn more.</string>
-    <string name="onboarding_title_2">Powerful Features</string>
-    <string name="onboarding_desc_2">Everything you need, right at your fingertips. Fast, intuitive, and reliable.</string>
-    <string name="onboarding_title_3">Ready to Go?</string>
-    <string name="onboarding_desc_3">Set up takes seconds. Tap Get Started to begin your journey.</string>
+    <string name="onboarding_title_1">Send money by email</string>
+    <string name="onboarding_desc_1">Pay anyone with an email address, in US dollars or euros. Amounts are exact to the cent.</string>
+    <string name="onboarding_title_2">Your history, live</string>
+    <string name="onboarding_desc_2">Every payment you send shows up in your history as soon as it goes through. No refreshing.</string>
+    <string name="onboarding_title_3">Never charged twice</string>
+    <string name="onboarding_desc_3">If your connection drops mid-payment, just send it again. Each payment goes through only once.</string>
 
     <!-- Feedback Screen -->
     <string name="feedback_description">Your message opens in your email app so you can review it before sending.</string>
