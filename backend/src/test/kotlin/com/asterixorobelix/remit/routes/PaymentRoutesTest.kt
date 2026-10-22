@@ -164,10 +164,23 @@ class PaymentRoutesTest {
     }
 
     @Test
-    fun aQuotedAmountIsAMalformedBody() = paymentsTest {
-        val response = client.pay(body = valid.replace("10.50", "\"10.50\""))
-        assertEquals(HttpStatusCode.BadRequest, response.status)
-        assertEquals("Malformed or missing request body", response.error())
+    fun anAmountThatIsNotAJsonNumberIsAMalformedBody() = paymentsTest {
+        listOf("\"10.50\"", "true", "[10.50]", "{}").forEach { amount ->
+            val response = client.pay(body = valid.replace("10.50", amount))
+            assertEquals(HttpStatusCode.BadRequest, response.status, amount)
+            assertEquals("Malformed or missing request body", response.error())
+        }
+    }
+
+    @Test
+    fun aNullAmountIsReportedAsBlank() = paymentsTest {
+        val response = client.pay(body = valid.replace("10.50", "null"))
+        assertEquals(
+            listOf("AMOUNT_BLANK"),
+            response.body().getValue("details").jsonArray.map {
+                it.jsonPrimitive.content
+            },
+        )
     }
 
     @Test

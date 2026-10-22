@@ -12,7 +12,6 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.JsonDecoder
 import kotlinx.serialization.json.JsonEncoder
-import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.JsonUnquotedLiteral
 import java.math.BigDecimal
@@ -54,6 +53,9 @@ fun StoredPayment.toResponse() = PaymentResponse(
 object DecimalTextSerializer : KSerializer<String> {
     private val PLAIN_DECIMAL = Regex("""^-?[0-9]+(\.[0-9]+)?$""")
 
+    /** RFC 8259 number grammar: an unquoted `true` or `null` is a literal too, but not a number. */
+    private val JSON_NUMBER = Regex("""^-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?$""")
+
     override val descriptor: SerialDescriptor =
         PrimitiveSerialDescriptor("com.asterixorobelix.remit.DecimalText", PrimitiveKind.DOUBLE)
 
@@ -67,7 +69,7 @@ object DecimalTextSerializer : KSerializer<String> {
     override fun deserialize(decoder: Decoder): String {
         val json = decoder as? JsonDecoder ?: throw SerializationException("Decimal text supports JSON only")
         val element = json.decodeJsonElement()
-        val number = (element as? JsonPrimitive)?.takeUnless { it.isString || it is JsonNull }
+        val number = (element as? JsonPrimitive)?.takeIf { !it.isString && JSON_NUMBER.matches(it.content) }
             ?: throw SerializationException("amount must be a JSON number")
         return number.content
     }
