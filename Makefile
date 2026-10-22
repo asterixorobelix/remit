@@ -10,7 +10,7 @@ BACKEND_GATES := test detekt ktlintCheck koverVerify
 .DEFAULT_GOAL := help
 .PHONY: help setup bootstrap doctor app-checklist setup-hooks ui ui-hot backend backend-emulated emulators \
 	mobile apk apk-install apk-release ios ios-app ios-run feature \
-	test test-backend test-backend-emulated test-rules test-mobile test-mobile-fast test-watch lint lint-repo lint-backend lint-mobile format \
+	test test-backend test-backend-emulated test-rules test-perf test-mobile test-mobile-fast test-watch lint lint-repo lint-backend lint-mobile format \
 	quick quick-all check-template check check-backend check-mobile coverage \
 	build build-backend build-mobile jar clean loc \
 	version release-patch release-minor release-major release-notes protect-main
@@ -101,6 +101,9 @@ test-backend-emulated: ## Backend tests plus the Firebase integration tests (sta
 
 test-rules: ## Firestore security rules tests on the emulator
 	@./scripts/test-rules.sh
+
+test-perf: ## JMeter load test of POST /api/v1/payments (make emulators and make backend-emulated first)
+	@./scripts/perf.sh
 
 test-mobile-fast: ## Shared + desktop JVM tests only (no Android/iOS test variants)
 	@cd mobile && ./gradlew :composeApp:desktopTest
