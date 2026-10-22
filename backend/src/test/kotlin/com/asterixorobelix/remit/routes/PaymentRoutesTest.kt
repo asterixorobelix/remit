@@ -184,6 +184,15 @@ class PaymentRoutesTest {
     }
 
     @Test
+    fun aFailureToVerifyTokensIsAServerErrorNotAnAuthError() = testApplication {
+        val keysUnavailable = TokenVerifier { error("Could not fetch signing keys") }
+        startApp(testConfig(), PaymentsFeature(feature.service, keysUnavailable))
+        val response = client.pay()
+        assertEquals(HttpStatusCode.InternalServerError, response.status)
+        assertTrue(store.payments.isEmpty())
+    }
+
+    @Test
     fun withoutFirebasePaymentsAreUnavailable() = testApplication {
         startApp(testConfig(), payments = null)
         val response = client.pay()

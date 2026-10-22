@@ -8,6 +8,8 @@ import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.measureTime
 
 class PaymentValidatorTest {
     @Serializable
@@ -63,6 +65,22 @@ class PaymentValidatorTest {
             ),
             PaymentValidator.validate(null, null, null),
         )
+    }
+
+    @Test
+    fun hugeAmountsAreRejectedWithoutParsingThem() {
+        val digits = "9".repeat(1_000_000)
+        val elapsed = measureTime {
+            assertEquals(
+                ValidationOutcome.Invalid(setOf(ValidationCode.AMOUNT_ABOVE_LIMIT)),
+                PaymentValidator.validate("a@example.com", digits, "USD"),
+            )
+            assertEquals(
+                ValidationOutcome.Invalid(setOf(ValidationCode.AMOUNT_TOO_MANY_DECIMALS)),
+                PaymentValidator.validate("a@example.com", "1.$digits", "USD"),
+            )
+        }
+        assertTrue(elapsed < 1.seconds, "Took $elapsed")
     }
 
     @Test

@@ -458,6 +458,15 @@
       ]
     },
     {
+      "name": "254 characters that grow when lower-cased (dotted capital I)",
+      "recipientEmail": "İaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.com",
+      "amount": "10",
+      "currency": "USD",
+      "expectedErrors": [
+        "EMAIL_INVALID"
+      ]
+    },
+    {
       "name": "no currency",
       "recipientEmail": "alice@example.com",
       "amount": "10",

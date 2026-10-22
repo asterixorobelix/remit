@@ -55,12 +55,16 @@ object PaymentValidator {
         }
     }
 
+    /** Length is measured before lower-casing, as on the device ("İ" lower-cases to two characters). */
     private fun email(text: String?): Field<String> {
-        val normalized = text.orEmpty().trim().lowercase()
-        val plausible = normalized.substringBefore('@').length <= MAX_LOCAL_PART_LENGTH && EMAIL.matches(normalized)
+        val trimmed = text.orEmpty().trim()
+        val normalized = trimmed.lowercase()
+        val plausible = normalized.length <= MAX_EMAIL_LENGTH &&
+            normalized.substringBefore('@').length <= MAX_LOCAL_PART_LENGTH &&
+            EMAIL.matches(normalized)
         return when {
-            normalized.isEmpty() -> Field.Error(ValidationCode.EMAIL_BLANK)
-            normalized.length > MAX_EMAIL_LENGTH -> Field.Error(ValidationCode.EMAIL_TOO_LONG)
+            trimmed.isEmpty() -> Field.Error(ValidationCode.EMAIL_BLANK)
+            trimmed.length > MAX_EMAIL_LENGTH -> Field.Error(ValidationCode.EMAIL_TOO_LONG)
             !plausible -> Field.Error(ValidationCode.EMAIL_INVALID)
             else -> Field.Ok(normalized)
         }
@@ -85,19 +89,24 @@ object PaymentValidator {
         val match = DECIMAL.matchEntire(trimmed)
         val whole = match?.groupValues?.get(1).orEmpty()
         val fraction = match?.groupValues?.get(2).orEmpty()
-        val decimal = if (whole.isEmpty() &&
-            fraction.isEmpty()
-        ) {
-            null
-        } else {
-            BigDecimal("${whole.ifEmpty { "0" }}.${fraction}0")
-                .setScale(fraction.length)
-        }
         return when {
             trimmed.isEmpty() -> Field.Error(ValidationCode.AMOUNT_BLANK)
-            match == null || decimal == null -> Field.Error(ValidationCode.AMOUNT_NOT_A_NUMBER)
+
+            match == null || (whole.isEmpty() && fraction.isEmpty()) -> Field.Error(ValidationCode.AMOUNT_NOT_A_NUMBER)
+
+            // Digit counts come before BigDecimal: parsing a megabyte of digits takes seconds of CPU.
             whole.trimStart('0').length > MAX_WHOLE_DIGITS -> Field.Error(ValidationCode.AMOUNT_ABOVE_LIMIT)
+
             fraction.length > MAX_FRACTION_DIGITS -> Field.Error(ValidationCode.AMOUNT_TOO_MANY_DECIMALS)
+
+            else -> exactAmount(whole.trimStart('0'), fraction, currency)
+        }
+    }
+
+    /** At most [MAX_WHOLE_DIGITS] + [MAX_FRACTION_DIGITS] digits by now, so BigDecimal is cheap. */
+    private fun exactAmount(whole: String, fraction: String, currency: Currency?): Field<Long>? {
+        val decimal = BigDecimal("${whole.ifEmpty { "0" }}.${fraction}0").setScale(fraction.length)
+        return when {
             decimal.signum() == 0 -> Field.Error(ValidationCode.AMOUNT_NOT_POSITIVE)
             currency == null -> null
             else -> priced(decimal, currency)
