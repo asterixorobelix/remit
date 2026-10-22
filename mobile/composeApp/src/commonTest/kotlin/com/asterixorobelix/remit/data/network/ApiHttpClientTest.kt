@@ -12,6 +12,7 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.headersOf
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -64,6 +65,41 @@ class ApiHttpClientTest {
 
         assertEquals(1 + 2, requests.size)
         assertEquals(1, requests.map { it.headers[HttpHeaders.XRequestId] }.distinct().size)
+    }
+
+    @Test
+    fun aPolicyGivenToAllowRetryReplacesTheClientPolicy() = runTest {
+        val client = client { respond("", HttpStatusCode.ServiceUnavailable) }
+
+        client.post("/api/v1/example") {
+            allowRetry(RetryPolicy(maxRetries = 1, initialDelayMs = 1, maxDelayMs = 1))
+            setBody("{}")
+        }
+
+        assertEquals(1 + 1, requests.size)
+    }
+
+    @Test
+    fun aRetryAfterLongerThanThePolicyWaitsEndsTheRetries() = runTest {
+        val client = client {
+            respond("", HttpStatusCode.TooManyRequests, headersOf(HttpHeaders.RetryAfter, "60"))
+        }
+
+        val response = client.get(ApiPaths.APP_CONFIG)
+
+        assertEquals(HttpStatusCode.TooManyRequests, response.status)
+        assertEquals(1, requests.size)
+    }
+
+    @Test
+    fun aRetryAfterWithinThePolicyIsWaitedOutAndRetried() = runTest {
+        val client = client {
+            respond("", HttpStatusCode.TooManyRequests, headersOf(HttpHeaders.RetryAfter, "0"))
+        }
+
+        client.get(ApiPaths.APP_CONFIG)
+
+        assertEquals(1 + 2, requests.size)
     }
 
     @Test

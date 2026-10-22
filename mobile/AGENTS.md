@@ -24,8 +24,9 @@ no Compose dependency, so a SwiftUI or desktop app could use it as is.
   `../testdata/payment-validation-cases.json`; extend it when a rule changes.
 - `SendPaymentUseCase` serializes sends and keeps one idempotency key per payment
   (`IdempotencyKeys`): a retry or double tap reuses it; `startNewPayment()` (after success) or an
-  edited draft gets a new one. The POST opts in to `allowRetry()` through
-  `PaymentRequestConfigurer`, which is safe only because of that key.
+  edited draft gets a new one. The POST opts in to `allowRetry(PAYMENT_RETRY_POLICY)` (one quick
+  retry) with a 10 s timeout through `PaymentRequestConfigurer` (`di/PaymentsModule.kt`), which is
+  safe only because of that key.
 - The key is written ahead of the request to `PendingPaymentStore`, implemented by
   `SqlDelightPendingPaymentStore` (`PendingPayment.sq`, one row). After a restart
   `SendPaymentViewModel` restores it as an "Unfinished payment" the user can send again (same key)
@@ -63,7 +64,8 @@ no Compose dependency, so a SwiftUI or desktop app could use it as is.
   (`GET /api/v1/config`, `backend` only; failures never block the app).
 - `data/network/ApiHttpClient.kt` builds the only API client: per-request
   `X-Request-ID`, base URL resolved per request (debug override applies immediately),
-  retries only for idempotent methods (`allowRetry()` opts a POST in). It sends no
+  retries only for idempotent methods (`allowRetry()` opts a POST in, optionally with its own
+  `RetryPolicy`); a `Retry-After` longer than the policy's maximum delay ends retries. It sends no
   credentials; add authentication there when a feature needs it.
 
 ## App shell

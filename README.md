@@ -141,8 +141,9 @@ not a silently rounded payment.
 **Idempotency, end to end.** Every payment carries an `Idempotency-Key`.
 - *On the device:* `SendPaymentUseCase` keeps one key per payment. A retry after a timeout, or
   a double tap (sends are serialized), reuses it; editing the details or starting a new payment
-  after a success gets a new one. Because of the key, the template's retry plugin can safely
-  retry the POST automatically.
+  after a success gets a new one. Because of the key, the POST can safely be retried
+  automatically: once, quickly, with a 10 s timeout, so a stopped or hung backend is reported in
+  seconds rather than leaving the button spinning.
 - *Across a crash:* the key and the payment are written to SQLDelight before the request goes
   out. If the app is killed mid-send, reopening it shows "Unfinished payment" with the form
   filled in; sending it again reuses the key, so the server returns the original if it already

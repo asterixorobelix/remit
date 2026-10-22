@@ -8,6 +8,7 @@ import io.ktor.client.plugins.api.Send
 import io.ktor.client.plugins.api.createClientPlugin
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.statement.HttpResponse
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.isSuccess
@@ -95,16 +96,17 @@ class RetryPluginConfig {
  * - 4xx client errors (except 408 and 429)
  * - [CancellationException] (rethrown immediately)
  * - Responses that don't match retryable criteria
+ * - A response whose `Retry-After` is longer than the policy's maximum delay
  */
 val RetryPlugin = createClientPlugin("RetryPlugin", ::RetryPluginConfig) {
     val config = pluginConfig
-    val policy = config.retryPolicy
     val retryableCodes = config.retryableStatusCodes
     val customShouldRetry = config.shouldRetry
     val log: TaggedLogger? = config.logger?.withTag("RetryPlugin")
 
     on(Send) { request ->
         if (!request.isRetryable()) return@on proceed(request)
+        val policy = request.attributes.getOrNull(RetryPolicyKey) ?: config.retryPolicy
 
         var attempt = 0
         var lastCall: HttpClientCall? = null
@@ -145,8 +147,16 @@ val RetryPlugin = createClientPlugin("RetryPlugin", ::RetryPluginConfig) {
                     return@on call
                 }
 
+                // A Retry-After longer than this policy ever waits ends the retries: the caller
+                // gets the response at once rather than a spinner for the server's whole window.
+                val retryAfterMs = call.response.retryAfterMs()
+                if (retryAfterMs != null && retryAfterMs > policy.maxDelayMs) {
+                    log?.d("Server asked to wait ${retryAfterMs}ms, returning the response")
+                    return@on call
+                }
+
                 // Calculate delay and wait
-                val delayMs = policy.calculateDelay(attempt)
+                val delayMs = maxOf(policy.calculateDelay(attempt), retryAfterMs ?: 0L)
                 log?.d("Attempt ${attempt + 1} failed with $responseStatus, retrying in ${delayMs}ms")
 
                 // Use kotlinx.coroutines.delay which respects cancellation
@@ -191,6 +201,8 @@ val RetryPlugin = createClientPlugin("RetryPlugin", ::RetryPluginConfig) {
 }
 
 private val RetryNonIdempotentKey = AttributeKey<Unit>("RetryNonIdempotent")
+private val RetryPolicyKey = AttributeKey<RetryPolicy>("RetryPolicy")
+private const val MILLIS_PER_SECOND = 1_000L
 private val IDEMPOTENT_METHODS = setOf(
     HttpMethod.Get,
     HttpMethod.Head,
@@ -199,10 +211,18 @@ private val IDEMPOTENT_METHODS = setOf(
     HttpMethod.Options,
 )
 
-/** Opts a non-idempotent request (for example a POST that is safe to replay) into retries. */
-fun HttpRequestBuilder.allowRetry() {
+/**
+ * Opts a non-idempotent request (for example a POST that is safe to replay) into retries, with
+ * [policy] instead of the client's when given.
+ */
+fun HttpRequestBuilder.allowRetry(policy: RetryPolicy? = null) {
     attributes.put(RetryNonIdempotentKey, Unit)
+    policy?.let { attributes.put(RetryPolicyKey, it) }
 }
+
+/** `Retry-After` in seconds; the HTTP-date form is ignored and the policy's delay applies. */
+private fun HttpResponse.retryAfterMs(): Long? =
+    headers[HttpHeaders.RetryAfter]?.trim()?.toLongOrNull()?.takeIf { it >= 0 }?.times(MILLIS_PER_SECOND)
 
 internal fun HttpRequestBuilder.isRetryable(): Boolean =
     method in IDEMPOTENT_METHODS || attributes.contains(RetryNonIdempotentKey)
