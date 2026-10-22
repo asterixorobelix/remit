@@ -20,7 +20,10 @@ no Compose dependency, so a SwiftUI or desktop app could use it as is.
 
 - Money is `Money(minorUnits: Long, currency)`; never `Double`. `DecimalAmount.parse` reads typed
   or JSON text exactly. `AmountInput` limits what the amount field accepts (digits and one `.` or
-  `,`) but never truncates decimals: "1,000" in USD must reach validation, not become "1,00". `PaymentValidator` must agree with the backend's: both run
+  `,`) but never truncates decimals: "1,000" in USD must reach validation, not become "1,00".
+  `RecipientInput` caps the recipient field at `EmailAddress.MAX_LENGTH` (254, the longest address
+  validation and the backend accept), ignoring a longer edit instead of cutting it.
+  `PaymentValidator` must agree with the backend's: both run
   `../testdata/payment-validation-cases.json`; extend it when a rule changes.
 - `SendPaymentUseCase` serializes sends and keeps one idempotency key per payment
   (`IdempotencyKeys`): a retry or double tap reuses it; `startNewPayment()` (after success) or an

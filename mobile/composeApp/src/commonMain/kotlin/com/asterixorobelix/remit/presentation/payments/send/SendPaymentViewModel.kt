@@ -6,6 +6,7 @@ import com.asterixorobelix.remit.shared.domain.repository.SendPaymentResult
 import com.asterixorobelix.remit.shared.domain.usecase.SendPaymentUseCase
 import com.asterixorobelix.remit.shared.domain.usecase.ValidatePaymentUseCase
 import com.asterixorobelix.remit.shared.domain.validation.FilterAmountInputUseCase
+import com.asterixorobelix.remit.shared.domain.validation.FilterRecipientInputUseCase
 import com.asterixorobelix.remit.shared.domain.validation.PaymentField
 import com.asterixorobelix.remit.shared.domain.validation.ValidationError
 import com.asterixorobelix.remit.shared.domain.validation.ValidationResult
@@ -22,6 +23,7 @@ class SendPaymentViewModel(
     private val sendPayment: SendPaymentUseCase,
     private val validatePayment: ValidatePaymentUseCase,
     private val filterAmountInput: FilterAmountInputUseCase,
+    private val filterRecipientInput: FilterRecipientInputUseCase,
 ) : ViewModel() {
     private val mutableState = MutableStateFlow(SendPaymentUiState.Content())
     val uiState: StateFlow<SendPaymentUiState> = mutableState.asStateFlow()
@@ -35,7 +37,10 @@ class SendPaymentViewModel(
 
     fun onEvent(event: SendPaymentEvent) {
         when (event) {
-            is SendPaymentEvent.RecipientChanged -> edit { copy(recipientEmail = event.value, unfinished = false) }
+            is SendPaymentEvent.RecipientChanged -> edit {
+                val filtered = filterRecipientInput(previous = recipientEmail, proposed = event.value)
+                if (filtered == recipientEmail) this else copy(recipientEmail = filtered, unfinished = false)
+            }
 
             is SendPaymentEvent.AmountChanged -> edit {
                 val filtered = filterAmountInput(previous = amount, proposed = event.value)

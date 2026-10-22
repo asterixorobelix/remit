@@ -13,6 +13,7 @@ import com.asterixorobelix.remit.shared.domain.usecase.ObservePaymentHistoryUseC
 import com.asterixorobelix.remit.shared.domain.usecase.SendPaymentUseCase
 import com.asterixorobelix.remit.shared.domain.usecase.ValidatePaymentUseCase
 import com.asterixorobelix.remit.shared.domain.validation.FilterAmountInputUseCase
+import com.asterixorobelix.remit.shared.domain.validation.FilterRecipientInputUseCase
 import com.asterixorobelix.remit.shared.domain.validation.PaymentValidator
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.factoryOf
@@ -40,6 +41,7 @@ fun paymentsModule(firebase: FirebaseSettings): Module = module {
     factoryOf(::SendPaymentUseCase)
     factoryOf(::ValidatePaymentUseCase)
     factoryOf(::FilterAmountInputUseCase)
+    factoryOf(::FilterRecipientInputUseCase)
     factoryOf(::ObservePaymentHistoryUseCase)
 }
 

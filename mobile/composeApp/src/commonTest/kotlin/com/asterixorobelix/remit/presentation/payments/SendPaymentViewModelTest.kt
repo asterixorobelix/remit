@@ -15,8 +15,10 @@ import com.asterixorobelix.remit.shared.domain.usecase.IdempotencyKeys
 import com.asterixorobelix.remit.shared.domain.usecase.SendPaymentUseCase
 import com.asterixorobelix.remit.shared.domain.usecase.ValidatePaymentUseCase
 import com.asterixorobelix.remit.shared.domain.validation.FilterAmountInputUseCase
+import com.asterixorobelix.remit.shared.domain.validation.FilterRecipientInputUseCase
 import com.asterixorobelix.remit.shared.domain.validation.PaymentField
 import com.asterixorobelix.remit.shared.domain.validation.PaymentValidator
+import com.asterixorobelix.remit.shared.domain.validation.RecipientInput
 import com.asterixorobelix.remit.shared.domain.validation.ValidationError
 import com.asterixorobelix.remit.testing.FakePaymentRepository
 import com.asterixorobelix.remit.testing.testPayment
@@ -53,6 +55,7 @@ class SendPaymentViewModelTest {
         SendPaymentUseCase(PaymentValidator(), repository, IdempotencyKeys(store) { "key-${++keys}" }),
         ValidatePaymentUseCase(PaymentValidator()),
         FilterAmountInputUseCase(),
+        FilterRecipientInputUseCase(),
     )
 
     private val SendPaymentViewModel.form get() = assertIs<SendPaymentUiState.Content>(uiState.value)
@@ -78,6 +81,17 @@ class SendPaymentViewModelTest {
         vm.onEvent(SendPaymentEvent.AmountChanged("12.5x"))
         vm.onEvent(SendPaymentEvent.AmountChanged("12.5."))
         assertEquals("12.5", vm.form.amount)
+    }
+
+    @Test
+    fun theRecipientFieldIgnoresEditsPastTheLongestAddress() {
+        val vm = viewModel(FakePaymentRepository(SendPaymentResult.Success(testPayment())))
+        val longest = "b".repeat(RecipientInput.MAX_LENGTH)
+        vm.onEvent(SendPaymentEvent.RecipientChanged(longest))
+        vm.onEvent(SendPaymentEvent.RecipientChanged(longest + "b"))
+        assertEquals(longest, vm.form.recipientEmail)
+        vm.onEvent(SendPaymentEvent.RecipientChanged("bob@example.com"))
+        assertEquals("bob@example.com", vm.form.recipientEmail)
     }
 
     @Test
@@ -290,6 +304,7 @@ class SendPaymentViewModelTest {
             ),
             ValidatePaymentUseCase(PaymentValidator()),
             FilterAmountInputUseCase(),
+            FilterRecipientInputUseCase(),
         )
         vm.fill()
 
