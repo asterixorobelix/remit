@@ -47,14 +47,6 @@ class ApplicationTest {
     }
 
     @Test
-    fun `readiness checks the database`() = testApplication {
-        startApp()
-        val response = client.get("/ready")
-        assertEquals(HttpStatusCode.OK, response.status)
-        assertEquals("ready", response.body().getValue("status").jsonPrimitive.content)
-    }
-
-    @Test
     fun `api status reports the app properties version`() = testApplication {
         startApp()
         val body = client.get("/api/v1/status").body()
@@ -110,7 +102,7 @@ class ApplicationTest {
         assertEquals(HttpStatusCode.OK, spec.status)
         val yaml = spec.bodyAsText()
         assertTrue(yaml.startsWith("openapi: 3.0.3"))
-        listOf("/api/v1/auth/logout", "/api/v1/users/me", "/api/v1/tasks/sync", "bearerAuth").forEach {
+        listOf("/health", "/api/v1/status", "/api/v1/config", "ErrorResponse").forEach {
             assertTrue(yaml.contains(it), "spec should document $it")
         }
     }
@@ -133,7 +125,7 @@ class ApplicationTest {
     fun `cors allows configured origins and exposes the request id`() = testApplication {
         startApp(testConfig(cors = CorsConfig(allowedHosts = listOf("localhost:3000", "https://app.example.com"))))
 
-        val preflight = client.options("/api/v1/users/me") {
+        val preflight = client.options("/api/v1/config") {
             header(HttpHeaders.Origin, "https://app.example.com")
             header(HttpHeaders.AccessControlRequestMethod, "DELETE")
             header(HttpHeaders.AccessControlRequestHeaders, "authorization,content-type,x-request-id")

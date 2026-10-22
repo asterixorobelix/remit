@@ -8,8 +8,6 @@
 	<string>$(API_BASE_URL)</string>
 	<key>CAPABILITIES</key>
 	<string>$(CAPABILITIES)</string>
-	<key>IOS_BILLING_PRODUCT</key>
-	<string>$(IOS_BILLING_PRODUCT)</string>
 	<key>CFBundleDisplayName</key>
 	<string>$(PRODUCT_NAME)</string>
 	<key>CFBundleName</key>
@@ -33,8 +31,6 @@
 		<string>mailto</string>
 		<string>itms-apps</string>
 	</array>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Your location is used to show your position on the map.</string>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UIApplicationSceneManifest</key>

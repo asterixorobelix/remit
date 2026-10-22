@@ -23,7 +23,8 @@ enum class Environment {
          * Detects the environment from APP_ENVIRONMENT (or the ENVIRONMENT / KTOR_ENV aliases).
          *
          * Fails closed: when nothing is set the application runs with production rules, so a
-         * forgotten variable can never expose development defaults such as the built-in JWT secret.
+         * forgotten variable can never expose development defaults such as Swagger UI or the
+         * localhost CORS origins.
          * `./gradlew run` and docker-compose set APP_ENVIRONMENT=development explicitly.
          */
         fun current(env: EnvLookup = SystemEnv): Environment {

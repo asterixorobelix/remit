@@ -8,7 +8,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -38,13 +37,11 @@ fun App(
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var requestReview by remember { mutableStateOf(false) }
-    var sessionExpiredSignal by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
                 AppEffect.RequestReview -> requestReview = true
-                AppEffect.SessionExpired -> sessionExpiredSignal += 1
             }
         }
     }
@@ -77,7 +74,6 @@ fun App(
                     navController = rememberNavController(),
                     startDestination = state.startDestination,
                     features = viewModel.navigationFeatures,
-                    sessionExpiredSignal = sessionExpiredSignal,
                     modifier = modifier,
                 )
             }

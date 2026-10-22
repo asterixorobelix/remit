@@ -1,7 +1,6 @@
 package com.asterixorobelix.remit.presentation.app
 
 import app.cash.turbine.test
-import com.asterixorobelix.remit.domain.session.ObserveSessionExpiredUseCase
 import com.asterixorobelix.remit.domain.settings.MarkReviewRequestedUseCase
 import com.asterixorobelix.remit.domain.settings.ObserveThemeModeUseCase
 import com.asterixorobelix.remit.domain.settings.RecordAppOpenUseCase
@@ -12,7 +11,6 @@ import com.asterixorobelix.remit.domain.update.CheckForceUpdateUseCase
 import com.asterixorobelix.remit.domain.update.VersionPolicy
 import com.asterixorobelix.remit.testing.FakeAppConfig
 import com.asterixorobelix.remit.testing.FakeAppSettingsRepository
-import com.asterixorobelix.remit.testing.FakeSessionRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -23,12 +21,10 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AppViewModelTest {
-    private val settings = FakeAppSettingsRepository(onboardingDone = true)
-    private val session = FakeSessionRepository(signedIn = false)
-
     @BeforeTest
     fun setup() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
@@ -39,14 +35,16 @@ class AppViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun viewModel(policy: VersionPolicy? = null) = AppViewModel(
+    private fun viewModel(
+        settings: FakeAppSettingsRepository = FakeAppSettingsRepository(onboardingDone = true),
+        policy: VersionPolicy? = null,
+    ) = AppViewModel(
         appConfig = FakeAppConfig(versionName = "1.0.0"),
         observeThemeMode = ObserveThemeModeUseCase(settings),
         launch = AppLaunchUseCases(
-            resolveStartDestination = ResolveStartDestinationUseCase(settings, session),
+            resolveStartDestination = ResolveStartDestinationUseCase(settings),
             recordAppOpen = RecordAppOpenUseCase(settings),
             markReviewRequested = MarkReviewRequestedUseCase(settings),
-            observeSessionExpired = ObserveSessionExpiredUseCase(session),
         ),
         checkForceUpdate = policy?.let { value ->
             CheckForceUpdateUseCase(
@@ -58,22 +56,30 @@ class AppViewModelTest {
     )
 
     @Test
-    fun resolvesSignInWhenAuthEnabledAndSignedOut() {
-        assertEquals(AppUiState.Ready(StartDestination.LOGIN), viewModel().uiState.value)
+    fun startsAtHomeOnceOnboardingIsDone() {
+        assertEquals(AppUiState.Ready(StartDestination.HOME), viewModel().uiState.value)
+    }
+
+    @Test
+    fun startsAtOnboardingOnFirstLaunch() {
+        val state = viewModel(FakeAppSettingsRepository(onboardingDone = false)).uiState.value
+        assertEquals(AppUiState.Ready(StartDestination.ONBOARDING), state)
     }
 
     @Test
     fun blocksWithForceUpdateBelowMinimumVersion() {
-        val state = viewModel(VersionPolicy("2.0.0", "2.0.0", forceUpdate = false)).uiState.value
-        assertEquals(AppUiState.Ready(StartDestination.LOGIN, updateRequired = true), state)
+        val state = viewModel(policy = VersionPolicy("2.0.0", "2.0.0", forceUpdate = false)).uiState.value
+        assertEquals(AppUiState.Ready(StartDestination.HOME, updateRequired = true), state)
     }
 
     @Test
-    fun sessionExpiryIsForwardedAsEffect() = runTest {
-        val viewModel = viewModel()
+    fun reviewIsRequestedOnTheFifthOpenAndRecorded() = runTest {
+        val settings = FakeAppSettingsRepository(opens = 4)
+        val viewModel = viewModel(settings)
         viewModel.effects.test {
-            session.expiredEvents.emit(Unit)
-            assertEquals(AppEffect.SessionExpired, awaitItem())
+            assertEquals(AppEffect.RequestReview, awaitItem())
         }
+        viewModel.onReviewFlowFinished()
+        assertTrue(settings.hasRequestedReview())
     }
 }

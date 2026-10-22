@@ -2,7 +2,6 @@ package com.asterixorobelix.remit.presentation.app
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.asterixorobelix.remit.domain.session.ObserveSessionExpiredUseCase
 import com.asterixorobelix.remit.domain.settings.MarkReviewRequestedUseCase
 import com.asterixorobelix.remit.domain.settings.ObserveThemeModeUseCase
 import com.asterixorobelix.remit.domain.settings.RecordAppOpenUseCase
@@ -23,7 +22,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 sealed interface AppUiState {
-    /** Resolving the start destination (reads secure storage off the main thread). */
+    /** Resolving the start destination. */
     data object Loading : AppUiState
 
     data class Ready(
@@ -34,8 +33,6 @@ sealed interface AppUiState {
 }
 
 sealed interface AppEffect {
-    /** The server revoked the session; show sign-in. */
-    data object SessionExpired : AppEffect
     data object RequestReview : AppEffect
 }
 
@@ -44,10 +41,9 @@ class AppLaunchUseCases(
     val resolveStartDestination: ResolveStartDestinationUseCase,
     val recordAppOpen: RecordAppOpenUseCase,
     val markReviewRequested: MarkReviewRequestedUseCase,
-    val observeSessionExpired: ObserveSessionExpiredUseCase,
 )
 
-/** Root ViewModel: start destination, theme, force-update gate, review prompt, session expiry. */
+/** Root ViewModel: start destination, theme, force-update gate, review prompt. */
 class AppViewModel(
     appConfig: AppConfig,
     observeThemeMode: ObserveThemeModeUseCase,
@@ -63,7 +59,6 @@ class AppViewModel(
     /** Release package name used for the store listing. */
     val applicationId: String = appConfig.applicationId
 
-    private val authEnabled = navigationFeatures.auth
     private val startDestination = MutableStateFlow<StartDestination?>(null)
     private val updateRequired = MutableStateFlow(false)
 
@@ -75,17 +70,12 @@ class AppViewModel(
     val effects: Flow<AppEffect> = effectChannel.receiveAsFlow()
 
     init {
-        viewModelScope.launch { startDestination.value = launch.resolveStartDestination(authEnabled) }
+        viewModelScope.launch { startDestination.value = launch.resolveStartDestination() }
         viewModelScope.launch {
             if (launch.recordAppOpen()) effectChannel.send(AppEffect.RequestReview)
         }
         if (checkForceUpdate != null) {
             viewModelScope.launch { updateRequired.value = checkForceUpdate.invoke(appConfig.versionName) }
-        }
-        if (authEnabled) {
-            viewModelScope.launch {
-                launch.observeSessionExpired().collect { effectChannel.send(AppEffect.SessionExpired) }
-            }
         }
     }
 

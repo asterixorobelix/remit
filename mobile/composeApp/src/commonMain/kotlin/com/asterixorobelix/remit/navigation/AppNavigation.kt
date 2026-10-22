@@ -6,13 +6,9 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -22,7 +18,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -38,36 +33,19 @@ import androidx.navigation.toRoute
 import com.asterixorobelix.remit.domain.settings.StartDestination
 import com.asterixorobelix.remit.generated.resources.Res
 import com.asterixorobelix.remit.generated.resources.screen_home_title
-import com.asterixorobelix.remit.generated.resources.screen_notifications_title
 import com.asterixorobelix.remit.generated.resources.screen_settings_title
-import com.asterixorobelix.remit.generated.resources.screen_tasks_title
-import com.asterixorobelix.remit.presentation.auth.LoginScreen
-import com.asterixorobelix.remit.presentation.auth.RegisterScreen
-import com.asterixorobelix.remit.presentation.detail.DetailScreen
 import com.asterixorobelix.remit.presentation.developer.DeveloperScreen
 import com.asterixorobelix.remit.presentation.feedback.FeedbackScreen
-import com.asterixorobelix.remit.presentation.home.HomeAction
 import com.asterixorobelix.remit.presentation.home.HomeScreen
-import com.asterixorobelix.remit.presentation.map.MapScreen
-import com.asterixorobelix.remit.presentation.notifications.NotificationsScreen
 import com.asterixorobelix.remit.presentation.onboarding.OnboardingScreen
-import com.asterixorobelix.remit.presentation.paywall.PaywallScreen
-import com.asterixorobelix.remit.presentation.paywall.PaywallViewModel
-import com.asterixorobelix.remit.presentation.profile.ProfileScreen
-import com.asterixorobelix.remit.presentation.search.SearchScreen
 import com.asterixorobelix.remit.presentation.settings.SettingsNavigation
 import com.asterixorobelix.remit.presentation.settings.SettingsScreen
-import com.asterixorobelix.remit.presentation.tasks.TasksScreen
 import com.asterixorobelix.remit.presentation.webview.WebViewScreen
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
-import org.koin.compose.viewmodel.koinViewModel
-import org.koin.core.parameter.parametersOf
 
 private const val TAB_FADE_MS = 200
 private const val SLIDE_MS = 300
-private const val HOME_PAYWALL_TRIGGER = "home"
-private const val SETTINGS_PAYWALL_TRIGGER = "settings"
 
 private data class TabSpec(
     val label: StringResource,
@@ -77,30 +55,19 @@ private data class TabSpec(
 
 private fun AppRoute.tabSpec(): TabSpec? = when (this) {
     AppRoute.Home -> TabSpec(Res.string.screen_home_title, Icons.Filled.Home, Icons.Outlined.Home)
-
-    AppRoute.Tasks -> TabSpec(Res.string.screen_tasks_title, Icons.Filled.Checklist, Icons.Outlined.Checklist)
-
-    AppRoute.Notifications -> TabSpec(
-        Res.string.screen_notifications_title,
-        Icons.Filled.Notifications,
-        Icons.Outlined.Notifications,
-    )
-
     AppRoute.Settings -> TabSpec(Res.string.screen_settings_title, Icons.Filled.Settings, Icons.Outlined.Settings)
-
     else -> null
 }
 
 /**
- * Navigation graph. [startDestination] is resolved once by `AppViewModel`; [sessionExpiredSignal]
- * increments when the server revokes the session so the graph can return to sign-in.
+ * Navigation graph. [startDestination] is resolved once by `AppViewModel`; [features] decides which
+ * optional routes are registered.
  */
 @Composable
 fun AppNavigation(
     navController: NavHostController,
     startDestination: StartDestination,
     features: NavigationFeatures,
-    sessionExpiredSignal: Int,
     modifier: Modifier = Modifier,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
@@ -109,13 +76,8 @@ fun AppNavigation(
     val startRoute: AppRoute = remember(startDestination) {
         when (startDestination) {
             StartDestination.ONBOARDING -> AppRoute.Onboarding
-            StartDestination.LOGIN -> AppRoute.Login
             StartDestination.HOME -> AppRoute.Home
         }
-    }
-
-    LaunchedEffect(sessionExpiredSignal) {
-        if (sessionExpiredSignal > 0 && features.auth) navController.resetTo(AppRoute.Login)
     }
 
     Scaffold(
@@ -141,9 +103,9 @@ fun AppNavigation(
             },
             popExitTransition = { fadeOut(tween(TAB_FADE_MS)) },
         ) {
-            entryGraph(navController, features)
-            tabGraph(navController, features, snackbarHostState)
-            secondaryGraph(navController, features)
+            entryGraph(navController)
+            tabGraph(navController, features)
+            secondaryGraph(navController, features, snackbarHostState)
         }
     }
 }
@@ -170,52 +132,18 @@ private fun BottomBar(tabs: List<AppRoute>, destination: NavDestination, navCont
     }
 }
 
-private fun NavGraphBuilder.entryGraph(navController: NavHostController, features: NavigationFeatures) {
+private fun NavGraphBuilder.entryGraph(navController: NavHostController) {
     composable<AppRoute.Onboarding> {
-        OnboardingScreen(
-            onComplete = { navController.resetTo(if (features.auth) AppRoute.Login else AppRoute.Home) },
-        )
-    }
-    if (features.auth) {
-        composable<AppRoute.Login> {
-            LoginScreen(
-                onLoginSuccess = { navController.resetTo(AppRoute.Home) },
-                onNavigateToRegister = { navController.navigate(AppRoute.Register) },
-            )
-        }
-        composable<AppRoute.Register> {
-            RegisterScreen(
-                onRegisterSuccess = { navController.resetTo(AppRoute.Home) },
-                onNavigateToLogin = { navController.popBackStack() },
-            )
-        }
+        OnboardingScreen(onComplete = { navController.resetTo(AppRoute.Home) })
     }
 }
 
-private fun NavGraphBuilder.tabGraph(
-    navController: NavHostController,
-    features: NavigationFeatures,
-    snackbarHostState: SnackbarHostState,
-) {
+private fun NavGraphBuilder.tabGraph(navController: NavHostController, features: NavigationFeatures) {
     composable<AppRoute.Home>(
         enterTransition = { fadeIn(tween(TAB_FADE_MS)) },
         exitTransition = { fadeOut(tween(TAB_FADE_MS)) },
     ) {
-        HomeScreen(onAction = { action -> navController.openHomeAction(action, features) })
-    }
-    if (features.tasks) {
-        composable<AppRoute.Tasks>(
-            enterTransition = { fadeIn(tween(TAB_FADE_MS)) },
-            exitTransition = { fadeOut(tween(TAB_FADE_MS)) },
-        ) {
-            TasksScreen(onMessage = { message -> snackbarHostState.showSnackbar(message) })
-        }
-    }
-    composable<AppRoute.Notifications>(
-        enterTransition = { fadeIn(tween(TAB_FADE_MS)) },
-        exitTransition = { fadeOut(tween(TAB_FADE_MS)) },
-    ) {
-        NotificationsScreen()
+        HomeScreen()
     }
     composable<AppRoute.Settings>(
         enterTransition = { fadeIn(tween(TAB_FADE_MS)) },
@@ -223,34 +151,20 @@ private fun NavGraphBuilder.tabGraph(
     ) {
         SettingsScreen(
             navigation = SettingsNavigation(
-                toProfile = { navController.navigateIfAvailable(AppRoute.Profile, features) },
-                toPremium = { navController.navigateIfAvailable(AppRoute.Paywall(SETTINGS_PAYWALL_TRIGGER), features) },
                 toFeedback = { navController.navigate(AppRoute.Feedback) },
                 toWebView = { url, title -> navController.navigate(AppRoute.WebView(url = url, title = title)) },
                 toDeveloper = { navController.navigateIfAvailable(AppRoute.Developer, features) },
             ),
         )
     }
-    // create-feature:destinations
 }
 
-private fun NavGraphBuilder.secondaryGraph(navController: NavHostController, features: NavigationFeatures) {
-    composable<AppRoute.Search> {
-        SearchScreen(
-            onResultClick = { result ->
-                navController.navigate(AppRoute.Detail(result.id, result.title, result.completed))
-            },
-            onNavigateBack = { navController.popBackStack() },
-        )
-    }
-    composable<AppRoute.Detail> { backStackEntry ->
-        val route = backStackEntry.toRoute<AppRoute.Detail>()
-        DetailScreen(
-            title = route.title,
-            completed = route.completed,
-            onNavigateBack = { navController.popBackStack() },
-        )
-    }
+/** Screens pushed on top of a tab. Generated features are added here (`scripts/create-feature.sh`). */
+private fun NavGraphBuilder.secondaryGraph(
+    navController: NavHostController,
+    features: NavigationFeatures,
+    snackbarHostState: SnackbarHostState,
+) {
     composable<AppRoute.Feedback> {
         FeedbackScreen(onNavigateBack = { navController.popBackStack() })
     }
@@ -258,38 +172,16 @@ private fun NavGraphBuilder.secondaryGraph(navController: NavHostController, fea
         val route = backStackEntry.toRoute<AppRoute.WebView>()
         WebViewScreen(url = route.url, title = route.title, onNavigateBack = { navController.popBackStack() })
     }
-    if (features.auth) {
-        composable<AppRoute.Profile> {
-            ProfileScreen(
-                onSignedOut = { navController.resetTo(AppRoute.Login) },
-                onNavigateBack = { navController.popBackStack() },
-            )
-        }
-    }
-    if (features.maps) {
-        composable<AppRoute.Map> {
-            MapScreen(onNavigateBack = { navController.popBackStack() })
-        }
-    }
-    if (features.billing) {
-        composable<AppRoute.Paywall> { backStackEntry ->
-            val route = backStackEntry.toRoute<AppRoute.Paywall>()
-            val viewModel: PaywallViewModel = koinViewModel { parametersOf(route.trigger) }
-            PaywallScreen(
-                viewModel = viewModel,
-                onDismiss = { navController.popBackStack() },
-                onPurchaseComplete = { navController.popBackStack() },
-            )
-        }
-    }
     if (features.developerTools) {
         composable<AppRoute.Developer> {
             DeveloperScreen(
+                onMessage = { message -> snackbarHostState.showSnackbar(message) },
                 onAppReset = { navController.resetTo(AppRoute.Onboarding) },
                 onNavigateBack = { navController.popBackStack() },
             )
         }
     }
+    // create-feature:destinations
 }
 
 private fun NavDestination.isRoute(route: AppRoute): Boolean = hasRoute(route::class)
@@ -303,7 +195,7 @@ private fun NavHostController.navigateToTab(tab: AppRoute) {
     }
 }
 
-/** Replaces the entire back stack with [route] (sign-in, sign-out, onboarding finished, reset). */
+/** Replaces the entire back stack with [route] (onboarding finished, local reset). */
 private fun NavHostController.resetTo(route: AppRoute) {
     navigate(route) {
         popUpTo(graph.id) { inclusive = true }
@@ -313,15 +205,4 @@ private fun NavHostController.resetTo(route: AppRoute) {
 
 private fun NavHostController.navigateIfAvailable(route: AppRoute, features: NavigationFeatures) {
     if (route.isAvailable(features)) navigate(route)
-}
-
-private fun NavHostController.openHomeAction(action: HomeAction, features: NavigationFeatures) {
-    when (action) {
-        HomeAction.TASKS -> if (AppRoute.Tasks.isAvailable(features)) navigateToTab(AppRoute.Tasks)
-        HomeAction.SETTINGS -> navigateToTab(AppRoute.Settings)
-        HomeAction.SEARCH -> navigate(AppRoute.Search)
-        HomeAction.PROFILE -> navigateIfAvailable(AppRoute.Profile, features)
-        HomeAction.MAP -> navigateIfAvailable(AppRoute.Map, features)
-        HomeAction.PREMIUM -> navigateIfAvailable(AppRoute.Paywall(HOME_PAYWALL_TRIGGER), features)
-    }
 }

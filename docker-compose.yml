@@ -1,12 +1,11 @@
 # Docker Compose for local development.
 #
-#   docker compose up -d --build   # PostgreSQL + the backend at http://localhost:8085
-#   docker compose up -d db        # PostgreSQL only; run the backend with Gradle (see below)
+#   docker compose up -d --build   # the backend at http://localhost:8085
+#   docker compose logs -f backend # follow the logs
 #   docker compose down            # stop
-#   docker compose down -v         # stop and delete the database volume
 #
-# The backend runs with APP_ENVIRONMENT=development (built-in dev JWT secret, Swagger UI at
-# /swagger). The image itself defaults to production. Do not deploy this file as-is.
+# The backend runs with APP_ENVIRONMENT=development (Swagger UI at /swagger, localhost CORS
+# origins). The image itself defaults to production. Do not deploy this file as-is.
 
 services:
   backend:
@@ -15,60 +14,7 @@ services:
       dockerfile: backend/Dockerfile
     environment:
       APP_ENVIRONMENT: development
-      DATABASE_URL: jdbc:postgresql://db:5432/remit
-      DATABASE_USER: dev
-      DATABASE_PASSWORD: dev
       # Clients connect directly (no reverse proxy), so X-Forwarded-For is not trusted.
       TRUSTED_PROXY_HOPS: "0"
     ports:
       - "8085:8085"
-    depends_on:
-      db:
-        condition: service_healthy
-
-  db:
-    image: postgres:16-alpine
-    container_name: remit-db
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: dev
-      POSTGRES_PASSWORD: dev
-      POSTGRES_DB: remit
-    ports:
-      # Loopback only: the dev credentials must not be reachable from the network.
-      - "127.0.0.1:5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U dev -d remit"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  # pgAdmin (optional web UI for PostgreSQL) at http://localhost:5050, login admin@local.dev / admin
-  # pgadmin:
-  #   image: dpage/pgadmin4:latest
-  #   container_name: remit-pgadmin
-  #   restart: unless-stopped
-  #   environment:
-  #     PGADMIN_DEFAULT_EMAIL: admin@local.dev
-  #     PGADMIN_DEFAULT_PASSWORD: admin
-  #     PGADMIN_CONFIG_SERVER_MODE: "False"
-  #   ports:
-  #     - "127.0.0.1:5050:80"
-  #   depends_on:
-  #     - db
-
-volumes:
-  postgres_data:
-
-# Other useful commands:
-#   docker compose ps
-#   docker compose logs -f backend
-#   docker compose exec db psql -U dev -d remit
-#
-# Run the backend with Gradle against the Docker database (`./gradlew run` defaults to
-# APP_ENVIRONMENT=development):
-#   docker compose up -d db
-#   cd backend && DATABASE_URL=jdbc:postgresql://localhost:5432/remit \
-#     DATABASE_USER=dev DATABASE_PASSWORD=dev ./gradlew run

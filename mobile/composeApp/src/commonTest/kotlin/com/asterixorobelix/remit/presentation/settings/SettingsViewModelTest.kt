@@ -5,7 +5,6 @@ import com.asterixorobelix.remit.domain.settings.MarkReviewRequestedUseCase
 import com.asterixorobelix.remit.domain.settings.ObserveThemeModeUseCase
 import com.asterixorobelix.remit.domain.settings.SetThemeModeUseCase
 import com.asterixorobelix.remit.domain.settings.ThemeMode
-import com.asterixorobelix.remit.platform.Capability
 import com.asterixorobelix.remit.testing.FakeAppConfig
 import com.asterixorobelix.remit.testing.FakeAppSettingsRepository
 import com.asterixorobelix.remit.testing.awaitItemOfType
@@ -44,19 +43,14 @@ class SettingsViewModelTest {
     )
 
     @Test
-    fun capabilityGatedEntriesFollowConfig() = runTest {
-        val minimal = viewModel(FakeAppConfig(capabilities = emptySet(), isDebug = false))
-        minimal.uiState.test {
-            val content = awaitItemOfType<SettingsUiState.Content>()
-            assertFalse(content.showAccount)
-            assertFalse(content.showPremium)
-            assertFalse(content.showDeveloperTools)
+    fun developerToolsOnlyInDebugBuilds() = runTest {
+        val release = viewModel(FakeAppConfig(capabilities = emptySet(), isDebug = false))
+        release.uiState.test {
+            assertFalse(awaitItemOfType<SettingsUiState.Content>().showDeveloperTools)
         }
-        val full = viewModel(FakeAppConfig(capabilities = setOf(Capability.AUTH, Capability.BILLING)))
-        full.uiState.test {
+        val debug = viewModel(FakeAppConfig(isDebug = true))
+        debug.uiState.test {
             val content = awaitItemOfType<SettingsUiState.Content>()
-            assertTrue(content.showAccount)
-            assertTrue(content.showPremium)
             assertTrue(content.showDeveloperTools)
             assertEquals("1.2.0", content.appVersion)
         }

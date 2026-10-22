@@ -1,4 +1,3 @@
-import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Properties
 
@@ -37,7 +36,7 @@ application {
     mainClass.set("com.asterixorobelix.remit.ApplicationKt")
 
     val isDevelopment: Boolean = project.ext.has("development")
-    // TIMESTAMP columns are zone-less, so the JVM must always run in UTC.
+    // Always run in UTC so server-side dates never depend on the host's time zone.
     applicationDefaultJvmArgs = listOf("-Dio.ktor.development=$isDevelopment", "-Duser.timezone=UTC")
 }
 
@@ -57,8 +56,6 @@ dependencies {
     implementation(libs.ktor.server.netty)
     implementation(libs.ktor.server.content.negotiation)
     implementation(libs.ktor.serialization.kotlinx.json)
-    implementation(libs.ktor.server.auth)
-    implementation(libs.ktor.server.auth.jwt)
     implementation(libs.ktor.server.cors)
     implementation(libs.ktor.server.default.headers)
     implementation(libs.ktor.server.forwarded.header)
@@ -66,22 +63,7 @@ dependencies {
     implementation(libs.ktor.server.status.pages)
     implementation(libs.ktor.server.call.logging)
     implementation(libs.ktor.server.call.id)
-    implementation(libs.ktor.server.rate.limit)
     implementation(libs.ktor.server.swagger)
-
-    // Security
-    implementation(libs.java.jwt)
-    implementation(libs.jbcrypt)
-
-    // Database
-    implementation(libs.exposed.core)
-    implementation(libs.exposed.jdbc)
-    implementation(libs.exposed.java.time)
-    implementation(libs.hikari)
-    implementation(libs.flyway.core)
-    runtimeOnly(libs.flyway.postgresql)
-    implementation(libs.h2)
-    implementation(libs.postgresql)
 
     // Logging
     implementation(libs.logback.classic)
@@ -99,16 +81,6 @@ tasks.processResources {
     inputs.property("appVersion", version)
     filesMatching("build-info.properties") {
         expand("version" to version)
-    }
-}
-
-// Fat jar (`./gradlew buildFatJar` -> build/libs/backend-all.jar). Flyway discovers its database
-// support through META-INF/services, so those files must be merged, not deduplicated. Shadow 9
-// excludes duplicate paths by default, which would hide them from the merge transformer.
-tasks.named<ShadowJar>("shadowJar") {
-    mergeServiceFiles()
-    filesMatching("META-INF/services/**") {
-        duplicatesStrategy = DuplicatesStrategy.INCLUDE
     }
 }
 

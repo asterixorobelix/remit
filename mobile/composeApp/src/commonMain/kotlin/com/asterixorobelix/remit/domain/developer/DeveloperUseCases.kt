@@ -1,14 +1,11 @@
 package com.asterixorobelix.remit.domain.developer
 
-import com.asterixorobelix.remit.domain.session.SessionRepository
-import com.asterixorobelix.remit.domain.session.UserDataCleaner
-
 /** Debug-only overrides. Production builds never expose these controls. */
 interface DeveloperSettingsRepository {
     fun apiBaseUrlOverride(): String?
     fun setApiBaseUrlOverride(url: String?)
 
-    /** Clears onboarding, theme, search history and overrides. */
+    /** Clears onboarding, theme, review-prompt state and overrides. */
     fun resetLocalState()
 }
 
@@ -38,15 +35,7 @@ class SetApiBaseUrlOverrideUseCase(private val repository: DeveloperSettingsRepo
     }
 }
 
-/** Returns the app to a first-launch state: signed out, no per-user data, onboarding shown. */
-class ResetDevelopmentStateUseCase(
-    private val repository: DeveloperSettingsRepository,
-    private val session: SessionRepository,
-    private val cleaners: List<UserDataCleaner>,
-) {
-    suspend operator fun invoke() {
-        cleaners.forEach { it.clearUserData() }
-        session.clearLocalSession()
-        repository.resetLocalState()
-    }
+/** Returns the app to a first-launch state: local settings cleared, onboarding shown. */
+class ResetDevelopmentStateUseCase(private val repository: DeveloperSettingsRepository) {
+    operator fun invoke() = repository.resetLocalState()
 }

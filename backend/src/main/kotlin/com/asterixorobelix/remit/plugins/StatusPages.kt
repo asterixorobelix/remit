@@ -56,7 +56,7 @@ fun Application.configureStatusPages() {
             call.respond(HttpStatusCode.InternalServerError, ErrorResponse("Internal server error"))
         }
 
-        // Only fill in empty responses so deliberate bodies such as "User not found" are preserved.
+        // Only fill in empty responses so deliberate error bodies from routes are preserved.
         DEFAULT_ERROR_MESSAGES.forEach { (code, message) ->
             status(code) { status ->
                 if (content.isEmptyBody()) call.respond(status, ErrorResponse(message))

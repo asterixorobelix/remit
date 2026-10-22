@@ -20,9 +20,9 @@ RUN apt-get update \
 WORKDIR /app
 COPY --from=build /workspace/backend/build/install/backend/ ./
 
-# Secure by default: production validation rejects H2, placeholder JWT secrets, and localhost
-# issuers. docker-compose.yml overrides APP_ENVIRONMENT=development for local use.
-# TIMESTAMP columns are zone-less, so the JVM must run in UTC (also set in the start script).
+# Secure by default: production disables Swagger UI and allows no CORS origins unless configured.
+# docker-compose.yml overrides APP_ENVIRONMENT=development for local use.
+# The JVM always runs in UTC (also set in the start script).
 ENV APP_ENVIRONMENT=production \
     PORT=8085 \
     TZ=UTC \

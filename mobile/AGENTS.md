@@ -18,50 +18,39 @@ Build Android with `:androidApp:*`; `composeApp` is the shared library, not the 
 - `platform/AppConfig.kt` models capabilities sourced from `app.properties` through
   Android BuildConfig, iOS xcconfig/Info.plist, and desktop system properties.
 - `di/AppModule.kt` `appModules(config, platformModule)` always loads observability,
-  storage, network and core screens; it adds `backend`, `auth`, Tasks (`offline`), maps
-  and billing modules only for their capability. Platform modules supply
-  `SqlDriverFactory` and, only with `billing`, the platform `PremiumRepository`.
+  storage, network and core screens; it adds the `backend` module (force-update check)
+  only for its capability. Capabilities are `backend` and `firebase`; unknown `FEATURES`
+  values (including `minimal`) are ignored. Platform modules supply `SqlDriverFactory`.
 - `navigation/NavigationFeatures.kt` decides which routes exist; `AppNavigation.kt`
   registers and links a route only when available. `NavigationGraphTest` (desktopTest)
   starts Koin for several capability sets and resolves every reachable ViewModel; add
   new routes to its exhaustive `when`.
-- `presentation/app/AppViewModel.kt` resolves the start destination once (off the main
-  thread), owns theme, review prompt, session-expiry navigation, and the force-update
-  gate (`GET /api/v1/config`, `backend` only; failures never block the app).
+- `presentation/app/AppViewModel.kt` resolves the start destination once (onboarding,
+  then Home), owns theme, review prompt, and the force-update gate
+  (`GET /api/v1/config`, `backend` only; failures never block the app).
 - `data/network/ApiHttpClient.kt` builds the only API client: per-request
   `X-Request-ID`, base URL resolved per request (debug override applies immediately),
-  bearer tokens sent only to the API origin (never auth endpoints or other hosts),
-  retries only for idempotent methods (`allowRetry()` opts a POST in). Refresh tokens
-  rotate: the new pair is stored compare-and-set via `TokenStore`; the session is
-  cleared only when `/auth/refresh` returns 401/403 (429/5xx/offline keep it).
+  retries only for idempotent methods (`allowRetry()` opts a POST in). It sends no
+  credentials; add authentication there when a feature needs it.
 
-## Functional reference implementations
+## App shell
 
-- Auth: `data/auth`, `domain/auth`, `presentation/auth`, `presentation/profile`. Tokens
-  live in Android Keystore-encrypted prefs / iOS Keychain (`IOSSecureTokenStore`).
-  Sign-out calls `POST /api/v1/auth/logout`, clears stored and Ktor-cached tokens, then
-  every `UserDataCleaner`. Profile supports display-name edit (`PUT /users/me`) and
-  account deletion (`DELETE /users/me`, confirmation dialog). Validation lives in
-  `ValidateLoginUseCase` / `ValidateRegistrationUseCase`.
-- Offline Tasks: SQLDelight is authoritative for reads; mutations update locally and
-  enqueue sync work under one write mutex. Sync sends only rows with queued changes in
-  batches of at most 500, commits per batch removing only the operations it sent, and
-  keeps rows edited during an in-flight sync. Failures back off exponentially; deletes
-  are tombstones; titles are capped at 240 characters. Sync runs only when both
-  `backend` and `auth` are enabled; otherwise Tasks are local-only.
-- Billing: Play Billing 8 / StoreKit 2 behind `billing`. Pending purchases return
-  `PurchaseResult.Pending` and are granted when they complete; StoreKit transactions
-  are finished and `Transaction.updates` is observed.
+- Tabs: Home (a placeholder greeting, to be replaced by the app's main feature) and
+  Settings, each with its own back stack.
+- Settings: theme, feedback, rate the app, privacy/terms (in-app web view), version, and
+  debug-only Developer tools (validated API URL override and a reset of onboarding and
+  local settings).
+- Onboarding, force update, and the in-app review prompt.
 - Firebase: requires `firebase` in FEATURES and a real `androidApp/google-services.json`
   (the checked-in placeholder is ignored). Shared code reaches Firebase by reflection;
   keep rules are in `androidApp/proguard-rules.pro`.
-- Developer tools: debug-only Settings destination for a validated API URL override
-  and a full local reset.
+- SQLDelight: `AppDatabase` is wired in `storageModule`. `Tasks.sq` is the only schema left
+  from the template (no Kotlin code uses it) because SQLDelight generates no database
+  without at least one `.sq` file; replace it with the app's first table.
 
-App-specific extension points (honest defaults, not fake data): Search indexes local
-Tasks (`SearchRepository`), Notifications use `EmptyNotificationsRepository`, Feedback
-opens the mail app to `support_email`, and `app_store_id`, `settings_privacy_url`,
-`settings_terms_url` are placeholder string resources to replace per app.
+App-specific extension points (honest defaults, not fake data): Feedback opens the mail
+app to `support_email`, and `app_store_id`, `settings_privacy_url`, `settings_terms_url`
+are placeholder string resources to replace per app.
 
 ## Adding features
 
@@ -82,16 +71,10 @@ Queries can be added freely; table changes need a migration.
 - `commonTest`: use cases, ViewModels (Turbine + `Dispatchers.setMain`) and the Ktor
   client (`MockEngine`). Hand-written fakes live in `commonTest/.../testing/`; MockK is
   not available on Kotlin/Native.
-- `desktopTest`: `TaskRepositoryImplTest` on in-memory SQLite, `NavigationGraphTest`, and the
-  Roborazzi screenshot tests in `screenshots/ScreenshotTest.kt` (component gallery, Tasks with
-  fake data, Login in an error state; light and dark). Plain `test` only composes the screens;
-  `verifyRoborazziDesktop` compares them with the baselines in `composeApp/screenshots/desktop/`.
-- `iosTest`: Keychain round trip (skips the round trip when the unhosted test binary has no
-  keychain). `iosSimulatorArm64Test` must link `MapLibre.framework` from the Xcode SPM package:
-  build the iOS app once, then pass
-  `-PmapLibreFrameworkDir=<DerivedData>/Build/Products/Debug-iphonesimulator`.
-- Keychain access needs a signed build; unsigned (`CODE_SIGNING_ALLOWED=NO`) simulator builds
-  launch but cannot store a session.
+- `desktopTest`: `NavigationGraphTest` and the Roborazzi screenshot tests in
+  `screenshots/ScreenshotTest.kt` (component gallery, light and dark). Plain `test` only
+  composes the screens; `verifyRoborazziDesktop` compares them with the baselines in
+  `composeApp/screenshots/desktop/`.
 
 ## Static checks
 

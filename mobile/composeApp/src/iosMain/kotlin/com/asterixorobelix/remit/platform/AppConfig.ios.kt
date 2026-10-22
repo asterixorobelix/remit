@@ -16,7 +16,7 @@ import kotlin.experimental.ExperimentalNativeApi
 class IOSAppConfig : AppConfig {
     private val bundle = NSBundle.mainBundle
     override val capabilities: Set<Capability> by lazy {
-        parseCapabilities(bundle.objectForInfoDictionaryKey("CAPABILITIES") as? String ?: "auth,offline,backend")
+        parseCapabilities(bundle.objectForInfoDictionaryKey("CAPABILITIES") as? String ?: "backend")
     }
 
     override val environment: Environment by lazy {

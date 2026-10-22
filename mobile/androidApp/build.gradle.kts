@@ -155,9 +155,6 @@ extensions.configure<ApplicationExtension> {
                 "GradleDependency",
                 "NewerVersionAvailable",
                 "OldTargetApi",
-                // Timber's check (shipped transitively) flags android.util.Log, which only the
-                // platform Logger/Analytics/CrashLogger actuals use by design.
-                "LogNotTimber",
             )
     }
 }

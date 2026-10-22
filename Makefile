@@ -1,8 +1,6 @@
 # Common commands. Run `make` (or `make help`) to list them.
 
-DB_NAME := remit
 PACKAGE := $(shell awk -F= '$$1=="PACKAGE_NAME" { print $$2 }' app.properties)
-DB_ENV := DATABASE_URL=jdbc:postgresql://localhost:5432/$(DB_NAME) DATABASE_USER=dev DATABASE_PASSWORD=dev
 MOBILE_GATES := test detekt ktlintCheck :androidApp:lintDebug :composeApp:lintDebug \
 	:androidApp:assembleDebug :composeApp:compileKotlinDesktop \
 	:composeApp:linkDebugFrameworkIosSimulatorArm64 :composeApp:verifySqlDelightMigration \
@@ -10,8 +8,7 @@ MOBILE_GATES := test detekt ktlintCheck :androidApp:lintDebug :composeApp:lintDe
 BACKEND_GATES := test detekt ktlintCheck koverVerify
 
 .DEFAULT_GOAL := help
-.PHONY: help setup bootstrap doctor app-checklist setup-hooks ui ui-hot run backend backend-h2 \
-	db db-start db-stop db-logs db-shell db-reset \
+.PHONY: help setup bootstrap doctor app-checklist setup-hooks ui ui-hot backend \
 	mobile apk apk-install apk-release ios ios-app ios-run feature \
 	test test-backend test-mobile test-mobile-fast test-watch lint lint-repo lint-backend lint-mobile format \
 	quick quick-all check-template check check-backend check-mobile coverage \
@@ -47,32 +44,8 @@ ui: ## Run the desktop component gallery (shared Compose UI)
 ui-hot: ## Run the desktop gallery with Compose Hot Reload
 	@cd mobile && ./gradlew :composeApp:hotRunDesktop --mainClass com.asterixorobelix.remit.gallery.ComponentGalleryKt
 
-run: db-start backend ## Start PostgreSQL and the backend against it
-
-backend: ## Start the backend against the local PostgreSQL (make db first)
-	@cd backend && $(DB_ENV) APP_ENVIRONMENT=development ./gradlew run
-
-backend-h2: ## Start the backend with an in-memory H2 database (no Docker)
+backend: ## Start the backend API on http://localhost:8085 in development mode
 	@cd backend && APP_ENVIRONMENT=development ./gradlew run
-
-# ---------------------------------------------------------------- Database
-db: db-start ## Start PostgreSQL (Docker)
-
-db-start:
-	@docker compose up -d --wait db
-
-db-stop: ## Stop Docker services
-	@docker compose down
-
-db-logs: ## Follow PostgreSQL logs
-	@docker compose logs -f db
-
-db-shell: ## Open a psql shell
-	@docker compose exec db psql -U dev -d $(DB_NAME)
-
-db-reset: ## Delete all local database data and restart PostgreSQL
-	@docker compose down -v
-	@docker compose up -d --wait db
 
 # ---------------------------------------------------------------- Mobile
 mobile: apk-install ## Build, install, and launch the Android debug app
@@ -209,6 +182,6 @@ q: quick
 t: test
 l: lint
 c: check
-r: run
+r: backend
 m: mobile
 v: version

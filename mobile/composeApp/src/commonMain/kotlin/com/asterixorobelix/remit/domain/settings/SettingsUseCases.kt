@@ -1,7 +1,5 @@
 package com.asterixorobelix.remit.domain.settings
 
-import com.asterixorobelix.remit.domain.session.SessionRepository
-
 class ObserveThemeModeUseCase(private val repository: AppSettingsRepository) {
     operator fun invoke() = repository.themeMode
 }
@@ -30,16 +28,10 @@ class MarkReviewRequestedUseCase(private val repository: AppSettingsRepository) 
     operator fun invoke() = repository.markReviewRequested()
 }
 
-enum class StartDestination { ONBOARDING, LOGIN, HOME }
+enum class StartDestination { ONBOARDING, HOME }
 
-/** Onboarding first, then sign-in when the app requires accounts and no session exists. */
-class ResolveStartDestinationUseCase(
-    private val settings: AppSettingsRepository,
-    private val session: SessionRepository,
-) {
-    suspend operator fun invoke(authEnabled: Boolean): StartDestination = when {
-        !settings.hasCompletedOnboarding() -> StartDestination.ONBOARDING
-        authEnabled && !session.hasSession() -> StartDestination.LOGIN
-        else -> StartDestination.HOME
-    }
+/** Onboarding on first launch, Home afterwards. */
+class ResolveStartDestinationUseCase(private val settings: AppSettingsRepository) {
+    operator fun invoke(): StartDestination =
+        if (settings.hasCompletedOnboarding()) StartDestination.HOME else StartDestination.ONBOARDING
 }

@@ -16,12 +16,15 @@ data class HealthResponse(
 )
 
 @Serializable
-data class ReadinessResponse(
-    val status: String,
-)
-
-@Serializable
 data class StatusResponse(
     val api: String,
     val version: String,
+)
+
+@Serializable
+data class AppConfigResponse(
+    val minVersion: String,
+    val latestVersion: String,
+    val forceUpdate: Boolean,
+    val maintenanceMode: Boolean,
 )

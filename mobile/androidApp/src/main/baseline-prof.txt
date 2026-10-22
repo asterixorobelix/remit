@@ -3,5 +3,3 @@ HSPLcom/asterixorobelix/remit/MainActivity;->onCreate(Landroid/os/Bundle;)V
 HSPLcom/asterixorobelix/remit/RemitApplication;->onCreate()V
 HSPLcom/asterixorobelix/remit/AppKt;->App(Landroidx/compose/runtime/Composer;I)V
 HSPLcom/asterixorobelix/remit/navigation/AppNavigationKt;->AppNavigation(Landroidx/compose/runtime/Composer;I)V
-HSPLcom/asterixorobelix/remit/presentation/auth/LoginScreenKt;->LoginScreen(Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Landroidx/compose/runtime/Composer;I)V
-HSPLcom/asterixorobelix/remit/presentation/tasks/TasksScreenKt;->TasksScreen(Lkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;I)V

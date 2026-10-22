@@ -1,8 +1,5 @@
 package com.asterixorobelix.remit.domain.developer
 
-import com.asterixorobelix.remit.testing.FakeSessionRepository
-import com.asterixorobelix.remit.testing.RecordingCleaner
-import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -46,13 +43,9 @@ class DeveloperUseCasesTest {
     }
 
     @Test
-    fun resetClearsSessionUserDataAndLocalState() = runTest {
+    fun resetClearsLocalState() {
         val repository = FakeRepository()
-        val session = FakeSessionRepository(signedIn = true)
-        val cleaner = RecordingCleaner()
-        ResetDevelopmentStateUseCase(repository, session, listOf(cleaner))()
-        assertEquals(1, cleaner.calls)
-        assertEquals(1, session.clearCalls)
+        ResetDevelopmentStateUseCase(repository)()
         assertEquals(1, repository.resets)
     }
 }

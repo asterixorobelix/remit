@@ -48,7 +48,6 @@ coil = "3.4.0"
 
 # Google Play
 playReview = "2.0.2"
-playBilling = "8.3.0"
 
 # Firebase
 firebaseBom = "33.15.0"
@@ -58,10 +57,6 @@ googleServices = "4.4.2"
 # Testing
 junit = "4.13.2"
 junitBom = "5.14.4"
-
-# Maps
-maplibre-compose = "0.11.1"
-playServicesLocation = "21.3.0"
 
 # Code quality
 detekt = "1.23.8"
@@ -74,14 +69,7 @@ kover = "0.9.11"
 roborazzi = "1.76.0"
 
 # Backend-specific
-jbcrypt = "0.4"
-flyway = "13.8.0"
 logback = "1.6.4"
-exposed = "1.5.0"
-hikari = "7.1.0"
-h2 = "2.3.232"
-postgresql = "42.7.13"
-javaJwt = "4.6.1"
 
 [libraries]
 # Kotlin
@@ -97,14 +85,11 @@ ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor" }
 ktor-server-netty = { module = "io.ktor:ktor-server-netty", version.ref = "ktor" }
 ktor-server-content-negotiation = { module = "io.ktor:ktor-server-content-negotiation", version.ref = "ktor" }
 ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
-ktor-server-auth = { module = "io.ktor:ktor-server-auth", version.ref = "ktor" }
-ktor-server-auth-jwt = { module = "io.ktor:ktor-server-auth-jwt", version.ref = "ktor" }
 ktor-server-cors = { module = "io.ktor:ktor-server-cors", version.ref = "ktor" }
 ktor-server-default-headers = { module = "io.ktor:ktor-server-default-headers", version.ref = "ktor" }
 ktor-server-status-pages = { module = "io.ktor:ktor-server-status-pages", version.ref = "ktor" }
 ktor-server-call-logging = { module = "io.ktor:ktor-server-call-logging", version.ref = "ktor" }
 ktor-server-call-id = { module = "io.ktor:ktor-server-call-id", version.ref = "ktor" }
-ktor-server-rate-limit = { module = "io.ktor:ktor-server-rate-limit", version.ref = "ktor" }
 ktor-server-forwarded-header = { module = "io.ktor:ktor-server-forwarded-header", version.ref = "ktor" }
 ktor-server-body-limit = { module = "io.ktor:ktor-server-body-limit", version.ref = "ktor" }
 ktor-server-swagger = { module = "io.ktor:ktor-server-swagger", version.ref = "ktor" }
@@ -115,7 +100,6 @@ ktor-client-content-json = { module = "io.ktor:ktor-serialization-kotlinx-json",
 ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
 ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
 ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
-ktor-client-auth = { module = "io.ktor:ktor-client-auth", version.ref = "ktor" }
 ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktor" }
 
 # Android
@@ -161,14 +145,8 @@ sqlDelight-sqliteDriver = { module = "app.cash.sqldelight:sqlite-driver", versio
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 coil-network-ktor3 = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coil" }
 
-# Maps
-maplibre-compose = { module = "org.maplibre.compose:maplibre-compose", version.ref = "maplibre-compose" }
-maplibre-compose-material3 = { module = "org.maplibre.compose:maplibre-compose-material3", version.ref = "maplibre-compose" }
-play-services-location = { module = "com.google.android.gms:play-services-location", version.ref = "playServicesLocation" }
-
 # Google Play
 play-review-ktx = { module = "com.google.android.play:review-ktx", version.ref = "playReview" }
-play-billing-ktx = { module = "com.android.billingclient:billing-ktx", version.ref = "playBilling" }
 
 # Firebase
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
@@ -186,17 +164,7 @@ roborazzi-compose-desktop = { module = "io.github.takahirom.roborazzi:roborazzi-
 compose-rules-detekt = { module = "io.nlopez.compose.rules:detekt", version.ref = "composeRules" }
 
 # Backend
-flyway-core = { module = "org.flywaydb:flyway-core", version.ref = "flyway" }
-flyway-postgresql = { module = "org.flywaydb:flyway-database-postgresql", version.ref = "flyway" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
-exposed-core = { module = "org.jetbrains.exposed:exposed-core", version.ref = "exposed" }
-exposed-jdbc = { module = "org.jetbrains.exposed:exposed-jdbc", version.ref = "exposed" }
-exposed-java-time = { module = "org.jetbrains.exposed:exposed-java-time", version.ref = "exposed" }
-hikari = { module = "com.zaxxer:HikariCP", version.ref = "hikari" }
-h2 = { module = "com.h2database:h2", version.ref = "h2" }
-postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
-java-jwt = { module = "com.auth0:java-jwt", version.ref = "javaJwt" }
-jbcrypt = { module = "org.mindrot:jbcrypt", version.ref = "jbcrypt" }
 
 [plugins]
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }

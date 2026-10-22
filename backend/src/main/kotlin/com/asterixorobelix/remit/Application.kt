@@ -2,12 +2,10 @@ package com.asterixorobelix.remit
 
 import com.asterixorobelix.remit.configuration.AppConfig
 import com.asterixorobelix.remit.configuration.BuildInfo
-import com.asterixorobelix.remit.plugins.configureDatabases
 import com.asterixorobelix.remit.plugins.configureDocumentation
 import com.asterixorobelix.remit.plugins.configureHTTP
 import com.asterixorobelix.remit.plugins.configureMonitoring
 import com.asterixorobelix.remit.plugins.configureRouting
-import com.asterixorobelix.remit.plugins.configureSecurity
 import com.asterixorobelix.remit.plugins.configureSerialization
 import com.asterixorobelix.remit.plugins.configureStatusPages
 import io.ktor.server.application.Application
@@ -22,7 +20,7 @@ import java.util.TimeZone
 private val logger = LoggerFactory.getLogger("com.asterixorobelix.remit.Application")
 
 fun main() {
-    // TIMESTAMP columns are zone-less; always read and write them as UTC.
+    // Run in UTC so server-side dates never depend on the host's time zone.
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
     val config = AppConfig.load()
     logger.info(
@@ -49,20 +47,13 @@ fun main() {
 }
 
 fun Application.module(config: AppConfig) {
-    log.info(
-        "Database: {}; Swagger UI: {}; rate limiting: {}",
-        if (config.database.isH2) "H2" else "PostgreSQL",
-        if (config.features.swaggerEnabled) "/swagger" else "disabled",
-        if (config.rateLimit.enabled) "enabled" else "disabled",
-    )
+    log.info("Swagger UI: {}", if (config.features.swaggerEnabled) "/swagger" else "disabled")
     monitor.subscribe(ApplicationStopping) { log.info("Shutting down") }
 
-    val database = configureDatabases(config.database)
     configureMonitoring()
     configureSerialization(config.environment)
     configureHTTP(config.server, config.cors)
     configureStatusPages()
-    configureSecurity(config.jwt, config.rateLimit)
     configureDocumentation(config.features.swaggerEnabled)
-    configureRouting(config, database)
+    configureRouting(config)
 }

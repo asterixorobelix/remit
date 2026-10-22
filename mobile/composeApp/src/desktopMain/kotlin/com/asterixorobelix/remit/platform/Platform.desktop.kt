@@ -4,8 +4,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emptyFlow
 import java.awt.Desktop
 import java.net.URI
 
@@ -13,7 +11,7 @@ import java.net.URI
 private const val GALLERY_VERSION_CODE = 10000
 
 private class DesktopAppConfig : AppConfig {
-    override val capabilities = parseCapabilities(System.getProperty("app.capabilities", "offline"))
+    override val capabilities = parseCapabilities(System.getProperty("app.capabilities", "backend"))
     override val environment = Environment.DEVELOPMENT
     override val apiBaseUrl = System.getProperty("app.apiUrl", "http://localhost:8085")
     override val isDebug = true
@@ -74,19 +72,7 @@ actual fun openUrl(url: String): Boolean {
 actual fun openStoreListing(listing: StoreListing): Boolean =
     openUrl("https://play.google.com/store/apps/details?id=${listing.androidPackage}")
 
-private object NoLocation : LocationService {
-    override suspend fun checkPermission() = PermissionState.DENIED
-    override suspend fun requestPermission() = PermissionState.DENIED
-    override fun startLocationUpdates(): Flow<LocationData> = emptyFlow()
-    override fun stopLocationUpdates() = Unit
-    override suspend fun getCurrentLocation(): LocationData? = null
-}
-actual fun createLocationService(): LocationService = NoLocation
-
 @Composable actual fun RequestInAppReview(shouldRequest: Boolean, onReviewFlowFinish: () -> Unit) {
     val currentOnReviewFlowFinish by rememberUpdatedState(onReviewFlowFinish)
     LaunchedEffect(shouldRequest) { if (shouldRequest) currentOnReviewFlowFinish() }
 }
-
-@Composable actual fun rememberLocationPermissionLauncher(onResult: (granted: Boolean) -> Unit): () -> Unit =
-    { onResult(false) }

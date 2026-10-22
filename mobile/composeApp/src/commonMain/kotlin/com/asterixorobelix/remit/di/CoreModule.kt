@@ -3,12 +3,9 @@ package com.asterixorobelix.remit.di
 import com.asterixorobelix.remit.data.db.AppDatabase
 import com.asterixorobelix.remit.data.db.SqlDriverFactory
 import com.asterixorobelix.remit.data.developer.PreferencesDeveloperSettingsRepository
-import com.asterixorobelix.remit.data.notifications.EmptyNotificationsRepository
 import com.asterixorobelix.remit.data.preferences.AppPreferences
 import com.asterixorobelix.remit.data.preferences.AppSettingsRepositoryImpl
 import com.asterixorobelix.remit.data.preferences.createAppPreferences
-import com.asterixorobelix.remit.data.search.PreferencesRecentSearchesRepository
-import com.asterixorobelix.remit.data.session.PreferencesProfileCache
 import com.asterixorobelix.remit.domain.developer.DeveloperSettingsRepository
 import com.asterixorobelix.remit.domain.developer.GetApiBaseUrlOverrideUseCase
 import com.asterixorobelix.remit.domain.developer.ResetDevelopmentStateUseCase
@@ -16,19 +13,6 @@ import com.asterixorobelix.remit.domain.developer.SetApiBaseUrlOverrideUseCase
 import com.asterixorobelix.remit.domain.feedback.BuildFeedbackEmailUseCase
 import com.asterixorobelix.remit.domain.feedback.ValidateFeedbackUseCase
 import com.asterixorobelix.remit.domain.home.GetDayPeriodUseCase
-import com.asterixorobelix.remit.domain.notifications.MarkNotificationReadUseCase
-import com.asterixorobelix.remit.domain.notifications.NotificationsRepository
-import com.asterixorobelix.remit.domain.notifications.ObserveNotificationsUseCase
-import com.asterixorobelix.remit.domain.notifications.RefreshNotificationsUseCase
-import com.asterixorobelix.remit.domain.search.ClearRecentSearchesUseCase
-import com.asterixorobelix.remit.domain.search.GetRecentSearchesUseCase
-import com.asterixorobelix.remit.domain.search.RecentSearchesRepository
-import com.asterixorobelix.remit.domain.search.SaveRecentSearchUseCase
-import com.asterixorobelix.remit.domain.search.SearchUseCase
-import com.asterixorobelix.remit.domain.session.ComputeInitialsUseCase
-import com.asterixorobelix.remit.domain.session.GetCachedProfileUseCase
-import com.asterixorobelix.remit.domain.session.ObserveSessionExpiredUseCase
-import com.asterixorobelix.remit.domain.session.ProfileCache
 import com.asterixorobelix.remit.domain.settings.AppSettingsRepository
 import com.asterixorobelix.remit.domain.settings.CompleteOnboardingUseCase
 import com.asterixorobelix.remit.domain.settings.MarkReviewRequestedUseCase
@@ -53,9 +37,7 @@ import com.asterixorobelix.remit.presentation.app.AppViewModel
 import com.asterixorobelix.remit.presentation.developer.DeveloperViewModel
 import com.asterixorobelix.remit.presentation.feedback.FeedbackViewModel
 import com.asterixorobelix.remit.presentation.home.HomeViewModel
-import com.asterixorobelix.remit.presentation.notifications.NotificationsViewModel
 import com.asterixorobelix.remit.presentation.onboarding.OnboardingViewModel
-import com.asterixorobelix.remit.presentation.search.SearchViewModel
 import com.asterixorobelix.remit.presentation.settings.SettingsViewModel
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.factoryOf
@@ -78,13 +60,10 @@ internal fun observabilityModule(config: AppConfig): Module = module {
 /** Device-local storage and the repositories built on it. Always loaded. */
 internal val storageModule = module {
     single<AppPreferences> { createAppPreferences() }
-    // Opened lazily on first use; shared by Tasks and generated features.
+    // Opened lazily on first use; shared by generated features.
     single { AppDatabase(get<SqlDriverFactory>().create()) }
     singleOf(::AppSettingsRepositoryImpl) bind AppSettingsRepository::class
-    singleOf(::PreferencesProfileCache) bind ProfileCache::class
-    singleOf(::PreferencesRecentSearchesRepository) bind RecentSearchesRepository::class
     singleOf(::PreferencesDeveloperSettingsRepository) bind DeveloperSettingsRepository::class
-    singleOf(::EmptyNotificationsRepository) bind NotificationsRepository::class
 }
 
 /** Screens and use cases available for every capability set. */
@@ -95,32 +74,19 @@ internal val coreFeaturesModule = module {
     factoryOf(::RecordAppOpenUseCase)
     factoryOf(::MarkReviewRequestedUseCase)
     factoryOf(::ResolveStartDestinationUseCase)
-    factoryOf(::GetCachedProfileUseCase)
-    factoryOf(::ObserveSessionExpiredUseCase)
-    factoryOf(::ComputeInitialsUseCase)
     factoryOf(::GetDayPeriodUseCase)
-    factoryOf(::SearchUseCase)
-    factoryOf(::GetRecentSearchesUseCase)
-    factoryOf(::SaveRecentSearchUseCase)
-    factoryOf(::ClearRecentSearchesUseCase)
-    factoryOf(::ObserveNotificationsUseCase)
-    factoryOf(::RefreshNotificationsUseCase)
-    factoryOf(::MarkNotificationReadUseCase)
     factoryOf(::ValidateFeedbackUseCase)
     factoryOf(::BuildFeedbackEmailUseCase)
     factoryOf(::GetApiBaseUrlOverrideUseCase)
     factoryOf(::SetApiBaseUrlOverrideUseCase)
-    // Collects every feature's UserDataCleaner, which constructor injection cannot express.
-    factory { ResetDevelopmentStateUseCase(get(), get(), getAll()) }
+    factoryOf(::ResetDevelopmentStateUseCase)
 
-    // Optional collaborators (force-update check, recent tasks) exist only for some capabilities.
     factoryOf(::AppLaunchUseCases)
+    // The force-update check exists only with the backend capability.
     viewModel { AppViewModel(get(), get(), get(), getOrNull()) }
-    viewModel { HomeViewModel(get(), get(), get(), getOrNull()) }
+    viewModelOf(::HomeViewModel)
     viewModelOf(::OnboardingViewModel)
     viewModelOf(::SettingsViewModel)
-    viewModelOf(::SearchViewModel)
-    viewModelOf(::NotificationsViewModel)
     viewModelOf(::FeedbackViewModel)
     viewModelOf(::DeveloperViewModel)
 }

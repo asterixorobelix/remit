@@ -91,7 +91,7 @@ class RetryPluginConfig {
  *
  * The plugin will NOT retry:
  * - Non-idempotent requests (POST/PATCH) unless marked with [allowRetry]. Replaying a POST can
- *   duplicate side effects, and replaying `/auth/refresh` would reuse a rotated refresh token.
+ *   duplicate side effects (for example sending a payment twice).
  * - 4xx client errors (except 408 and 429)
  * - [CancellationException] (rethrown immediately)
  * - Responses that don't match retryable criteria

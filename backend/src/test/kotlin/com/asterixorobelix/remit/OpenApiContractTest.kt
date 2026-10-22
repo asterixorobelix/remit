@@ -36,7 +36,7 @@ class OpenApiContractTest {
         )
     }
 
-    /** "get /api/v1/tasks" for a route with a handler, or null for intermediate nodes. */
+    /** "get /api/v1/config" for a route with a handler, or null for intermediate nodes. */
     private fun operationOf(route: RoutingNode): String? {
         val segments = mutableListOf<String>()
         var method: String? = null

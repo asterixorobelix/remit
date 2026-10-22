@@ -9,10 +9,6 @@
     <logger name="io.netty" level="WARN"/>
     <!-- Ktor's CORS plugin logs every request decision. -->
     <logger name="io.ktor.server.plugins.cors" level="WARN"/>
-    <logger name="com.zaxxer.hikari" level="WARN"/>
-    <logger name="org.flywaydb" level="INFO"/>
-    <!-- Exposed logs every SQL statement at DEBUG; keep it quiet unless debugging queries. -->
-    <logger name="Exposed" level="WARN"/>
 
     <root level="${LOG_LEVEL:-INFO}">
         <appender-ref ref="STDOUT"/>

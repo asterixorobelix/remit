@@ -1,4 +1,4 @@
-# SwiftLint for the iOS shell (SwiftUI entry point, StoreKit bridge, UI tests).
+# SwiftLint for the iOS shell (SwiftUI entry point, UI tests).
 # CI runs `swiftlint lint --strict` from this directory, so warnings fail the build.
 included:
   - iosApp

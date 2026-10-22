@@ -6,10 +6,6 @@
 	objectVersion = 77;
 	objects = {
 
-/* Begin PBXBuildFile section */
-		A11B22C33D44E55F66778899 /* MapLibre in Frameworks */ = {isa = PBXBuildFile; productRef = B22C33D44E55F66778899AA0 /* MapLibre */; };
-/* End PBXBuildFile section */
-
 /* Begin PBXContainerItemProxy section */
 		203D28DB2F4B190100FD4827 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -68,7 +64,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A11B22C33D44E55F66778899 /* MapLibre in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -115,7 +110,6 @@
 			);
 			name = RemitUITests;
 			packageProductDependencies = (
-				B22C33D44E55F66778899AA0 /* MapLibre */,
 			);
 			productName = RemitUITests;
 			productReference = 203D28D52F4B190100FD4827 /* RemitUITests.xctest */;
@@ -174,9 +168,6 @@
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
 			productRefGroup = B9DA97B22DC1472C00A4DA20 /* Products */;
-			packageReferences = (
-				C33D44E55F66778899AA0BB1 /* XCRemoteSwiftPackageReference "maplibre-gl-native-distribution" */,
-			);
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -517,25 +508,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
-/* Begin XCRemoteSwiftPackageReference section */
-		C33D44E55F66778899AA0BB1 /* XCRemoteSwiftPackageReference "maplibre-gl-native-distribution" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/maplibre/maplibre-gl-native-distribution.git";
-			requirement = {
-				kind = exactVersion;
-				version = 6.17.1;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		B22C33D44E55F66778899AA0 /* MapLibre */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C33D44E55F66778899AA0BB1 /* XCRemoteSwiftPackageReference "maplibre-gl-native-distribution" */;
-			productName = MapLibre;
-		};
-/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = B9DA97A92DC1472C00A4DA20 /* Project object */;
 }

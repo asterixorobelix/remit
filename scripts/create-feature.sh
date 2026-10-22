@@ -141,7 +141,7 @@ import $PACKAGE.platform.AppDispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-/** Local-only repository over ${NAME}Entity; add a remote source (see data/task) to sync. */
+/** Local-only repository over ${NAME}Entity; add a remote data source to sync. */
 class ${NAME}LocalRepository(
     database: AppDatabase,
     private val dispatchers: AppDispatchers,

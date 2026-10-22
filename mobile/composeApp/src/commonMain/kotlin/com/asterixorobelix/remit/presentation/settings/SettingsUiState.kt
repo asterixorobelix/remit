@@ -8,10 +8,6 @@ sealed interface SettingsUiState {
     data class Content(
         val themeMode: ThemeMode,
         val appVersion: String,
-        /** Profile/account entry; only when the `auth` capability is enabled. */
-        val showAccount: Boolean,
-        /** Premium entry; only when the `billing` capability is enabled. */
-        val showPremium: Boolean,
         /** Debug builds only. */
         val showDeveloperTools: Boolean,
     ) : SettingsUiState

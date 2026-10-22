@@ -6,8 +6,6 @@ import com.asterixorobelix.remit.domain.settings.MarkReviewRequestedUseCase
 import com.asterixorobelix.remit.domain.settings.ObserveThemeModeUseCase
 import com.asterixorobelix.remit.domain.settings.SetThemeModeUseCase
 import com.asterixorobelix.remit.platform.AppConfig
-import com.asterixorobelix.remit.platform.Capability
-import com.asterixorobelix.remit.platform.has
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
@@ -31,8 +29,6 @@ class SettingsViewModel(
             SettingsUiState.Content(
                 themeMode = mode,
                 appVersion = appConfig.versionName,
-                showAccount = appConfig.has(Capability.AUTH),
-                showPremium = appConfig.has(Capability.BILLING),
                 showDeveloperTools = appConfig.isDebug,
             )
         }

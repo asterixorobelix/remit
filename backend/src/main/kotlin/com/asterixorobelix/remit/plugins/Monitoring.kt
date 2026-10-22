@@ -13,7 +13,7 @@ import org.slf4j.event.Level
 import java.util.UUID
 
 private val REQUEST_ID_PATTERN = Regex("[A-Za-z0-9._-]{8,128}")
-private val UNLOGGED_PATHS = setOf("/health", "/ready")
+private val UNLOGGED_PATHS = setOf("/health")
 
 /**
  * Accepts a well-formed client `X-Request-ID` (otherwise generates one), echoes it in the response,

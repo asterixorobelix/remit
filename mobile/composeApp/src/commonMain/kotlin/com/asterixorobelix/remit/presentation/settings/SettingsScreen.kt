@@ -20,11 +20,9 @@ import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.DeveloperMode
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.LightMode
-import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.PhoneAndroid
 import androidx.compose.material.icons.outlined.PrivacyTip
 import androidx.compose.material.icons.outlined.Star
-import androidx.compose.material.icons.outlined.WorkspacePremium
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -46,14 +44,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.asterixorobelix.remit.domain.settings.ThemeMode
 import com.asterixorobelix.remit.generated.resources.Res
 import com.asterixorobelix.remit.generated.resources.settings_about
-import com.asterixorobelix.remit.generated.resources.settings_account
 import com.asterixorobelix.remit.generated.resources.settings_appearance
 import com.asterixorobelix.remit.generated.resources.settings_developer
 import com.asterixorobelix.remit.generated.resources.settings_feedback
-import com.asterixorobelix.remit.generated.resources.settings_premium
 import com.asterixorobelix.remit.generated.resources.settings_privacy_policy
 import com.asterixorobelix.remit.generated.resources.settings_privacy_url
-import com.asterixorobelix.remit.generated.resources.settings_profile
 import com.asterixorobelix.remit.generated.resources.settings_rate_app
 import com.asterixorobelix.remit.generated.resources.settings_terms
 import com.asterixorobelix.remit.generated.resources.settings_terms_url
@@ -68,10 +63,8 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
-/** Navigation callbacks for Settings; optional entries are only shown when their capability is on. */
+/** Navigation callbacks for Settings; Developer tools are only shown in debug builds. */
 data class SettingsNavigation(
-    val toProfile: () -> Unit,
-    val toPremium: () -> Unit,
     val toFeedback: () -> Unit,
     val toWebView: (url: String, title: String) -> Unit,
     val toDeveloper: () -> Unit,
@@ -123,17 +116,6 @@ private fun SettingsContent(
     val termsTitle = stringResource(Res.string.settings_terms)
 
     Column(modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        if (state.showAccount || state.showPremium) {
-            SectionHeader(text = stringResource(Res.string.settings_account))
-            if (state.showAccount) {
-                SettingsLink(Res.string.settings_profile, Icons.Outlined.Person, navigation.toProfile)
-            }
-            if (state.showPremium) {
-                SettingsLink(Res.string.settings_premium, Icons.Outlined.WorkspacePremium, navigation.toPremium)
-            }
-            HorizontalDivider(modifier = Modifier.padding(vertical = Dimens.paddingSmall))
-        }
-
         SectionHeader(text = stringResource(Res.string.settings_appearance))
         ThemeOption(Res.string.settings_theme_system, Icons.Outlined.PhoneAndroid, ThemeMode.SYSTEM, state, onEvent)
         ThemeOption(Res.string.settings_theme_light, Icons.Outlined.LightMode, ThemeMode.LIGHT, state, onEvent)

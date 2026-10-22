@@ -15,5 +15,5 @@ actuals. Runtime feature modules are selected from capabilities in `app.properti
 navigation only exposes routes whose capability is enabled (`NavigationFeatures`).
 
 Key entry points: `di/AppModule.kt`, `navigation/AppNavigation.kt`,
-`presentation/app/AppViewModel.kt`, `data/network/ApiHttpClient.kt`, `data/auth`,
-`data/task`, `presentation/tasks`, `commonMain/sqldelight`, and the desktop gallery.
+`presentation/app/AppViewModel.kt`, `data/network/ApiHttpClient.kt`,
+`commonMain/sqldelight`, and the desktop gallery.

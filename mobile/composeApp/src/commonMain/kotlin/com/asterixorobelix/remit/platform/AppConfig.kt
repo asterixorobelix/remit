@@ -47,7 +47,7 @@ interface AppConfig {
         get() = environment == Environment.DEVELOPMENT
 }
 
-enum class Capability { AUTH, OFFLINE, BACKEND, MAPS, BILLING, FIREBASE }
+enum class Capability { BACKEND, FIREBASE }
 
 fun AppConfig.has(capability: Capability): Boolean = capability in capabilities
 

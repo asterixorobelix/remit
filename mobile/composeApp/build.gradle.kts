@@ -71,14 +71,6 @@ kotlin {
         }
     }
 
-    // Kotlin/Native test executables must link MapLibre.framework (maplibre-compose), which only
-    // the Xcode SPM package provides. Build the iOS app once, then run for example:
-    // ./gradlew :composeApp:iosSimulatorArm64Test \
-    //   -PmapLibreFrameworkDir=<DerivedData>/Build/Products/Debug-iphonesimulator
-    providers.gradleProperty("mapLibreFrameworkDir").orNull?.let { frameworkDir ->
-        iosSimulatorArm64().binaries.getTest("DEBUG").linkerOpts("-F$frameworkDir", "-rpath", frameworkDir)
-    }
-
     jvm("desktop")
 
     sourceSets {
@@ -89,8 +81,6 @@ kotlin {
             implementation(libs.material)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.play.review.ktx)
-            implementation(libs.play.billing.ktx)
-            implementation(libs.play.services.location)
             implementation(libs.sqlDelight.androidDriver)
         }
         commonMain.dependencies {
@@ -117,17 +107,12 @@ kotlin {
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.client.content.json)
-            implementation(libs.ktor.client.auth)
 
             implementation(libs.coil.compose)
             implementation(libs.coil.network.ktor3)
 
             implementation(libs.sqlDelight.runtime)
             implementation(libs.sqlDelight.coroutinesExtensions)
-
-            // MapLibre Compose for offline/online maps
-            implementation(libs.maplibre.compose)
-            implementation(libs.maplibre.compose.material3)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -196,7 +181,6 @@ android {
         buildConfigField("int", "VERSION_CODE", getAppProperty("VERSION_CODE"))
         buildConfigField("String", "APPLICATION_ID", "\"${getAppProperty("PACKAGE_NAME")}\"")
         buildConfigField("String", "CAPABILITIES", "\"${getAppProperty("FEATURES")}\"")
-        buildConfigField("String", "PLAY_BILLING_PRODUCT", "\"${getAppProperty("PLAY_BILLING_PRODUCT")}\"")
     }
 
     // Enable BuildConfig generation
@@ -274,9 +258,6 @@ android {
                 "GradleDependency",
                 "NewerVersionAvailable",
                 "OldTargetApi",
-                // Timber's check (shipped transitively) flags android.util.Log, which only the
-                // platform Logger/Analytics/CrashLogger actuals use by design.
-                "LogNotTimber",
             )
     }
 }
@@ -287,8 +268,8 @@ dependencies {
     detektPlugins(libs.compose.rules.detekt)
 }
 
-// `./gradlew test` (the documented gate and CI) must also run the JVM tests: TaskRepositoryImplTest
-// (SQLite) and NavigationGraphTest (Koin graph) live in desktopTest.
+// `./gradlew test` (the documented gate and CI) must also run the JVM tests: NavigationGraphTest
+// (Koin graph) and the screenshot tests live in desktopTest.
 tasks.matching { it.name == "test" }.configureEach { dependsOn("desktopTest") }
 
 // detekt: detekt's default rule set plus the overrides and Compose rules in detekt-mobile.yml, over
@@ -373,8 +354,8 @@ kover {
                 androidGeneratedClasses()
                 // Android platform glue that plain JVM unit tests cannot run (android.jar is stubs):
                 // the Application, lifecycle callbacks, and the platform actuals, i.e. `*.android.kt`
-                // files and their `Android*` implementations (Keystore prefs, Play Billing, Log,
-                // location, analytics). Drop these if you add Robolectric tests for them.
+                // files and their `Android*` implementations (preferences, Log, analytics). Drop these
+                // if you add Robolectric tests for them.
                 inheritedFrom("android.app.Application", "android.app.Application\$ActivityLifecycleCallbacks")
                 classes("*_androidKt", "*.Android*")
                 // The UI kit (components, custom Modifier.Node modifiers, theme tokens) draws and
@@ -385,7 +366,7 @@ kover {
                     "com.asterixorobelix.remit.ui.components",
                     "com.asterixorobelix.remit.ui.theme",
                 )
-                classes("*.platform.Console*", "*.platform.Desktop*", "*.platform.NoLocation")
+                classes("*.platform.Console*", "*.platform.Desktop*")
                 // Desktop component gallery: a developer tool whose entry point is main().
                 packages("com.asterixorobelix.remit.gallery")
             }
