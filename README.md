@@ -93,12 +93,14 @@ make test-appium          # starts its own Appium server (pinned in e2e/appium)
 make test-perf            # HTML dashboard in build/perf/report/index.html
 ```
 
-JMeter on a laptop against the local emulators (5 users, 20 iterations each, 5 s ramp-up):
+JMeter on a laptop against the local emulators (5 users, 20 iterations each, 5 s ramp-up;
+205 requests in 4 s, 49 req/s overall):
 
-| Request | Samples | Errors | Mean | p95 | p99 |
-|---|---|---|---|---|---|
-| Create payment | 100 | 0 | 8 ms | 19 ms | 39 ms |
-| Replay (same key) | 100 | 0 | 8 ms | 13 ms | 18 ms |
+| Request | Samples | Errors | Mean | p95 | p99 | Throughput |
+|---|---|---|---|---|---|---|
+| Anonymous sign-in (once per user) | 5 | 0 | 16 ms | 48 ms | 48 ms | 1.3 req/s |
+| Create payment | 100 | 0 | 9 ms | 18 ms | 82 ms | 24.3 req/s |
+| Replay (same key) | 100 | 0 | 8 ms | 13 ms | 17 ms | 24.8 req/s |
 
 These numbers show the plan works and the endpoint has no obvious bottleneck. They say little
 about production, where Firestore is a network hop away. To run the same plan against a deployed
