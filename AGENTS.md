@@ -124,7 +124,7 @@ Static analysis and coverage, per build:
 |---|---|---|
 | detekt 1.23 | defaults + `backend/detekt.yml`, main and test | defaults + `mobile/detekt-mobile.yml` with Compose rules, every source set (tests included) in `composeApp` and `androidApp` |
 | ktlint (version pinned in `gradle/libs.versions.toml`) | all sources and scripts | all sources and scripts |
-| Kover | `koverVerify`: 80% line, 70% branch | `koverVerifyUnitTests`: 70% line floor on logic (`@Composable` and the UI kit excluded) |
+| Kover | `koverVerify`: 80% line, 70% branch | `koverVerifyUnitTests`: 80% line floor on logic, including `shared` (`@Composable` and the UI kit excluded); `shared` alone 90% |
 | Changed lines (CI, pull requests) | 80% (diff-cover) | 80% (diff-cover) |
 | Other | `OpenApiContractTest` (routes match the OpenAPI spec) | Android Lint, SwiftLint, Roborazzi screenshots |
 

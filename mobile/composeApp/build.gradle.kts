@@ -343,7 +343,7 @@ kover {
         variant("unitTests") {
             verify {
                 rule("Line coverage floor") {
-                    minBound(70)
+                    minBound(80)
                 }
             }
         }

@@ -122,7 +122,7 @@ Queries can be added freely; table changes need a migration.
   navigation) and leaves out `@Composable` functions, the UI kit (`ui/components`, `ui/theme`,
   covered by screenshots), generated code, and platform glue. CI fails a pull request whose
   changed lines are below 80% covered, and `:composeApp:koverVerifyUnitTests` (in
-  `make check-mobile` and CI) fails when total line coverage drops below the 70% floor. Raise the
+  `make check-mobile` and CI) fails when total line coverage drops below the 80% floor. Raise the
   floor in `composeApp/build.gradle.kts` as coverage grows; never lower it to pass.
   `make coverage` writes the HTML report (`build/reports/kover/htmlUnitTests/index.html`).
 - Screenshot baselines are recorded on Linux by CI (fonts render differently on macOS), with a

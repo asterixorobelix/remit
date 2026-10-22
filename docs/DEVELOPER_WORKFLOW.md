@@ -87,7 +87,7 @@ make coverage            # Kover HTML reports and totals for backend and mobile
 ```
 
 Coverage is gated three ways: the backend's `koverVerify` (80% line, 70% branch), the mobile
-`koverVerifyUnitTests` floor (70% of logic; `@Composable` code is covered by screenshots), and,
+`koverVerifyUnitTests` floor (80% of logic; `@Composable` code is covered by screenshots), and,
 on pull requests, 80% of changed lines in both builds. detekt runs detekt's default rules plus
 each build's overrides on every source set, tests included; ktlint's version is pinned in
 `gradle/libs.versions.toml`.
