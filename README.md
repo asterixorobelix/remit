@@ -28,7 +28,9 @@ exactly once and records it in Firestore. Built as a take-home challenge on top 
 
 Requirements: JDK 21+, Android SDK with an emulator, Node 22+, and the Firebase CLI
 (`npm install -g firebase-tools`). Everything runs locally against the Firebase Emulator Suite;
-no Firebase account or credentials are needed.
+no Firebase account, credentials, or `google-services.json` are needed (with
+`FIREBASE_EMULATOR_HOST` set and no `google-services.json`, the debug app starts Firebase for the
+emulators itself).
 
 ```bash
 make emulators            # terminal 1: Firebase Auth + Firestore emulators (UI on http://localhost:4000)
@@ -116,8 +118,8 @@ desktop JVM, and CI links the iOS framework whenever iOS-relevant code changes.
   error mapping, the repository, use cases, and dependency injection. The Cucumber suite runs
   on the desktop JVM against exactly this code.
 - **expect/actual:** `platformAuthSession()` and `platformPaymentHistorySource()`. Android uses
-  the Firebase SDK. iOS and desktop return implementations that fail with a clear "not wired on
-  this platform" error instead of pretending to have data.
+  the Firebase SDK. iOS and desktop return implementations that fail with a clear "Firebase is
+  not set up" error instead of pretending to have data.
 - **To ship iOS:** add the Firebase iOS SDK (Swift Package Manager) and write the two `iosMain`
   actuals against it, or switch both actuals to a KMP Firebase wrapper such as GitLive's.
   Because `shared` has no Compose dependency, an iOS team could also build the screens in

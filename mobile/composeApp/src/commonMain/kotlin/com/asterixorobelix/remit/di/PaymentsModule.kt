@@ -20,7 +20,7 @@ import org.koin.dsl.module
  * this app supplies (API base URL, durable pending payment, retry opt-in) and the screens' ViewModels.
  */
 internal fun paymentsModules(config: AppConfig): List<Module> = listOf(
-    paymentsModule(FirebaseSettings(emulatorHost = config.firebaseEmulatorHost)),
+    paymentsModule(config.firebaseSettings()),
     module {
         single { ApiEndpoint { get<AppConfig>().resolveApiBaseUrl(get()) } }
         single<PendingPaymentStore> { SqlDelightPendingPaymentStore(get(), get()) }
@@ -30,6 +30,8 @@ internal fun paymentsModules(config: AppConfig): List<Module> = listOf(
         viewModelOf(::PaymentHistoryViewModel)
     },
 )
+
+internal fun AppConfig.firebaseSettings() = FirebaseSettings(emulatorHost = firebaseEmulatorHost)
 
 /** Debug builds honour the Developer-screen override; release builds never do. */
 internal fun AppConfig.resolveApiBaseUrl(preferences: AppPreferences): String =

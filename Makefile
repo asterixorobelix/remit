@@ -53,7 +53,9 @@ backend-emulated: ## Start the backend against the Firebase emulators (make emul
 
 # ---------------------------------------------------------------- Firebase
 # The emulators use the real project id so the debug app's google-services.json matches; they
-# never touch the real project's data. Tests use an emulator-only demo- project instead.
+# never touch the real project's data. Without google-services.json the debug app uses
+# FirebaseSettings.EMULATOR_PROJECT_ID, which must equal this default. Tests use an emulator-only
+# demo- project instead.
 FIREBASE_PROJECT ?= remit-payments
 
 emulators: ## Start the Firebase Auth and Firestore emulators (UI on http://localhost:4000)

@@ -6,8 +6,10 @@ import com.asterixorobelix.remit.data.db.AndroidSqlDriverFactory
 import com.asterixorobelix.remit.data.db.SqlDriverFactory
 import com.asterixorobelix.remit.data.preferences.AndroidAppPreferences
 import com.asterixorobelix.remit.di.appModules
+import com.asterixorobelix.remit.di.firebaseSettings
 import com.asterixorobelix.remit.platform.Observability
 import com.asterixorobelix.remit.platform.createAppConfig
+import com.asterixorobelix.remit.shared.data.startFirebaseForEmulators
 import org.koin.core.context.startKoin
 import org.koin.dsl.module
 
@@ -16,6 +18,7 @@ class RemitApplication : Application() {
         super.onCreate()
         AndroidAppPreferences.init(this)
         val config = createAppConfig()
+        startFirebaseForEmulators(this, config.firebaseSettings())
         val androidPlatformModule = module {
             single<Context> { this@RemitApplication }
             single<SqlDriverFactory> { AndroidSqlDriverFactory(get()) }

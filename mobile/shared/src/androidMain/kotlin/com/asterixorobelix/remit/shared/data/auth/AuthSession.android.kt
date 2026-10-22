@@ -1,6 +1,7 @@
 package com.asterixorobelix.remit.shared.data.auth
 
 import com.asterixorobelix.remit.shared.data.FirebaseSettings
+import com.asterixorobelix.remit.shared.data.defaultFirebaseApp
 import com.google.firebase.FirebaseException
 import com.google.firebase.FirebaseNetworkException
 import com.google.firebase.auth.FirebaseAuth
@@ -10,7 +11,8 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.tasks.await
 
 actual fun platformAuthSession(settings: FirebaseSettings): AuthSession {
-    val auth = FirebaseAuth.getInstance()
+    val app = defaultFirebaseApp() ?: return UnsupportedPlatformAuthSession
+    val auth = FirebaseAuth.getInstance(app)
     settings.emulatorHost?.let { auth.useEmulator(it, FirebaseSettings.AUTH_EMULATOR_PORT) }
     return FirebaseAuthSession(auth)
 }

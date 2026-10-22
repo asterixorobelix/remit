@@ -20,7 +20,7 @@ class AuthUnavailableException(val isNetworkError: Boolean, cause: Throwable? = 
 /** Firebase Auth on Android; an [AuthSession] that always fails where Firebase is not wired. */
 expect fun platformAuthSession(settings: FirebaseSettings): AuthSession
 
-/** For platforms without the Firebase SDK (iOS and desktop in this project). */
+/** Where Firebase is not wired (iOS and desktop) or not started (Android without its config). */
 internal object UnsupportedPlatformAuthSession : AuthSession {
     override suspend fun userId(): String = throw unsupported()
 
@@ -28,6 +28,6 @@ internal object UnsupportedPlatformAuthSession : AuthSession {
 
     private fun unsupported() = AuthUnavailableException(
         isNetworkError = false,
-        cause = UnsupportedOperationException("Firebase is only wired on Android in this project"),
+        cause = UnsupportedOperationException("Firebase is not set up in this build"),
     )
 }

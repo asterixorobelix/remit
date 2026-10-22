@@ -1,6 +1,7 @@
 package com.asterixorobelix.remit.shared.data.history
 
 import com.asterixorobelix.remit.shared.data.FirebaseSettings
+import com.asterixorobelix.remit.shared.data.defaultFirebaseApp
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
@@ -10,7 +11,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 
 actual fun platformPaymentHistorySource(settings: FirebaseSettings): PaymentHistorySource {
-    val firestore = FirebaseFirestore.getInstance()
+    val app = defaultFirebaseApp() ?: return UnsupportedPlatformHistorySource
+    val firestore = FirebaseFirestore.getInstance(app)
     settings.emulatorHost?.let { firestore.useEmulator(it, FirebaseSettings.FIRESTORE_EMULATOR_PORT) }
     return FirestorePaymentHistorySource(firestore)
 }

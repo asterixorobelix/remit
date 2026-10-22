@@ -36,7 +36,10 @@ no Compose dependency, so a SwiftUI or desktop app could use it as is.
   Android; iOS and desktop fail clearly).
 - Firebase: anonymous auth. Debug builds use the Firebase emulators when `FIREBASE_EMULATOR_HOST`
   is set in `local.properties` (`10.0.2.2` from the Android emulator; `make emulators` and
-  `make backend-emulated` at the root).
+  `make backend-emulated` at the root). Without `google-services.json`, `RemitApplication` calls
+  `startFirebaseForEmulators` (project `FirebaseSettings.EMULATOR_PROJECT_ID`, which must match the
+  Makefile's `FIREBASE_PROJECT`); with neither, the Android actuals fall back to the "not set up"
+  implementations instead of crashing.
 - Test tags in `PaymentTestTags` are exposed as Android resource ids (`MainActivity`) for Appium;
   keep them stable.
 - Kover: `shared` has its own 90% floor and is merged into `composeApp`'s report.

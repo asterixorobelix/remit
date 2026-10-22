@@ -46,7 +46,7 @@ expect fun platformPaymentHistorySource(settings: FirebaseSettings): PaymentHist
 internal object UnsupportedPlatformHistorySource : PaymentHistorySource {
     override fun observe(userId: String): Flow<List<PaymentRecord>> = flow {
         throw PaymentHistoryUnavailableException(
-            UnsupportedOperationException("Firebase is only wired on Android in this project"),
+            UnsupportedOperationException("Firebase is not set up in this build"),
         )
     }
 }
