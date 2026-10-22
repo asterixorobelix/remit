@@ -78,7 +78,7 @@ jobs:
           java-version: ${{ matrix.java }}
           project-dir: ${{ matrix.project }}
           cache-id: ${{ matrix.project }}
-      - uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+      - uses: github/codeql-action/init@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
         with:
           languages: java-kotlin
           build-mode: manual
@@ -92,6 +92,6 @@ jobs:
           # shellcheck disable=SC2086 # TASKS is a space-separated task list
           ./gradlew $TASKS --no-daemon --no-build-cache --no-configuration-cache \
             -Pkotlin.compiler.execution.strategy=in-process -Pkotlin.incremental=false
-      - uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+      - uses: github/codeql-action/analyze@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
         with:
           category: /language:java-kotlin-${{ matrix.project }}
