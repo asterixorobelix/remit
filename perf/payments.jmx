@@ -44,7 +44,7 @@
           </elementProp>
           <elementProp name="API_KEY" elementType="Argument">
             <stringProp name="Argument.name">API_KEY</stringProp>
-            <stringProp name="Argument.value">${__P(apiKey,fake-api-key)}</stringProp>
+            <stringProp name="Argument.value">${__groovy(System.getenv('FIREBASE_API_KEY') ?: 'fake-api-key')}</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
           <elementProp name="USERS" elementType="Argument">
@@ -99,7 +99,7 @@
             <stringProp name="HTTPSampler.protocol">${AUTH_PROTOCOL}</stringProp>
             <stringProp name="HTTPSampler.domain">${AUTH_HOST}</stringProp>
             <stringProp name="HTTPSampler.port">${AUTH_PORT}</stringProp>
-            <stringProp name="HTTPSampler.path">${AUTH_PATH}?key=${API_KEY}</stringProp>
+            <stringProp name="HTTPSampler.path">${AUTH_PATH}</stringProp>
             <stringProp name="HTTPSampler.method">POST</stringProp>
             <boolProp name="HTTPSampler.follow_redirects">false</boolProp>
             <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
@@ -107,11 +107,15 @@
             <stringProp name="HTTPSampler.response_timeout">15000</stringProp>
           </HTTPSamplerProxy>
           <hashTree>
-            <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="JSON">
+            <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="JSON and API key">
               <collectionProp name="HeaderManager.headers">
             <elementProp name="" elementType="Header">
               <stringProp name="Header.name">Content-Type</stringProp>
               <stringProp name="Header.value">application/json</stringProp>
+            </elementProp>
+            <elementProp name="" elementType="Header">
+              <stringProp name="Header.name">X-Goog-Api-Key</stringProp>
+              <stringProp name="Header.value">${API_KEY}</stringProp>
             </elementProp>
               </collectionProp>
             </HeaderManager>

@@ -78,8 +78,18 @@ JMeter on a laptop against the local emulators (5 users, 20 iterations each, 5 s
 | Replay (same key) | 100 | 0 | 8 ms | 13 ms | 18 ms |
 
 These numbers show the plan works and the endpoint has no obvious bottleneck. They say little
-about production, where Firestore is a network hop away; run the same plan against a deployed
-API with `-Jhost=... -Jprotocol=https -Jport=443`.
+about production, where Firestore is a network hop away. To run the same plan against a deployed
+API, point both the API and the sign-in at the real services (the default sign-in is the local
+Auth emulator, whose tokens a real backend rejects):
+
+```bash
+FIREBASE_API_KEY=<Firebase web API key> scripts/perf.sh -Jprotocol=https -Jhost=api.example.com \
+  -Jport=443 -JauthProtocol=https -JauthHost=identitytoolkit.googleapis.com -JauthPort=443 \
+  -JauthPath=/v1/accounts:signUp
+```
+
+The key comes from the environment and travels in the `X-Goog-Api-Key` header, so it never appears
+in a URL, the results file, or the JMeter log (which records every `-J` property).
 
 ## Architecture
 
