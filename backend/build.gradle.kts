@@ -89,11 +89,12 @@ tasks.processResources {
 }
 
 // `./gradlew run` is a local-development entry point; deployments must set APP_ENVIRONMENT explicitly.
+// Read when the task runs: reading it at configuration time would store the value in the
+// configuration cache, and a later run would ignore a changed PORT or Firebase project.
 tasks.named<JavaExec>("run") {
-    environment(
-        "APP_ENVIRONMENT",
-        providers.environmentVariable("APP_ENVIRONMENT").getOrElse("development"),
-    )
+    doFirst {
+        (this as JavaExec).environment("APP_ENVIRONMENT", System.getenv("APP_ENVIRONMENT") ?: "development")
+    }
 }
 
 // Detekt configuration
