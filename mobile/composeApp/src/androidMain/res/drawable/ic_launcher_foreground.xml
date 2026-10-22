@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The adaptive icon's foreground, drawn from resources/img/remit-icon.svg as a vector so it stays
+     sharp at any size: the Android 12+ splash screen draws the launcher icon at 240dp, which blurs a
+     bitmap foreground. The 1024-unit SVG fills the central 72dp safe zone of the 108dp canvas. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="1536"
+    android:viewportHeight="1536">
+    <group
+        android:translateX="256"
+        android:translateY="256">
+        <path
+            android:fillAlpha="0.18"
+            android:fillColor="#EADDFF"
+            android:pathData="M132,512a380,380 0,1 0,760 0a380,380 0,1 0,-760 0Z" />
+        <path
+            android:pathData="M194,512a318,318 0,1 0,636 0a318,318 0,1 0,-636 0Z"
+            android:strokeWidth="24"
+            android:strokeAlpha="0.42"
+            android:strokeColor="#EADDFF" />
+        <!-- SVG: translate(500 528) scale(1.2) translate(-522 -522). -->
+        <group
+            android:pivotX="522"
+            android:pivotY="522"
+            android:scaleX="1.2"
+            android:scaleY="1.2"
+            android:translateX="-22"
+            android:translateY="6">
+            <path
+                android:fillColor="#FFFFFF"
+                android:pathData="M232,512L812,232L506,612Z"
+                android:strokeWidth="10"
+                android:strokeColor="#FFFFFF"
+                android:strokeLineJoin="round" />
+            <path
+                android:fillColor="#E8DEF8"
+                android:pathData="M506,612L812,232L598,812Z"
+                android:strokeWidth="10"
+                android:strokeColor="#E8DEF8"
+                android:strokeLineJoin="round" />
+            <path
+                android:fillColor="#CBB8F0"
+                android:pathData="M506,612L598,812L476,712Z"
+                android:strokeWidth="10"
+                android:strokeColor="#CBB8F0"
+                android:strokeLineJoin="round" />
+        </group>
+    </group>
+</vector>
