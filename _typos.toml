@@ -1,0 +1,7 @@
+# Spell-check allowlist for `typos` (used by the agent edit hook).
+[default.extend-words]
+itms = "itms"           # itms-apps:// App Store URL scheme
+prodution = "prodution" # deliberate misspelling in AppConfigTest
+Caf = "Caf"             # percent-encoded "Café" in FeedbackUseCasesTest
+udid = "udid"           # simulator device identifier (xcrun simctl)
+UDID = "UDID"

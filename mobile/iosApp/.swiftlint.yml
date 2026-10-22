@@ -1,0 +1,61 @@
+# SwiftLint for the iOS shell (SwiftUI entry point, StoreKit bridge, UI tests).
+# CI runs `swiftlint lint --strict` from this directory, so warnings fail the build.
+included:
+  - iosApp
+  - MyProjectUITests
+excluded:
+  - build
+  - DerivedData
+
+line_length:
+  warning: 120
+  ignores_comments: false
+
+type_name:
+  # Kotlin Multiplatform's generated entry point keeps the conventional iOSApp name.
+  excluded: [iOSApp]
+
+# Opt-in rules on top of SwiftLint's defaults: correctness (force unwraps, fatal errors without
+# messages, unowned captures), SwiftUI state privacy, idiomatic collection calls, and layout.
+opt_in_rules:
+  - empty_count
+  - first_where
+  - force_unwrapping
+  - implicitly_unwrapped_optional
+  - sorted_imports
+  - closure_end_indentation
+  - closure_spacing
+  - collection_alignment
+  - contains_over_filter_count
+  - contains_over_filter_is_empty
+  - contains_over_first_not_nil
+  - contains_over_range_nil_comparison
+  - discouraged_optional_boolean
+  - empty_string
+  - explicit_init
+  - fatal_error_message
+  - flatmap_over_map_reduce
+  - identical_operands
+  - last_where
+  - legacy_multiple
+  - literal_expression_end_indentation
+  - modifier_order
+  - multiline_arguments
+  - multiline_parameters
+  - operator_usage_whitespace
+  - overridden_super_call
+  - prefer_self_in_static_references
+  - prefer_self_type_over_type_of_self
+  - prefer_zero_over_explicit_init
+  - private_swiftui_state
+  - redundant_nil_coalescing
+  - redundant_type_annotation
+  - sorted_first_last
+  - toggle_bool
+  - unneeded_parentheses_in_closure_argument
+  - unowned_variable_capture
+  - vertical_parameter_alignment_on_call
+  - vertical_whitespace_closing_braces
+  - vertical_whitespace_opening_braces
+  - weak_delegate
+  - yoda_condition

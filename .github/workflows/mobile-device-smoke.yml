@@ -1,0 +1,156 @@
+# Mobile device smoke — Android instrumentation tests on an emulator, with gfxinfo evidence.
+#
+# With a FIREBASE_TEST_LAB_KEY secret (service-account JSON for a Firebase project with Test Lab
+# enabled), it runs on Firebase Test Lab instead: the instrumentation tests plus a Robo crawl
+# that exercises the app without scripted tests. The free Spark quota (10 virtual and 5 physical
+# device runs a day) covers this; FTL_DEVICE (repository variable, for example
+# "model=MediumPhone.arm,version=34") picks the device, otherwise Test Lab's default is used.
+#
+# Scheduled nightly, but the emulator only starts when Android-relevant code changed since the
+# last successful run, so an idle night costs one short Linux job. A failing run keeps
+# retrying nightly until it passes. The full iOS app build runs in CI on every iOS-relevant
+# change, so it is not repeated here.
+
+name: Mobile Device Smoke
+
+on:
+  schedule:
+    - cron: '17 2 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: mobile-device-smoke
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  GRADLE_OPTS: -Dorg.gradle.daemon=false
+
+jobs:
+  changes:
+    name: Detect changes
+    runs-on: ${{ vars.LINUX_RUNNER || 'ubuntu-24.04' }}
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      run: ${{ steps.check.outputs.run }}
+      test-lab: ${{ steps.check.outputs.test-lab }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Compare with the last successful run
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          HAS_TEST_LAB: ${{ secrets.FIREBASE_TEST_LAB_KEY != '' }}
+        run: |
+          echo "test-lab=$HAS_TEST_LAB" >> "$GITHUB_OUTPUT"
+          if [[ "$EVENT" == workflow_dispatch ]]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          last="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow "$GITHUB_WORKFLOW" \
+            --branch main --status success --limit 1 \
+            --json headSha --jq '.[0].headSha // empty' || true)"
+          if [[ -n "$last" ]] && git merge-base --is-ancestor "$last" HEAD 2>/dev/null &&
+            git diff --quiet "$last" HEAD -- mobile gradle/libs.versions.toml app.properties \
+              ':(exclude)*.md' ':(exclude)mobile/iosApp' ':(exclude)mobile/fastlane' \
+              ':(exclude)mobile/store_assets' ':(exclude)mobile/composeApp/src/iosMain' \
+              ':(exclude)mobile/composeApp/src/iosTest' ':(exclude)mobile/composeApp/src/desktopMain' \
+              ':(exclude)mobile/composeApp/src/desktopTest'; then
+            echo "No Android-relevant changes since $last; skipping the emulator."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  android:
+    name: Android emulator
+    needs: changes
+    if: needs.changes.outputs.run == 'true' && needs.changes.outputs.test-lab != 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Reads CI's mobile cache; this job never saves one.
+      - uses: ./.github/actions/java-gradle
+        with:
+          java-version: '21'
+          project-dir: mobile
+          cache-id: mobile
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Read the debug application id
+        run: echo "APP_ID=$(awk -F= '$1=="PACKAGE_NAME" {print $2}' app.properties).debug" >> "$GITHUB_ENV"
+      - uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          working-directory: mobile
+          # gfxinfo must be captured while the emulator is still running.
+          script: |
+            ./gradlew :androidApp:connectedDebugAndroidTest
+            adb shell dumpsys gfxinfo "$APP_ID" > ../android-gfxinfo.txt || true
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: android-smoke-evidence
+          path: |
+            android-gfxinfo.txt
+            mobile/androidApp/build/reports/androidTests/
+          retention-days: 14
+          if-no-files-found: ignore
+
+  test-lab:
+    name: Firebase Test Lab
+    needs: changes
+    if: needs.changes.outputs.run == 'true' && needs.changes.outputs.test-lab == 'true'
+    runs-on: ${{ vars.LINUX_RUNNER || 'ubuntu-24.04' }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/java-gradle
+        with:
+          java-version: '21'
+          project-dir: mobile
+          cache-id: mobile
+      - name: Build the app and test APKs
+        working-directory: mobile
+        run: ./gradlew :androidApp:assembleDebug :androidApp:assembleDebugAndroidTest
+      - name: Authenticate gcloud
+        env:
+          KEY: ${{ secrets.FIREBASE_TEST_LAB_KEY }}
+        run: |
+          key_file="$RUNNER_TEMP/test-lab-key.json"
+          printf '%s' "$KEY" > "$key_file"
+          gcloud auth activate-service-account --key-file "$key_file" --quiet
+          gcloud config set project "$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["project_id"])' "$key_file")" --quiet
+          rm -f "$key_file"
+      - name: Instrumentation tests and Robo crawl
+        working-directory: mobile/androidApp/build/outputs/apk
+        env:
+          DEVICE: ${{ vars.FTL_DEVICE }}
+        run: |
+          device=()
+          [[ -z "$DEVICE" ]] || device=(--device "$DEVICE")
+          gcloud firebase test android run --type instrumentation "${device[@]}" \
+            --app debug/androidApp-debug.apk --test androidTest/debug/androidApp-debug-androidTest.apk \
+            --timeout 10m --quiet
+          gcloud firebase test android run --type robo "${device[@]}" \
+            --app debug/androidApp-debug.apk --timeout 5m --quiet

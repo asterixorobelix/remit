@@ -1,0 +1,49 @@
+# PR-Agent settings (AI pull request review, .github/workflows/ai-review.yml).
+# PR-Agent reads this file from the default branch. The model is chosen in the workflow through
+# the AI_REVIEW_MODEL repository variable, so the reviewer is not tied to any one vendor.
+
+[config]
+# Caps tokens per call; large diffs are clipped rather than sent whole.
+max_model_tokens = 64000
+ignore_pr_authors = ["dependabot[bot]"]
+response_language = "en-US"
+
+[pr_reviewer]
+require_tests_review = true
+require_security_review = true
+require_estimate_effort_to_review = true
+# The workflow fails the "AI review" check while this label is present.
+enable_review_labels_security = true
+enable_review_labels_effort = true
+num_max_findings = 6
+persistent_comment = true
+extra_instructions = """
+This is a Kotlin Multiplatform app (Compose Multiplatform client, Ktor backend). Pull requests are
+often written by AI coding agents, so check that the change does what its description claims and
+flag these project rules (AGENTS.md):
+- Clean Architecture: presentation -> use cases -> domain repository interfaces; domain/ has no
+  framework imports; no business logic in ViewModels.
+- Koin: factoryOf for use cases, singleOf for repositories, viewModelOf for ViewModels.
+- UI state: a sealed UiState with Loading/Content/Error/Empty, private MutableStateFlow exposed as
+  StateFlow, events up and state down, one-time effects through a Channel.
+- No literal user-facing strings, colors, or dimensions in UI code: stringResource, MaterialTheme,
+  Dimens. Interactive and image elements need contentDescription.
+- Database changes need migrations (Flyway V<n>__*.sql, SQLDelight .sqm); applied migrations must
+  never be edited.
+- New logic needs ViewModel and use-case tests; tests must assert behavior, not just run code.
+- Auth, tokens, and secrets: never log or commit them; validate input at API boundaries.
+- Workflows: actions pinned to commit SHAs, least-privilege permissions, timeout-minutes, path
+  filters; no new macOS jobs where Linux works; never weaken the transactional release order.
+Prefer concrete bugs and rule violations over style remarks (ktlint and detekt cover style).
+"""
+
+[pr_code_suggestions]
+# Suggestions become review threads; branch protection requires resolving every thread.
+committable_code_suggestions = true
+suggestions_score_threshold = 7
+focus_only_on_problems = true
+persistent_comment = true
+extra_instructions = """
+Only suggest changes that fix a bug, a security problem, a missing test for new logic, or a
+violation of the project rules in the reviewer instructions. Do not suggest pure style changes.
+"""

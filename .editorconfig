@@ -1,0 +1,34 @@
+# Shared formatting for both Gradle builds; ktlint reads the [*.{kt,kts}] section.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{kt,kts}]
+indent_style = space
+indent_size = 4
+# Matches detekt's MaxLineLength in mobile/detekt-mobile.yml and backend/detekt.yml.
+max_line_length = 120
+ktlint_code_style = intellij_idea
+# Composable functions are PascalCase by convention.
+ktlint_function_naming_ignore_when_annotated_with = Composable
+# Keep the Kotlin-official trailing commas the code base already uses.
+ij_kotlin_allow_trailing_comma = true
+ij_kotlin_allow_trailing_comma_on_call_site = true
+# Signature and body-style rewrites are churn without a correctness benefit.
+ktlint_standard_class-signature = disabled
+ktlint_standard_function-signature = disabled
+ktlint_standard_function-expression-body = disabled
+
+[*.{yml,yaml,json,toml}]
+indent_style = space
+indent_size = 2
+
+[Makefile]
+indent_style = tab
+
+[*.md]
+trim_trailing_whitespace = false

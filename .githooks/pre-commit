@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# shellcheck disable=SC2059 # colour codes are constants in format strings
+# Fast pre-commit checks for staged changes. Install: ./setup-hooks.sh
+# Bypass once: git commit --no-verify
+set -uo pipefail
+
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT" || exit 1
+failed=0
+
+staged() { git diff --cached --name-only --diff-filter=ACMR; }
+added_lines() { git diff --cached --unified=0 --diff-filter=ACMR | grep '^+' | grep -v '^+++'; }
+
+run_gradle() {
+  local module="$1"; shift
+  printf '  %-48s ' "$module: $*"
+  if (cd "$module" && ./gradlew "$@" --quiet >/dev/null 2>&1); then
+    printf "${GREEN}ok${NC}\n"
+  else
+    printf "${RED}failed${NC}  (run: cd %s && ./gradlew %s)\n" "$module" "$*"
+    failed=1
+  fi
+}
+
+# run_check LABEL HINT COMMAND...: prints ok/failed for a non-Gradle check.
+run_check() {
+  local label="$1" hint="$2"
+  shift 2
+  printf '  %-48s ' "$label"
+  if "$@" >/dev/null 2>&1; then
+    printf "${GREEN}ok${NC}\n"
+  else
+    printf "${RED}failed${NC}  (run: %s)\n" "$hint"
+    failed=1
+  fi
+}
+
+if staged | grep -qE '^backend/.*\.(kt|kts|sql)$'; then
+  run_gradle backend ktlintCheck detekt compileKotlin
+fi
+if staged | grep -qE '^mobile/.*\.(kt|kts|sq|sqm|xml)$'; then
+  run_gradle mobile ktlintCheck detekt :composeApp:compileDebugKotlinAndroid
+fi
+if staged | grep -qE '^(mobile|backend)/.*\.(kt|kts)$|^gradle/libs\.versions\.toml$'; then
+  run_check 'architecture contracts' 'scripts/check-architecture.sh' ./scripts/check-architecture.sh
+fi
+if staged | grep -qE '^mobile/iosApp/.*\.swift$' && command -v swiftlint >/dev/null 2>&1; then
+  run_check 'swiftlint' 'cd mobile/iosApp && swiftlint lint --strict' \
+    bash -c 'cd mobile/iosApp && swiftlint lint --strict --quiet'
+fi
+if command -v gitleaks >/dev/null 2>&1; then
+  run_check 'gitleaks (staged changes)' 'gitleaks git --pre-commit --staged --redact .' \
+    gitleaks git --pre-commit --staged --no-banner --redact .
+fi
+if staged | grep -qE '^(app\.properties|mobile/iosApp/Configuration/Config\.xcconfig)$'; then
+  printf '  %-48s ' 'app.properties sync'
+  if ./scripts/sync-app-config.sh --check >/dev/null 2>&1; then printf "${GREEN}ok${NC}\n"; else printf "${RED}failed${NC}  (run: scripts/sync-app-config.sh)\n"; failed=1; fi
+fi
+
+if added_lines | grep -qE '^\+(<{7}|>{7}|={7})( |$)'; then
+  printf "  ${RED}merge conflict markers in staged changes${NC}\n"; failed=1
+fi
+if staged | grep -qE '(^|/)(google-services\.json|GoogleService-Info\.plist|keystore\.properties|local\.properties|\.env)$|\.(jks|keystore|p8|p12)$'; then
+  printf "  ${YELLOW}warning:${NC} staged file looks like a credential or local config; double-check before pushing\n"
+fi
+
+if ((failed)); then
+  printf "${RED}Pre-commit checks failed.${NC} Fix the issues above or bypass with --no-verify.\n"
+  exit 1
+fi

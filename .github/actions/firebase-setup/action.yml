@@ -1,0 +1,50 @@
+name: Firebase Setup
+description: >-
+  Writes Firebase config files from base64 secrets when they are provided. Without secrets
+  the checked-in placeholder stays in place and the build skips the Google Services plugin.
+
+inputs:
+  google-services-json:
+    description: 'Base64-encoded google-services.json (secrets.GOOGLE_SERVICES_JSON)'
+    required: false
+  ios-firebase-plist:
+    description: 'Base64-encoded GoogleService-Info.plist (secrets.IOS_FIREBASE_CONFIG_PLIST)'
+    required: false
+  mobile-path:
+    description: 'Path to the mobile directory relative to the repository root'
+    required: false
+    default: 'mobile'
+
+runs:
+  using: composite
+  steps:
+    - name: Android Firebase config
+      shell: bash
+      env:
+        GOOGLE_SERVICES_JSON: ${{ inputs.google-services-json }}
+        MOBILE_PATH: ${{ inputs.mobile-path }}
+      run: |
+        if [[ -z "$GOOGLE_SERVICES_JSON" ]]; then
+          echo "::notice::GOOGLE_SERVICES_JSON not set; building without Firebase"
+          exit 0
+        fi
+        config="$MOBILE_PATH/androidApp/google-services.json"
+        tmp="$(mktemp)"
+        if printf '%s' "$GOOGLE_SERVICES_JSON" | base64 --decode > "$tmp" 2>/dev/null && python3 -m json.tool "$tmp" >/dev/null 2>&1; then
+          mv "$tmp" "$config"
+          echo "Firebase config written to $config"
+        else
+          rm -f "$tmp"
+          echo "::error::GOOGLE_SERVICES_JSON is not base64-encoded JSON"
+          exit 1
+        fi
+
+    - name: iOS Firebase config
+      if: inputs.ios-firebase-plist != ''
+      shell: bash
+      env:
+        IOS_FIREBASE_CONFIG_PLIST: ${{ inputs.ios-firebase-plist }}
+        MOBILE_PATH: ${{ inputs.mobile-path }}
+      run: |
+        printf '%s' "$IOS_FIREBASE_CONFIG_PLIST" | base64 --decode > "$MOBILE_PATH/iosApp/iosApp/GoogleService-Info.plist" \
+          || { echo "::error::IOS_FIREBASE_CONFIG_PLIST is not valid base64"; exit 1; }

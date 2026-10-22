@@ -1,0 +1,8 @@
+# Pluginfile - Fastlane Plugin Dependencies
+#
+# Add any fastlane plugins here.
+# Plugins are automatically loaded by the Gemfile.
+
+# No additional plugins required for basic deployment
+# Uncomment to add Firebase App Distribution support:
+# gem 'fastlane-plugin-firebase_app_distribution'

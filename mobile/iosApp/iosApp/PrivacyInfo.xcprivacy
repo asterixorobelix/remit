@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  PrivacyInfo.xcprivacy
+
+  Privacy manifest for iOS App Store compliance (required since May 2024).
+
+  This file declares usage of Apple's "Required Reason APIs" that could potentially
+  be used for device fingerprinting. Even though this app doesn't use these APIs
+  for tracking, they are used internally by Compose Multiplatform and other SDKs.
+
+  APIs declared:
+  - File Timestamp (0A2A.1): Compose Multiplatform uses stat/fstat internally
+    for file operations in the Kotlin/Native runtime.
+  - UserDefaults (CA92.1): App uses NSUserDefaults for local preferences storage
+    (not shared via App Groups).
+
+  Reference: https://developer.apple.com/documentation/bundleresources/privacy-manifest-files
+-->
+<plist version="1.0">
+<dict>
+	<!-- No user tracking -->
+	<key>NSPrivacyTracking</key>
+	<false/>
+
+	<!-- No tracking domains -->
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+
+	<!-- No collected data types (adjust if app collects user data) -->
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array/>
+
+	<!-- Required Reason API declarations -->
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array>
+		<!--
+		  File Timestamp API (stat, fstat, getattrlist, etc.)
+
+		  Reason: 0A2A.1 - Third-party SDK declares use of this API
+
+		  Why: Compose Multiplatform's Kotlin/Native runtime uses stat/fstat
+		  internally for file operations. This is SDK wrapper usage, not
+		  app-specific file timestamp access.
+		-->
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>0A2A.1</string>
+			</array>
+		</dict>
+		<!--
+		  UserDefaults API (NSUserDefaults)
+
+		  Reason: CA92.1 - App accesses user defaults to read/write settings
+
+		  Why: App stores user preferences locally using NSUserDefaults.
+		  This data is not shared via App Groups - app-only access.
+		-->
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>CA92.1</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

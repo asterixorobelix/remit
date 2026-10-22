@@ -1,0 +1,22 @@
+# Line endings: LF everywhere (the shell scripts and Gradle wrappers must run on macOS and Linux CI),
+# CRLF only for Windows batch files.
+* text=auto eol=lf
+*.bat text eol=crlf
+
+# Binary files: never diffed or merged as text.
+*.png binary
+*.jpg binary
+*.jar binary
+*.db binary
+*.zip binary
+*.ttf binary
+*.otf binary
+
+# Generated or tool-maintained files: collapsed in GitHub pull request diffs so review (human or AI)
+# focuses on hand-written changes. They are still diffed and checked by CI.
+mobile/Gemfile.lock linguist-generated=true
+mobile/iosApp/iosApp.xcodeproj/** linguist-generated=true
+mobile/composeApp/screenshots/** linguist-generated=true
+mobile/composeApp/src/commonMain/sqldelight/databases/** linguist-generated=true
+mobile/*/lint-baseline.xml linguist-generated=true
+*/gradle/wrapper/gradle-wrapper.jar linguist-generated=true

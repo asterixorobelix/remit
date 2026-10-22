@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(make help)",
+      "Bash(make doctor)",
+      "Bash(make quick)",
+      "Bash(make quick-all)",
+      "Bash(make check)",
+      "Bash(make check-template)",
+      "Bash(make check-backend)",
+      "Bash(make check-mobile)",
+      "Bash(make test)",
+      "Bash(make test-backend)",
+      "Bash(make test-mobile)",
+      "Bash(make test-mobile-fast)",
+      "Bash(make lint)",
+      "Bash(make lint-repo)",
+      "Bash(make lint-backend)",
+      "Bash(make lint-mobile)",
+      "Bash(make format)",
+      "Bash(make coverage)",
+      "Bash(make build)",
+      "Bash(make apk)",
+      "Bash(make ios)",
+      "Bash(make release-notes)",
+      "Bash(make version)",
+      "Bash(make feature:*)",
+      "Bash(./gradlew:*)",
+      "Bash(scripts/quick-check.sh:*)",
+      "Bash(scripts/check-architecture.sh)",
+      "Bash(scripts/check-resources.sh)",
+      "Bash(scripts/lint-repo.sh:*)",
+      "Bash(scripts/sync-app-config.sh --check)",
+      "Bash(scripts/create-feature.sh:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr checks:*)",
+      "Bash(gh pr diff:*)",
+      "Bash(gh run list:*)",
+      "Bash(gh run view:*)"
+    ],
+    "deny": [
+      "Read(./**/.env)",
+      "Read(./**/keystore.properties)",
+      "Read(./**/*.jks)",
+      "Read(./**/*.keystore)",
+      "Read(./**/*.p8)",
+      "Read(./**/*.p12)",
+      "Read(./**/google-services.json)",
+      "Read(./**/GoogleService-Info.plist)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|MultiEdit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/scripts/agent-hook.sh post"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|MultiEdit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/scripts/agent-hook.sh pre"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/scripts/agent-hook.sh bash"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '=== PROJECT CONTEXT ==='; BRANCH=$(git branch --show-current 2>/dev/null); echo \"## Branch: $BRANCH\"; echo ''; echo '## Uncommitted Changes'; git status --short 2>/dev/null; echo ''; echo '## Recent Activity'; git log --oneline -5 2>/dev/null; echo ''; if [ -f \".claude/branch-context/$BRANCH.md\" ]; then echo '## Branch Context'; cat \".claude/branch-context/$BRANCH.md\"; fi"
+          }
+        ]
+      }
+    ]
+  }
+}

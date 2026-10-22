@@ -1,0 +1,31 @@
+{
+  "identifier" : "52DBE6D3-9693-4CA9-A3F2-FA928EEA90D1",
+  "nonRenewingSubscriptions" : [],
+  "products" : [
+    {
+      "displayPrice" : "4.99",
+      "familyShareable" : false,
+      "internalID" : "2F6B2564-3EA3-4DC3-9B87-B69C24A0A6DA",
+      "localizations" : [
+        {
+          "description" : "Unlock premium features for local testing.",
+          "displayName" : "Premium",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.example.myproject.premium.monthly",
+      "referenceName" : "Premium",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_failTransactionsEnabled" : false,
+    "_locale" : "en_US",
+    "_storefront" : "USA"
+  },
+  "subscriptionGroups" : [],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}

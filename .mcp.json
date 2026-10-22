@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "mobile": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@mobilenext/mobile-mcp@0.0.44"],
+      "env": {
+        "ANDROID_HOME": "${HOME}/Library/Android/sdk"
+      }
+    }
+  }
+}

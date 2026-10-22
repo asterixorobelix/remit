@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App-specific values: replace before release (see APP_CHECKLIST.md). -->
+    <string name="support_email">support@example.com</string>
+    <!-- Numeric App Store Connect app ID used by the force-update screen on iOS. -->
+    <string name="app_store_id">0000000000</string>
+    <string name="settings_privacy_url">https://example.com/privacy</string>
+    <string name="settings_terms_url">https://example.com/terms</string>
+
+    <!-- Screen Titles -->
+    <string name="screen_home_title">Home</string>
+    <string name="screen_notifications_title">Notifications</string>
+    <string name="screen_settings_title">Settings</string>
+    <string name="screen_tasks_title">Tasks</string>
+    <string name="screen_search_title">Search</string>
+    <string name="screen_map_title">Map</string>
+
+    <!-- Button Labels -->
+    <string name="button_save">Save</string>
+    <string name="button_cancel">Cancel</string>
+    <string name="button_retry">Retry</string>
+    <string name="button_next">Next</string>
+
+    <!-- Messages -->
+    <string name="message_loading">Loading...</string>
+    <string name="message_error_generic">Something went wrong. Please try again.</string>
+    <string name="message_error_network">Network error. Please check your connection.</string>
+    <string name="message_error_invalid_input">Please check the information you entered.</string>
+    <string name="message_error_rate_limited">Too many attempts. Please wait a moment and try again.</string>
+    <string name="message_error_server">The server is having trouble. Please try again later.</string>
+    <string name="message_error_session_expired">Your session has expired. Please sign in again.</string>
+    <string name="message_empty_state">No items found</string>
+    <string name="message_empty_tasks">No tasks yet. Add one above; it will sync when online.</string>
+
+    <!-- Content Descriptions (Accessibility) -->
+    <string name="cd_navigate_back">Navigate back</string>
+    <string name="cd_loading_indicator">Loading content</string>
+    <string name="cd_refresh">Refresh</string>
+    <string name="cd_toggle_password_visibility">Toggle password visibility</string>
+    <string name="cd_add_task">Add task</string>
+    <string name="cd_delete_task">Delete task</string>
+    <string name="cd_center_location">Center on my location</string>
+    <string name="cd_search">Search</string>
+    <string name="cd_clear_search">Clear search</string>
+    <string name="cd_page_indicator">Page %1$d of %2$d</string>
+    <string name="cd_add_favorite">Add to favorites</string>
+    <string name="cd_remove_favorite">Remove from favorites</string>
+    <string name="cd_state_selected">Selected</string>
+    <string name="cd_state_not_selected">Not selected</string>
+
+    <!-- Form Hints -->
+    <string name="task_title_hint">Task title</string>
+
+    <!-- Validation Messages -->
+    <string name="validation_email_invalid">Please enter a valid email address</string>
+    <string name="validation_password_short">Password must be at least 8 characters</string>
+
+    <!-- Tasks -->
+    <string name="tasks_error_load">Tasks could not be loaded.</string>
+    <string name="tasks_sync_syncing">Syncing…</string>
+    <plurals name="tasks_sync_pending">
+        <item quantity="one">%1$d change waiting to sync</item>
+        <item quantity="other">%1$d changes waiting to sync</item>
+    </plurals>
+    <string name="tasks_sync_failed">Sync failed: %1$s Changes are kept and retried automatically.</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_account">Account</string>
+    <string name="settings_profile">Profile</string>
+    <string name="settings_premium">Premium</string>
+    <string name="settings_feedback">Send Feedback</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_theme_system">System default</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_about">About</string>
+    <string name="settings_rate_app">Rate this app</string>
+    <string name="settings_privacy_policy">Privacy Policy</string>
+    <string name="settings_terms">Terms of Service</string>
+    <string name="settings_version">Version</string>
+    <string name="settings_developer">Developer tools</string>
+
+    <!-- Developer tools (debug builds only) -->
+    <string name="developer_title">Developer tools</string>
+    <string name="developer_api_url">API base URL override</string>
+    <string name="developer_api_url_note">Applies to the next request, no restart needed. Sign out before switching to a different backend. Leave blank for the build default.</string>
+    <string name="developer_invalid_url">Enter an http:// or https:// URL</string>
+    <string name="developer_saved">API override saved</string>
+    <string name="developer_save">Save override</string>
+    <string name="developer_reset">Reset onboarding, session, and local data</string>
+    <string name="developer_environment">%1$s · %2$s · %3$s</string>
+
+    <!-- Onboarding Screen -->
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_get_started">Get Started</string>
+    <string name="onboarding_title_1">Welcome</string>
+    <string name="onboarding_desc_1">Discover a powerful app built for you. Swipe to learn more.</string>
+    <string name="onboarding_title_2">Powerful Features</string>
+    <string name="onboarding_desc_2">Everything you need, right at your fingertips. Fast, intuitive, and reliable.</string>
+    <string name="onboarding_title_3">Ready to Go?</string>
+    <string name="onboarding_desc_3">Set up takes seconds. Tap Get Started to begin your journey.</string>
+
+    <!-- Auth Screens -->
+    <string name="auth_sign_in_title">Sign In</string>
+    <string name="auth_register_title">Create Account</string>
+    <string name="auth_email_label">Email</string>
+    <string name="auth_password_label">Password</string>
+    <string name="auth_display_name_label">Display Name</string>
+    <string name="auth_confirm_password_label">Confirm Password</string>
+    <string name="auth_sign_in">Sign In</string>
+    <string name="auth_create_account">Create Account</string>
+    <string name="auth_no_account_register">Don&apos;t have an account? Register</string>
+    <string name="auth_has_account_sign_in">Already have an account? Sign In</string>
+    <string name="auth_error_all_fields_required">All fields are required</string>
+    <string name="auth_error_passwords_do_not_match">Passwords do not match</string>
+    <string name="auth_error_invalid_credentials">Incorrect email or password</string>
+    <string name="auth_error_email_taken">An account with this email already exists</string>
+
+    <!-- Profile Screen -->
+    <string name="profile_title">Profile</string>
+    <string name="profile_edit">Edit display name</string>
+    <string name="profile_display_name_label">Display name</string>
+    <string name="profile_sign_out">Sign Out</string>
+    <string name="profile_delete_account">Delete account</string>
+    <string name="profile_delete_title">Delete your account?</string>
+    <string name="profile_delete_message">This permanently deletes your account and the data stored with it on our servers. This cannot be undone.</string>
+    <string name="profile_delete_confirm">Delete permanently</string>
+
+    <!-- Search Screen -->
+    <string name="search_hint">Search...</string>
+    <string name="search_empty">No results found</string>
+    <string name="search_empty_description">Try a different search term</string>
+    <string name="search_clear">Clear</string>
+    <string name="search_recent">Recent Searches</string>
+    <string name="search_clear_recent">Clear</string>
+
+    <!-- Detail Screen -->
+    <string name="detail_status_open">Open task</string>
+    <string name="detail_status_completed">Completed task</string>
+
+    <!-- Feedback Screen -->
+    <string name="feedback_description">Your message opens in your email app so you can review it before sending.</string>
+    <string name="feedback_subject_hint">Subject</string>
+    <string name="feedback_subject_error">Subject is required</string>
+    <string name="feedback_message_hint">Message</string>
+    <string name="feedback_message_error">Message is required</string>
+    <string name="feedback_submit">Continue in email app</string>
+    <string name="feedback_no_email_app">No email app is available. You can write to us at %1$s.</string>
+
+    <!-- Force Update Screen -->
+    <string name="force_update_title">Update Required</string>
+    <string name="force_update_message">A new version of the app is available. Please update to continue using the app.</string>
+    <string name="force_update_button">Update Now</string>
+
+    <!-- Notifications Screen -->
+    <string name="notifications_title">Notifications</string>
+    <string name="notifications_empty">No notifications yet</string>
+    <string name="notifications_empty_description">When you get notifications, they&apos;ll show up here</string>
+
+    <!-- Home Screen -->
+    <string name="home_greeting_morning">Good morning</string>
+    <string name="home_greeting_afternoon">Good afternoon</string>
+    <string name="home_greeting_evening">Good evening</string>
+    <string name="home_featured_title_tasks">Your tasks</string>
+    <string name="home_featured_subtitle_tasks">Capture what matters. Changes save offline and sync automatically.</string>
+    <string name="home_featured_title_search">Find anything</string>
+    <string name="home_featured_subtitle_search">Search across the app&apos;s content.</string>
+    <string name="home_quick_actions">Quick Actions</string>
+    <string name="home_recent_tasks">Recent tasks</string>
+    <string name="home_recent_tasks_empty">No tasks yet.</string>
+    <string name="home_action_tasks">Tasks</string>
+    <string name="home_action_search">Search</string>
+    <string name="home_action_profile">Profile</string>
+    <string name="home_action_settings">Settings</string>
+    <string name="home_action_map">Map</string>
+    <string name="home_action_premium">Premium</string>
+
+    <!-- Map Screen -->
+    <string name="map_loading">Loading map...</string>
+    <string name="map_error_title">Map unavailable</string>
+
+    <!-- Paywall Screen -->
+    <string name="paywall_title">Unlock Premium</string>
+    <string name="paywall_subtitle">Get the full experience.</string>
+    <string name="paywall_feature_1">Replace with your first premium benefit</string>
+    <string name="paywall_feature_2">Replace with your second premium benefit</string>
+    <string name="paywall_feature_3">One-time purchase, no subscription</string>
+    <string name="paywall_buy_button">Unlock Premium</string>
+    <string name="paywall_restore">Restore purchase</string>
+    <string name="paywall_try_again">Try Again</string>
+    <string name="paywall_pro_unlocked">Premium unlocked — enjoy the full app!</string>
+    <string name="paywall_pending">Your purchase is waiting for approval. Premium unlocks automatically once it completes.</string>
+    <string name="paywall_error_purchase">The purchase could not be completed. Please try again.</string>
+    <string name="paywall_error_restore">No previous purchase could be restored.</string>
+    <string name="paywall_cd_close">Close paywall</string>
+    <string name="paywall_cd_purchase">Unlock premium</string>
+    <string name="paywall_cd_try_again">Try purchase again</string>
+    <string name="premium_gate_message">Upgrade to unlock this feature.</string>
+
+    <!-- Countdown -->
+    <string name="countdown_starts_in">STARTS IN</string>
+    <string name="countdown_days">DAYS</string>
+    <string name="countdown_hours">HRS</string>
+    <string name="countdown_minutes">MIN</string>
+    <string name="countdown_seconds">SEC</string>
+    <string name="countdown_separator">:</string>
+
+    <!-- Desktop component gallery (developer tool) -->
+    <string name="gallery_title">Component Gallery</string>
+    <string name="gallery_primary_action">Primary action</string>
+    <string name="gallery_status_label">Offline ready</string>
+
+    <!-- External links -->
+    <string name="external_link_title">Open external link</string>
+    <string name="external_link_message">This will open an external website. Do you want to continue?</string>
+    <string name="external_link_open">Open</string>
+</resources>

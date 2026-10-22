@@ -1,0 +1,38 @@
+*.iml
+.kotlin
+.gradle
+**/build/
+xcuserdata
+!src/**/build/
+local.properties
+.idea
+.DS_Store
+captures
+.externalNativeBuild
+.cxx
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+!*.xcodeproj/xcshareddata/
+!*.xcodeproj/project.xcworkspace/
+!*.xcworkspace/contents.xcworkspacedata
+**/xcshareddata/WorkspaceSettings.xcsettings
+
+# Fastlane
+fastlane/.env
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**
+!fastlane/screenshots/
+!fastlane/screenshots/ios/
+!fastlane/screenshots/android/
+!fastlane/screenshots/ios/.gitkeep
+!fastlane/screenshots/android/.gitkeep
+fastlane/test_output/
+fastlane/metadata/
+vendor/bundle/
+
+# Ruby: Gemfile.lock is committed so CI installs the same Fastlane every time.
+
+# Release signing
+release.keystore
+keystore.properties

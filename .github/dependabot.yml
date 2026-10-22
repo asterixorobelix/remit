@@ -1,0 +1,78 @@
+# Dependabot — monthly, grouped version updates, so each cycle opens a handful of pull
+# requests (each of which runs CI) instead of one per dependency.
+# Security updates ignore this schedule and still open as soon as an advisory is published.
+# cooldown skips releases younger than a week: quick follow-up patches collapse into one
+# update, and compromised releases have time to be caught before they reach this repo.
+#
+# Both Gradle builds read the shared catalog at gradle/libs.versions.toml, so the root
+# directory is scanned alongside the two build roots.
+version: 2
+updates:
+  - package-ecosystem: "gradle"
+    directories: ["/", "/backend", "/mobile"]
+    schedule:
+      interval: "monthly"
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 10
+    groups:
+      # One pull request for both builds' wrappers.
+      gradle-wrapper:
+        patterns: ["gradle-wrapper"]
+        group-by: dependency-name
+      kotlin:
+        patterns: ["org.jetbrains.kotlin*", "org.jetbrains.kotlinx*"]
+      compose:
+        patterns: ["org.jetbrains.compose*", "androidx.compose*"]
+      android:
+        patterns: ["com.android*", "androidx.*"]
+      ktor:
+        patterns: ["io.ktor*"]
+      exposed-and-db:
+        patterns: ["org.jetbrains.exposed*", "org.flywaydb*", "org.postgresql*", "com.h2database*"]
+      testing:
+        patterns: ["*junit*", "io.mockk*", "app.cash.turbine*"]
+      # Everything else that is not a major version bump.
+      other:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+    commit-message:
+      prefix: "deps"
+
+  - package-ecosystem: "bundler"
+    directory: "/mobile"
+    schedule:
+      interval: "monthly"
+    cooldown:
+      default-days: 7
+    groups:
+      fastlane:
+        patterns: ["*"]
+    commit-message:
+      prefix: "deps"
+
+  - package-ecosystem: "docker"
+    directory: "/backend"
+    schedule:
+      interval: "monthly"
+    cooldown:
+      default-days: 7
+    # Java major upgrades also change the backend's jvmTarget and the build image, so they are
+    # done deliberately rather than by a runtime-image-only bump.
+    ignore:
+      - dependency-name: "eclipse-temurin"
+        update-types: ["version-update:semver-major"]
+    commit-message:
+      prefix: "deps"
+
+  - package-ecosystem: "github-actions"
+    directories: ["/", "/.github/actions/*"]
+    schedule:
+      interval: "monthly"
+    cooldown:
+      default-days: 7
+    groups:
+      github-actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: "ci"

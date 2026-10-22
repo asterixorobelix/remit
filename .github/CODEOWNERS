@@ -1,0 +1,53 @@
+# Code owners. Branch protection (scripts/protect-main.sh) requires the owner's approval only for
+# pull requests that touch these paths; anything else merges once checks pass and review threads
+# are resolved, so AI-agent pull requests move quickly except where a mistake is costly.
+# Projects made from this template: replace @asterixorobelix with your GitHub handle if different.
+
+# Delivery, signing, review automation, and the rules agents follow.
+/.github/                                          @asterixorobelix
+/.githooks/                                        @asterixorobelix
+/.pr_agent.toml                                    @asterixorobelix
+/.gitleaksignore                                   @asterixorobelix
+/scripts/ci/                                       @asterixorobelix
+/scripts/protect-main.sh                           @asterixorobelix
+/scripts/check-architecture.sh                     @asterixorobelix
+/mobile/fastlane/                                  @asterixorobelix
+/mobile/Gemfile                                    @asterixorobelix
+/mobile/Gemfile.lock                               @asterixorobelix
+/AGENTS.md                                         @asterixorobelix
+/CLAUDE.md                                         @asterixorobelix
+
+# Agent guardrails and quality-gate configuration: agents must not loosen the rules they work under.
+/.claude/settings.json                             @asterixorobelix
+/.codex/                                           @asterixorobelix
+/.mcp.json                                         @asterixorobelix
+/scripts/agent-hook.sh                             @asterixorobelix
+/.editorconfig                                     @asterixorobelix
+/_typos.toml                                       @asterixorobelix
+/backend/detekt.yml                                @asterixorobelix
+/mobile/detekt-mobile.yml                          @asterixorobelix
+/mobile/iosApp/.swiftlint.yml                      @asterixorobelix
+/mobile/*/lint-baseline.xml                        @asterixorobelix
+
+# Identity, versions, endpoints, capabilities, and dependencies.
+/app.properties                                    @asterixorobelix
+/bump-version.sh                                   @asterixorobelix
+/setup.sh                                          @asterixorobelix
+/gradle/libs.versions.toml                         @asterixorobelix
+
+# Data that cannot be rolled back: database migrations and schemas.
+/backend/src/main/resources/db/                    @asterixorobelix
+/mobile/composeApp/src/commonMain/sqldelight/      @asterixorobelix
+
+# Security-sensitive code, permissions, and privacy declarations.
+/backend/src/main/kotlin/**/plugins/Security.kt    @asterixorobelix
+/backend/src/main/kotlin/**/service/AuthService.kt @asterixorobelix
+/backend/src/main/kotlin/**/service/JwtTokens.kt   @asterixorobelix
+/backend/src/main/kotlin/**/routes/AuthRoutes.kt   @asterixorobelix
+/backend/src/main/kotlin/**/configuration/         @asterixorobelix
+/mobile/composeApp/src/commonMain/kotlin/**/auth/  @asterixorobelix
+/mobile/androidApp/src/main/AndroidManifest.xml    @asterixorobelix
+/mobile/androidApp/proguard-rules.pro              @asterixorobelix
+/mobile/iosApp/iosApp/Info.plist                   @asterixorobelix
+/mobile/iosApp/iosApp/PrivacyInfo.xcprivacy        @asterixorobelix
+/backend/Dockerfile                                @asterixorobelix

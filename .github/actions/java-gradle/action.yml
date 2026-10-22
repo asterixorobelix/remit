@@ -1,0 +1,80 @@
+name: Java and Gradle cache
+description: >-
+  Installs a Temurin JDK and restores a per-job Gradle cache (mode: restore), or saves that
+  cache at the end of the job (mode: save). Saving happens only on main and only when the
+  exact key missed, so pull requests read main's caches without evicting them, and jobs that
+  build different task sets never overwrite each other's entries.
+
+inputs:
+  mode:
+    description: 'restore (install the JDK and restore the cache) or save'
+    required: false
+    default: restore
+  java-version:
+    description: 'JDK feature version (restore mode)'
+    required: false
+    default: '21'
+  project-dir:
+    description: 'Gradle build directory relative to the repository root (backend or mobile)'
+    required: true
+  cache-id:
+    description: 'Cache name; use a distinct id per job that builds a different task set'
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Set up JDK
+      if: inputs.mode == 'restore'
+      uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+      with:
+        distribution: temurin
+        java-version: ${{ inputs.java-version }}
+
+    # The key changes with the version catalog, build scripts, Gradle properties, and wrapper.
+    # restore-keys falls back to the newest entry for this job so a dependency bump only
+    # downloads what changed.
+    - name: Restore Gradle cache
+      id: restore
+      if: inputs.mode == 'restore'
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: >-
+          gradle-${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache-id }}-${{ hashFiles(
+          'gradle/libs.versions.toml',
+          format('{0}/**/*.gradle.kts', inputs.project-dir),
+          format('{0}/gradle.properties', inputs.project-dir),
+          format('{0}/gradle/wrapper/gradle-wrapper.properties', inputs.project-dir)) }}
+        restore-keys: gradle-${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache-id }}-
+
+    - name: Remember cache key
+      if: inputs.mode == 'restore'
+      shell: bash
+      env:
+        KEY: ${{ steps.restore.outputs.cache-primary-key }}
+        HIT: ${{ steps.restore.outputs.cache-hit }}
+      run: |
+        {
+          echo "GRADLE_CACHE_KEY=$KEY"
+          echo "GRADLE_CACHE_HIT=${HIT:-false}"
+        } >> "$GITHUB_ENV"
+
+    # A daemon still writing to ~/.gradle while the cache is archived would corrupt it.
+    - name: Stop Gradle daemons
+      if: inputs.mode == 'save' && github.ref == 'refs/heads/main' && env.GRADLE_CACHE_HIT != 'true'
+      shell: bash
+      working-directory: ${{ inputs.project-dir }}
+      run: ./gradlew --stop --quiet || true
+
+    # Paths must match the restore step exactly.
+    - name: Save Gradle cache
+      if: inputs.mode == 'save' && github.ref == 'refs/heads/main' && env.GRADLE_CACHE_HIT != 'true'
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ env.GRADLE_CACHE_KEY }}

@@ -1,0 +1,12 @@
+# Gemfile - Ruby dependencies for Fastlane
+# Run `bundle install` to install dependencies
+# Run `bundle exec fastlane <lane>` to execute lanes
+
+source "https://rubygems.org"
+
+# Fastlane - the core automation tool
+gem "fastlane", "~> 2.226"
+
+# Plugins are managed via Pluginfile. The path stays a string literal (relative to this file)
+# because Dependabot cannot parse an interpolated eval_gemfile argument.
+eval_gemfile("fastlane/Pluginfile")

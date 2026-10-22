@@ -1,0 +1,19 @@
+# Historical findings that were reviewed and are placeholders, not secrets: an App Store Connect
+# key example made of the standard 48-character EC key prefix plus "...", and a placeholder
+# bearer token in an old curl example. Both files are no longer in the tree.
+eba66dce29e276504b23583cbb88b532d2a5e818:minimal-setup-instructions.md:private-key:48
+3cac563d5f2f769f800adc23153c6296ddd1109e:minimal-setup-instructions.md:private-key:48
+eba66dce29e276504b23583cbb88b532d2a5e818:backend/claude.md:curl-auth-header:464
+3cac563d5f2f769f800adc23153c6296ddd1109e:backend/claude.md:curl-auth-header:464
+6c5fa8fa1f13ad20901a44f1764e5e4d148c2439:minimal-setup-instructions.md:private-key:48
+6c5fa8fa1f13ad20901a44f1764e5e4d148c2439:backend/claude.md:curl-auth-header:464
+0bbd69367f147cbc39eab24b8ffa15365613a47e:minimal-setup-instructions.md:private-key:48
+1ff9f691d794e05dedf5558845d6fbaa97ddc7a9:minimal-setup-instructions.md:private-key:48
+0bbd69367f147cbc39eab24b8ffa15365613a47e:backend/claude.md:curl-auth-header:464
+1ff9f691d794e05dedf5558845d6fbaa97ddc7a9:backend/claude.md:curl-auth-header:464
+629e235120820b7386ece3f1f82d4c1502bc2440:minimal-setup-instructions.md:private-key:48
+629e235120820b7386ece3f1f82d4c1502bc2440:backend/claude.md:curl-auth-header:464
+0e34a4dbfb5d80956b0a7538005f95d9c28e2e95:minimal-setup-instructions.md:private-key:48
+0e34a4dbfb5d80956b0a7538005f95d9c28e2e95:backend/claude.md:curl-auth-header:464
+376cc12bdcecf0929fafc65adfa76f5a900a7fa3:minimal-setup-instructions.md:private-key:26
+3bea3efc170fe353ac76e4698d81b713cd45f63a:backend/claude.md:curl-auth-header:312

@@ -1,0 +1,21 @@
+// Identity, version, capability, and endpoint values mirror app.properties.
+// Do not edit them by hand: setup.sh, bump-version.sh, and
+// scripts/sync-app-config.sh keep this file in sync.
+TEAM_ID=$(APPLE_TEAM_ID)
+
+PRODUCT_NAME=MyProject
+PRODUCT_BUNDLE_IDENTIFIER=com.example.myproject
+
+CURRENT_PROJECT_VERSION=10000
+MARKETING_VERSION=1.0.0
+CAPABILITIES=auth,offline,backend
+IOS_BILLING_PRODUCT=com.example.myproject.premium.monthly
+
+// Release (TestFlight/App Store) targets production; Debug targets the local backend.
+APP_ENVIRONMENT=production
+APP_ENVIRONMENT[config=Debug]=development
+API_BASE_URL=https:/$()/api.example.com
+API_BASE_URL[config=Debug]=http:/$()/localhost:8085
+
+// Kotlin/Native builds arm64 simulator slices only (iosX64 is intentionally omitted).
+EXCLUDED_ARCHS[sdk=iphonesimulator*]=x86_64

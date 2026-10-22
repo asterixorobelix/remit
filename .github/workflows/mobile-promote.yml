@@ -1,0 +1,175 @@
+# Mobile Promote — ship a release that testers already used, without rebuilding it.
+#
+# Mobile CD builds a version, uploads it to the internal Play track and TestFlight, and tags it
+# vX.Y.Z. After testing, run this workflow with that tag:
+#   Android: internal -> beta or production (production is a staged rollout; run again with a
+#            higher android_rollout to widen it, 1 = everyone).
+#   iOS:     the same build to external TestFlight testers, or submitted for App Store review
+#            with a phased release.
+# Every step is idempotent, so a failed run can simply be re-run. Both platforms only call the
+# store APIs, so they run on Linux. Shares Mobile CD's concurrency group, so the two never overlap.
+# Jobs run in the main-only "release" environment that holds the store secrets.
+
+name: Mobile Promote
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release tag to promote (for example v1.2.0); empty = newest v* tag'
+        type: string
+        required: false
+      android:
+        description: 'Android target track'
+        type: choice
+        options: [none, beta, production]
+        default: none
+      android_from:
+        description: 'Android source track'
+        type: choice
+        options: [internal, beta]
+        default: internal
+      android_rollout:
+        description: 'Production rollout fraction (0.1 = 10%, 1 = everyone)'
+        type: string
+        default: '0.1'
+      ios:
+        description: 'iOS target'
+        type: choice
+        options: [none, testflight_external, app_store]
+        default: none
+
+concurrency:
+  group: mobile-release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  RUBY_VERSION: '3.3'
+  FASTLANE_SKIP_UPDATE_CHECK: '1'
+  FASTLANE_HIDE_CHANGELOG: '1'
+  FASTLANE_OPT_OUT_USAGE: '1'
+
+jobs:
+  resolve:
+    name: Resolve release
+    runs-on: ${{ vars.LINUX_RUNNER || 'ubuntu-24.04' }}
+    environment: release
+    timeout-minutes: 5
+    outputs:
+      tag: ${{ steps.release.outputs.tag }}
+      version: ${{ steps.release.outputs.version }}
+      code: ${{ steps.release.outputs.code }}
+    steps:
+      - name: Check inputs and secrets
+        env:
+          ANDROID: ${{ inputs.android }}
+          IOS: ${{ inputs.ios }}
+          ROLLOUT: ${{ inputs.android_rollout }}
+          HAS_PLAY: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON != '' }}
+          HAS_ASC: ${{ secrets.ASC_KEY_ID != '' && secrets.ASC_ISSUER_ID != '' && secrets.ASC_KEY_CONTENT != '' }}
+        run: |
+          status=0
+          if [[ "$ANDROID" == none && "$IOS" == none ]]; then
+            echo "::error::Choose an Android track, an iOS target, or both."; status=1
+          fi
+          if [[ "$ANDROID" != none ]]; then
+            [[ "$HAS_PLAY" == true ]] || { echo "::error::Missing GOOGLE_PLAY_SERVICE_ACCOUNT_JSON"; status=1; }
+            [[ "$ROLLOUT" =~ ^(0?\.[0-9]+|1(\.0+)?)$ ]] || { echo "::error::android_rollout must be a fraction in (0, 1]"; status=1; }
+          fi
+          if [[ "$IOS" != none && "$HAS_ASC" != true ]]; then
+            echo "::error::Missing ASC_KEY_ID, ASC_ISSUER_ID, or ASC_KEY_CONTENT"; status=1
+          fi
+          exit "$status"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Read the released version
+        id: release
+        env:
+          INPUT: ${{ inputs.version }}
+        run: |
+          tag="${INPUT:-$(git describe --tags --abbrev=0 --match 'v[0-9]*' origin/main 2>/dev/null || true)}"
+          [[ -n "$tag" ]] || { echo "::error::No v* release tag found; run Mobile CD first."; exit 1; }
+          git rev-parse -q --verify "refs/tags/$tag" >/dev/null || { echo "::error::Tag $tag does not exist."; exit 1; }
+          props="$(git show "$tag:app.properties")"
+          version="$(awk -F= '$1=="VERSION_NAME" {print $2}' <<< "$props")"
+          code="$(awk -F= '$1=="VERSION_CODE" {print $2}' <<< "$props")"
+          [[ "v$version" == "$tag" ]] || { echo "::error::$tag does not match its app.properties version ($version)."; exit 1; }
+          { echo "tag=$tag"; echo "version=$version"; echo "code=$code"; } >> "$GITHUB_OUTPUT"
+          echo "Promoting $tag (build $code)"
+
+  android:
+    name: Promote Android
+    needs: resolve
+    if: inputs.android != 'none'
+    runs-on: ${{ vars.LINUX_RUNNER || 'ubuntu-24.04' }}
+    environment: release
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.resolve.outputs.tag }}
+          persist-credentials: false
+      - uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1.327.0
+        with:
+          ruby-version: ${{ env.RUBY_VERSION }}
+          bundler-cache: true
+          working-directory: mobile
+      - name: Promote
+        working-directory: mobile
+        env:
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          CODE: ${{ needs.resolve.outputs.code }}
+          FROM: ${{ inputs.android_from }}
+          TO: ${{ inputs.android }}
+          ROLLOUT: ${{ inputs.android_rollout }}
+        run: bundle exec fastlane android promote "version_code:$CODE" "from:$FROM" "to:$TO" "rollout:$ROLLOUT"
+
+  ios:
+    name: Promote iOS
+    needs: resolve
+    if: inputs.ios != 'none'
+    runs-on: ${{ vars.LINUX_RUNNER || 'ubuntu-24.04' }}
+    environment: release
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.resolve.outputs.tag }}
+          fetch-depth: 0  # release notes since the previous tag
+          persist-credentials: false
+      - uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1.327.0
+        with:
+          ruby-version: ${{ env.RUBY_VERSION }}
+          bundler-cache: true
+          working-directory: mobile
+      - name: Release notes since the previous release
+        env:
+          TAG: ${{ needs.resolve.outputs.tag }}
+        run: |
+          prev="$(git describe --tags --abbrev=0 --match 'v[0-9]*' "$TAG^" 2>/dev/null ||
+            git rev-list --max-parents=0 "$TAG" | tail -n 1)"
+          {
+            echo 'RELEASE_NOTES<<RELEASE_NOTES_EOF'
+            scripts/release-notes.sh --plain "$prev" "$TAG"
+            echo 'RELEASE_NOTES_EOF'
+          } >> "$GITHUB_ENV"
+      - name: Promote
+        working-directory: mobile
+        env:
+          TARGET: ${{ inputs.ios }}
+          VERSION: ${{ needs.resolve.outputs.version }}
+          CODE: ${{ needs.resolve.outputs.code }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_CONTENT: ${{ secrets.ASC_KEY_CONTENT }}
+          TESTFLIGHT_EXTERNAL_GROUPS: ${{ vars.TESTFLIGHT_EXTERNAL_GROUPS }}
+        run: |
+          case "$TARGET" in
+            testflight_external) bundle exec fastlane ios promote_external "app_version:$VERSION" "build_number:$CODE" ;;
+            app_store) bundle exec fastlane ios submit_for_review "app_version:$VERSION" "build_number:$CODE" ;;
+          esac

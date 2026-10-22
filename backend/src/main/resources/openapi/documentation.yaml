@@ -1,0 +1,593 @@
+openapi: 3.0.3
+info:
+  title: MyProject API
+  description: |
+    Backend for the MyProject mobile apps.
+
+    * Authenticate with `Authorization: Bearer <accessToken>`. Access tokens expire after
+      `JWT_EXPIRATION_MS` (default 1 hour).
+    * Refresh tokens rotate: every successful `/api/v1/auth/refresh` revokes the presented token and
+      returns a new pair. Presenting an already-used refresh token revokes all of the user's sessions.
+    * Every error uses the `ErrorResponse` shape. Send `X-Request-ID` (8-128 characters from
+      `[A-Za-z0-9._-]`) to correlate logs; the server generates one otherwise and echoes it back.
+  version: 1.0.0
+servers:
+  - url: /
+    description: This server
+
+tags:
+  - name: System
+    description: Liveness, readiness, and service metadata
+  - name: Auth
+    description: Registration and session management
+  - name: Users
+    description: The authenticated user's account
+  - name: Tasks
+    description: Offline-first task synchronization
+
+paths:
+  /:
+    get:
+      tags: [System]
+      summary: Service info
+      operationId: getServiceInfo
+      responses:
+        '200':
+          description: Service name and version
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceInfoResponse'
+
+  /health:
+    get:
+      tags: [System]
+      summary: Liveness probe
+      description: Returns 200 while the process is running. Does not touch the database.
+      operationId: getHealth
+      responses:
+        '200':
+          description: Process is alive
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /ready:
+    get:
+      tags: [System]
+      summary: Readiness probe
+      description: Returns 200 when the database answers queries, otherwise 503.
+      operationId: getReadiness
+      responses:
+        '200':
+          description: Ready to serve traffic
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadinessResponse'
+              example:
+                status: ready
+        '503':
+          description: Database unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadinessResponse'
+              example:
+                status: not_ready
+
+  /api/v1/status:
+    get:
+      tags: [System]
+      summary: API status
+      operationId: getApiStatus
+      responses:
+        '200':
+          description: API status and version
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+
+  /api/v1/config:
+    get:
+      tags: [System]
+      summary: Remote app configuration
+      description: Version gates and maintenance flags for mobile clients (MIN_APP_VERSION, LATEST_APP_VERSION, FORCE_UPDATE, MAINTENANCE_MODE).
+      operationId: getRemoteConfig
+      responses:
+        '200':
+          description: Remote configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppConfigResponse'
+
+  /api/v1/auth/register:
+    post:
+      tags: [Auth]
+      summary: Create an account and sign in
+      description: Rate limited together with login (default 10 requests per minute per client).
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Account created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Email already registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Email already registered
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/auth/login:
+    post:
+      tags: [Auth]
+      summary: Sign in with email and password
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Signed in
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Unknown email or wrong password (indistinguishable by design)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Invalid email or password
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Rotate a refresh token
+      description: |
+        Revokes the presented refresh token and returns a new access/refresh pair. Reusing a
+        revoked refresh token is treated as theft and revokes every refresh token of the user.
+        Rate limited together with logout (default 30 requests per minute per client).
+      operationId: refresh
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: New token pair
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Invalid, expired, revoked, or reused refresh token; sign in again
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Invalid or expired refresh token
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Revoke a refresh token
+      description: Idempotent. Always returns 204 for a well-formed request, even if the token is unknown.
+      operationId: logout
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '204':
+          description: Token revoked (or already invalid)
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/users/me:
+    get:
+      tags: [Users]
+      summary: Read the authenticated user's profile
+      operationId: getProfile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/UserNotFound'
+    put:
+      tags: [Users]
+      summary: Update the authenticated user's profile
+      description: Omitted or null fields are left unchanged.
+      operationId: updateProfile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+      responses:
+        '200':
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/UserNotFound'
+    delete:
+      tags: [Users]
+      summary: Delete the authenticated user's account
+      description: |
+        Permanently deletes the account, its tasks, and all refresh tokens (App Store Review
+        Guideline 5.1.1(v)). Already-issued access tokens remain valid until they expire but every
+        user-scoped endpoint then answers 404.
+      operationId: deleteAccount
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Account deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/UserNotFound'
+
+  /api/v1/tasks:
+    get:
+      tags: [Tasks]
+      summary: List the authenticated user's tasks
+      description: Includes soft-deleted tasks (`deleted = true`).
+      operationId: listTasks
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: All tasks of the user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskSyncResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/tasks/sync:
+    post:
+      tags: [Tasks]
+      summary: Reconcile task snapshots
+      description: |
+        Upserts up to 500 task snapshots and returns the user's full task list. Conflicts resolve by
+        last-write-wins on `updatedAt`; an equal or older snapshot never replaces a stored task.
+        Timestamps later than the server clock plus 5 minutes are clamped. Task ids are scoped to
+        the user. Any invalid task rejects the whole batch with 400 and nothing is written.
+      operationId: syncTasks
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskSyncRequest'
+      responses:
+        '200':
+          description: Reconciled task list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskSyncResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/UserNotFound'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    BadRequest:
+      description: Malformed body or failed validation
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            malformed:
+              value:
+                error: Malformed or missing request body
+            validation:
+              value:
+                error: Password must be at least 8 characters
+    Unauthorized:
+      description: Missing, invalid, or expired access token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: Authentication required
+    UserNotFound:
+      description: The token's user no longer exists (for example after account deletion)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: User not found
+    UnsupportedMediaType:
+      description: Body is not application/json
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: Unsupported media type; send application/json
+    TooManyRequests:
+      description: Per-client rate limit exceeded; honor Retry-After
+      headers:
+        Retry-After:
+          description: Seconds until the limit resets
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: Too many requests; retry later
+
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          description: Human-readable message; only validation messages are specific
+
+    ServiceInfoResponse:
+      type: object
+      required: [service, version]
+      properties:
+        service:
+          type: string
+          example: myproject
+        version:
+          type: string
+          example: 1.0.0
+
+    HealthResponse:
+      type: object
+      required: [status, timestamp, version]
+      properties:
+        status:
+          type: string
+          example: healthy
+        timestamp:
+          type: integer
+          format: int64
+          description: Server time in epoch milliseconds
+        version:
+          type: string
+          description: Release version from app.properties
+          example: 1.0.0
+
+    ReadinessResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ready, not_ready]
+
+    StatusResponse:
+      type: object
+      required: [api, version]
+      properties:
+        api:
+          type: string
+          example: running
+        version:
+          type: string
+          example: 1.0.0
+
+    AppConfigResponse:
+      type: object
+      required: [minVersion, latestVersion, forceUpdate, maintenanceMode]
+      properties:
+        minVersion:
+          type: string
+          example: 0.0.0
+        latestVersion:
+          type: string
+          example: 1.0.0
+        forceUpdate:
+          type: boolean
+        maintenanceMode:
+          type: boolean
+
+    RegisterRequest:
+      type: object
+      required: [email, password, displayName]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 255
+          description: Trimmed and lower-cased before storage
+        password:
+          type: string
+          format: password
+          minLength: 8
+          description: 8 characters minimum, 72 UTF-8 bytes maximum
+        displayName:
+          type: string
+          maxLength: 100
+          description: Trimmed; must not be blank
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+
+    RefreshRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        displayName:
+          type: string
+          nullable: true
+          maxLength: 100
+
+    UserResponse:
+      type: object
+      required: [id, email, displayName]
+      properties:
+        id:
+          type: integer
+          format: int64
+        email:
+          type: string
+        displayName:
+          type: string
+
+    AuthResponse:
+      type: object
+      required: [accessToken, refreshToken, user]
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+          description: Single use; replaced on every refresh
+        user:
+          $ref: '#/components/schemas/UserResponse'
+
+    TaskDto:
+      type: object
+      required: [id, title, completed, deleted, updatedAt, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+          maxLength: 36
+          description: Client-generated UUID, unique per user
+        title:
+          type: string
+          maxLength: 240
+          description: Trimmed; must not be blank
+        completed:
+          type: boolean
+        deleted:
+          type: boolean
+          description: Soft-delete marker
+        updatedAt:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Epoch milliseconds; decides last-write-wins
+        createdAt:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Epoch milliseconds
+
+    TaskSyncRequest:
+      type: object
+      required: [tasks]
+      properties:
+        tasks:
+          type: array
+          maxItems: 500
+          items:
+            $ref: '#/components/schemas/TaskDto'
+
+    TaskSyncResponse:
+      type: object
+      required: [tasks, syncedAt]
+      properties:
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskDto'
+        syncedAt:
+          type: integer
+          format: int64
+          description: Server time in epoch milliseconds

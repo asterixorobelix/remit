@@ -1,0 +1,88 @@
+# Preview build — label a pull request "preview" to get an installable Android debug build of
+# it; later pushes rebuild while the label stays. Costs one Linux build per push, only for
+# labeled pull requests.
+#
+# With the FIREBASE_SERVICE_ACCOUNT_JSON secret and a FIREBASE_ANDROID_PREVIEW_APP_ID repository
+# variable (a Firebase Android app registered for <package>.debug), testers in
+# FIREBASE_TESTER_GROUPS (default beta-testers) get it through Firebase App Distribution.
+# Either way the APK is attached to the run, and one pull request comment links the latest build.
+
+name: Preview build
+
+on:
+  pull_request:
+    types: [labeled, synchronize, reopened]
+
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  GRADLE_OPTS: -Dorg.gradle.daemon=false
+
+jobs:
+  android:
+    name: Android preview
+    if: >-
+      contains(github.event.pull_request.labels.*.name, 'preview') &&
+      (github.event.action != 'labeled' || github.event.label.name == 'preview')
+    runs-on: ${{ vars.LINUX_RUNNER || 'ubuntu-24.04' }}
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    env:
+      HAS_FIREBASE: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON != '' && vars.FIREBASE_ANDROID_PREVIEW_APP_ID != '' }}
+      APK: mobile/androidApp/build/outputs/apk/debug/androidApp-debug.apk
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/java-gradle
+        with:
+          java-version: '21'
+          project-dir: mobile
+          cache-id: mobile
+      - name: Build the debug APK
+        working-directory: mobile
+        run: ./gradlew :androidApp:assembleDebug
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        id: artifact
+        with:
+          name: android-preview-pr${{ github.event.pull_request.number }}
+          path: ${{ env.APK }}
+          if-no-files-found: error
+          retention-days: 7
+      - name: Distribute to Firebase testers
+        if: env.HAS_FIREBASE == 'true'
+        uses: wzieba/Firebase-Distribution-Github-Action@bd494989dd4bec0343f78adee87fe66e48279ad6 # v1.7.1
+        with:
+          appId: ${{ vars.FIREBASE_ANDROID_PREVIEW_APP_ID }}
+          serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          groups: ${{ vars.FIREBASE_TESTER_GROUPS || 'beta-testers' }}
+          releaseNotes: 'PR #${{ github.event.pull_request.number }} at ${{ github.event.pull_request.head.sha }}'
+          file: ${{ env.APK }}
+      - name: Link the build on the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+          URL: ${{ steps.artifact.outputs.artifact-url }}
+        run: |
+          marker='<!-- preview-build -->'
+          body="$marker"$'\n'"### Android preview build"$'\n'
+          body+="Commit \`${SHA:0:7}\`: [download the APK]($URL) (kept 7 days)."
+          if [[ "$HAS_FIREBASE" == true ]]; then
+            body+=$'\n'"Also sent to Firebase App Distribution testers."
+          fi
+          id="$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$PR/comments" \
+            --jq ".[] | select(.body | startswith(\"$marker\")) | .id" | head -n 1)"
+          if [[ -n "$id" ]]; then
+            gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -f body="$body" >/dev/null
+          else
+            gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" -f body="$body" >/dev/null
+          fi

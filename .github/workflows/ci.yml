@@ -1,0 +1,407 @@
+# CI — template contracts and repository lint, security scan, backend, mobile, iOS, and Fastlane.
+#
+# Built to spend as few Actions minutes as possible (macOS bills at 10x Linux):
+# - Documentation-only pushes skip CI. Pull requests always run so required checks report.
+# - Each job runs only when its inputs changed. On main, changes are measured from the last
+#   green CI run, so a failure keeps being re-checked until a later push fixes it.
+# - The macOS job waits for the Linux mobile gate, so a broken change never reaches it.
+# - Superseded pull request runs are cancelled. Pushes to main are never cancelled, because
+#   a cancelled run would leave its changes unchecked.
+# - Gradle caches are saved only from main (.github/actions/java-gradle).
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - '.planning/**'
+      - '**/README.md'
+      - '**/AGENTS.md'
+      - '**/CLAUDE.md'
+      - 'TROUBLESHOOTING.md'
+      - 'RELEASE_CHECKLIST.md'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/*.md'
+      - 'LICENSE'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  GRADLE_OPTS: -Dorg.gradle.daemon=false
+
+jobs:
+  template:
+    name: Template contracts
+    runs-on: ${{ vars.LINUX_RUNNER || 'ubuntu-24.04' }}
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read
+      actions: read
+    outputs:
+      backend: ${{ steps.scope.outputs.all == 'true' || steps.filter.outputs.backend == 'true' }}
+      image: ${{ steps.scope.outputs.all == 'true' || steps.filter.outputs.image == 'true' }}
+      mobile: ${{ steps.scope.outputs.all == 'true' || steps.filter.outputs.mobile == 'true' }}
+      ios: ${{ steps.scope.outputs.all == 'true' || steps.filter.outputs.ios == 'true' }}
+      fastlane: ${{ steps.scope.outputs.all == 'true' || steps.filter.outputs.fastlane == 'true' }}
+      code: ${{ steps.scope.outputs.all == 'true' || steps.filter.outputs.code == 'true' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      # Pull requests compare against their base branch (paths-filter default). Pushes compare
+      # against the last commit whose CI passed; without one, everything runs.
+      - name: Choose the comparison base
+        id: scope
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [[ "$EVENT" == workflow_dispatch ]]; then
+            echo "all=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [[ "$EVENT" == pull_request ]]; then
+            echo "secrets_base=$PR_BASE" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          green="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow "$GITHUB_WORKFLOW" \
+            --branch main --event push --status success --limit 1 \
+            --json headSha --jq '.[0].headSha // empty' || true)"
+          if [[ -n "$green" ]] && git merge-base --is-ancestor "$green" HEAD 2>/dev/null; then
+            echo "Checking changes since the last green commit $green"
+            echo "base=$green" >> "$GITHUB_OUTPUT"
+            echo "secrets_base=$green" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::No green CI run found on main's history; running every job."
+            echo "all=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        id: filter
+        if: steps.scope.outputs.all != 'true'
+        with:
+          base: ${{ steps.scope.outputs.base }}
+          predicate-quantifier: some-with-excludes
+          filters: |
+            backend:
+              - 'backend/**'
+              - 'gradle/libs.versions.toml'
+              - '.github/workflows/ci.yml'
+              - '.github/actions/java-gradle/**'
+              - '!**/*.md'
+            image:
+              - 'backend/Dockerfile'
+              - 'backend/*.gradle.kts'
+              - 'backend/gradle/**'
+              - 'gradle/libs.versions.toml'
+              - '.github/workflows/ci.yml'
+            mobile:
+              - 'mobile/**'
+              - 'gradle/libs.versions.toml'
+              - 'app.properties'
+              - '.github/workflows/ci.yml'
+              - '.github/actions/java-gradle/**'
+              - '!**/*.md'
+              - '!mobile/iosApp/**'
+              - '!mobile/fastlane/**'
+              - '!mobile/Gemfile*'
+              - '!mobile/store_assets/**'
+            ios:
+              - 'mobile/**'
+              - 'gradle/libs.versions.toml'
+              - 'app.properties'
+              - '.github/workflows/ci.yml'
+              - '.github/actions/java-gradle/**'
+              - '!**/*.md'
+              - '!mobile/androidApp/**'
+              - '!mobile/composeApp/src/{androidMain,commonTest,desktopMain,desktopTest,iosTest}/**'
+              - '!mobile/composeApp/screenshots/**'
+              - '!mobile/{androidApp,composeApp}/lint-baseline.xml'
+              - '!mobile/detekt-mobile.yml'
+              - '!mobile/fastlane/**'
+              - '!mobile/Gemfile*'
+              - '!mobile/store_assets/**'
+            fastlane:
+              - 'mobile/fastlane/**'
+              - 'mobile/Gemfile*'
+              - '.github/workflows/ci.yml'
+            code:
+              - '**/*.kt'
+              - '**/*.kts'
+              - '**/*.swift'
+              - '**/*.sh'
+              - 'backend/Dockerfile'
+              - '.github/**'
+              - '!**/*.md'
+
+      # Pinned, checksum-verified tools (scripts/ci/install-tools.sh), then the same lint
+      # script developers run locally (make lint-repo).
+      - name: Install lint tools
+        run: |
+          scripts/ci/install-tools.sh "$RUNNER_TEMP/bin"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+      - name: Lint workflows, scripts, spelling, Dockerfile, Swift, and architecture
+        run: scripts/lint-repo.sh --strict
+      # Only commits new since the PR base or the last green run; .gitleaksignore lists reviewed
+      # historical placeholders for full scans.
+      - name: Scan new commits for secrets
+        env:
+          BASE: ${{ steps.scope.outputs.secrets_base }}
+        run: |
+          if [[ -n "$BASE" ]]; then
+            gitleaks git --no-banner --redact --log-opts="$BASE..HEAD" .
+          else
+            gitleaks git --no-banner --redact .
+          fi
+
+      - run: make check-template
+
+  # Semgrep: free Community rules by default. With a SEMGREP_APP_TOKEN secret (free for up to
+  # 10 contributors) it runs `semgrep ci` with cross-file Pro rules, supply-chain checks, and
+  # PR comments. Pull requests report only findings the PR introduces.
+  security:
+    name: Security scan
+    needs: template
+    if: needs.template.outputs.code == 'true'
+    runs-on: ${{ vars.LINUX_RUNNER || 'ubuntu-24.04' }}
+    timeout-minutes: 15
+    env:
+      SEMGREP_VERSION: '1.179.0'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Semgrep
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [[ -n "$SEMGREP_APP_TOKEN" ]]; then
+            exec pipx run --spec "semgrep==$SEMGREP_VERSION" semgrep ci
+          fi
+          args=(--metrics=off --error --config p/kotlin --config p/swift --config p/dockerfile
+            --config p/github-actions --config p/secrets --config p/security-audit)
+          [[ -z "$BASE" ]] || args+=(--baseline-commit "$BASE")
+          pipx run --spec "semgrep==$SEMGREP_VERSION" semgrep scan "${args[@]}"
+
+  backend:
+    name: Backend
+    needs: template
+    if: needs.template.outputs.backend == 'true'
+    runs-on: ${{ vars.LINUX_RUNNER || 'ubuntu-24.04' }}
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2  # the pull request's base for coverage of changed lines
+          persist-credentials: false
+      - uses: ./.github/actions/java-gradle
+        with:
+          java-version: '17'
+          project-dir: backend
+          cache-id: backend
+
+      # Kover: 80% line and 70% branch coverage overall, plus the XML report for changed lines.
+      - name: Test, lint, and coverage
+        run: ./gradlew test detekt ktlintCheck koverVerify koverXmlReport
+
+      # HEAD^1 of a pull request's merge commit is the base branch tip.
+      - name: Coverage of changed lines
+        if: github.event_name == 'pull_request'
+        working-directory: .
+        env:
+          PATCH_COVERAGE_MIN: ${{ vars.PATCH_COVERAGE_MIN || '80' }}
+        run: >-
+          scripts/ci/patch-coverage.sh HEAD^1 backend/build/reports/kover/report.xml
+          backend/src/main/kotlin
+
+      # Builds the production image and checks it starts and reports healthy (development
+      # mode with in-memory H2, since production mode rejects placeholder configuration).
+      - name: Build and smoke-test the Docker image
+        if: needs.template.outputs.image == 'true'
+        working-directory: .
+        run: |
+          docker build --file backend/Dockerfile --tag backend:ci .
+          docker run --detach --name backend -e APP_ENVIRONMENT=development backend:ci
+          for _ in $(seq 1 45); do
+            if docker exec backend curl --fail --silent http://127.0.0.1:8085/health >/dev/null 2>&1; then
+              echo "Backend image is healthy"
+              exit 0
+            fi
+            [[ "$(docker inspect --format '{{.State.Running}}' backend)" == true ]] || break
+            sleep 2
+          done
+          docker logs backend
+          echo "::error::The backend container exited or did not become healthy within 90 seconds"
+          exit 1
+
+      - uses: ./.github/actions/java-gradle
+        with:
+          mode: save
+          project-dir: backend
+          cache-id: backend
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: failure()
+        with:
+          name: backend-reports
+          path: backend/build/reports/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  mobile:
+    name: Mobile
+    needs: template
+    if: needs.template.outputs.mobile == 'true'
+    runs-on: ${{ vars.LINUX_RUNNER || 'ubuntu-24.04' }}
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2  # the pull request's base for coverage of changed lines
+          persist-credentials: false
+      - uses: ./.github/actions/java-gradle
+        with:
+          java-version: '21'
+          project-dir: mobile
+          cache-id: mobile
+
+      # make check-mobile without the iOS link (the iOS job covers it), plus the coverage report.
+      - name: Test, lint, Android, desktop, migrations, and coverage
+        run: >-
+          ./gradlew test detekt ktlintCheck :androidApp:lintDebug :composeApp:lintDebug
+          :androidApp:assembleDebug :composeApp:compileKotlinDesktop
+          :composeApp:verifySqlDelightMigration :composeApp:koverVerifyUnitTests
+          :composeApp:koverXmlReportUnitTests
+
+      # Kover leaves @Composable functions out, so UI layout code is not held to the bar.
+      - name: Coverage of changed lines
+        if: github.event_name == 'pull_request'
+        working-directory: .
+        env:
+          PATCH_COVERAGE_MIN: ${{ vars.PATCH_COVERAGE_MIN || '80' }}
+        run: >-
+          scripts/ci/patch-coverage.sh HEAD^1 mobile/composeApp/build/reports/kover/reportUnitTests.xml
+          mobile/composeApp/src/commonMain/kotlin mobile/composeApp/src/desktopMain/kotlin
+          mobile/composeApp/src/androidMain/kotlin
+
+      # Baselines are recorded here on Linux and copied into the branch with
+      # scripts/update-screenshots.sh; images recorded on macOS would not match.
+      - name: Verify screenshots
+        id: screenshots
+        run: |
+          if compgen -G 'composeApp/screenshots/desktop/*.png' >/dev/null; then
+            ./gradlew :composeApp:verifyRoborazziDesktop
+          else
+            echo "::warning::No screenshot baselines yet. Run scripts/update-screenshots.sh and commit the images."
+            ./gradlew :composeApp:recordRoborazziDesktop
+            echo "recorded=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Record screenshots for review
+        if: failure() && steps.screenshots.outcome == 'failure'
+        run: ./gradlew :composeApp:recordRoborazziDesktop
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always() && (steps.screenshots.outputs.recorded == 'true' || steps.screenshots.outcome == 'failure')
+        with:
+          name: screenshots
+          path: mobile/composeApp/screenshots/desktop/
+          retention-days: 14
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always() && steps.screenshots.outcome == 'failure'
+        with:
+          name: screenshot-diffs
+          path: |
+            mobile/composeApp/build/outputs/roborazzi/desktop/
+            mobile/composeApp/build/reports/roborazzi/desktop/
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - uses: ./.github/actions/java-gradle
+        with:
+          mode: save
+          project-dir: mobile
+          cache-id: mobile
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: failure()
+        with:
+          name: mobile-reports
+          path: mobile/*/build/reports/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  ios:
+    name: iOS
+    needs: [template, mobile]
+    if: >-
+      !cancelled() && needs.template.result == 'success' && needs.template.outputs.ios == 'true' &&
+      (needs.mobile.result == 'success' || needs.mobile.result == 'skipped')
+    # Xcode 26 is the default here; App Store Connect rejects builds from older SDKs.
+    runs-on: ${{ vars.MACOS_RUNNER || 'macos-26' }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/java-gradle
+        with:
+          java-version: '21'
+          project-dir: mobile
+          cache-id: ios
+
+      # Full unsigned simulator app: Swift, xcconfig, and the shared framework (the Xcode build
+      # phase links it through Gradle).
+      - name: Build the iOS app
+        run: make ios-app
+
+      - uses: ./.github/actions/java-gradle
+        with:
+          mode: save
+          project-dir: mobile
+          cache-id: ios
+
+  fastlane:
+    name: Fastlane
+    needs: template
+    if: needs.template.outputs.fastlane == 'true'
+    runs-on: ${{ vars.LINUX_RUNNER || 'ubuntu-24.04' }}
+    timeout-minutes: 10
+    env:
+      FASTLANE_SKIP_UPDATE_CHECK: '1'
+      FASTLANE_HIDE_CHANGELOG: '1'
+      FASTLANE_OPT_OUT_USAGE: '1'
+      LC_ALL: C.UTF-8
+      LANG: C.UTF-8
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1.327.0
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+          working-directory: mobile
+      # Installs the locked gems and loads the Fastfile, so release day never finds a broken
+      # lane definition or an unresolvable Gemfile.
+      - name: Load the Fastfile
+        working-directory: mobile
+        run: bundle exec fastlane lanes

@@ -1,0 +1,49 @@
+## Environment Configuration Template
+## Copy this file to local.properties and customize for your environment.
+## local.properties is gitignored - never commit sensitive values!
+
+# Android SDK location (required)
+sdk.dir=/path/to/your/Android/sdk
+
+# =============================================================================
+# API Configuration
+# =============================================================================
+
+# Debug API URL (default: http://10.0.2.2:8085 - Android emulator localhost)
+# For physical device testing, use your machine's IP address
+API_BASE_URL_DEBUG=http://10.0.2.2:8085
+
+# Staging API URL (default: https://staging-api.example.com)
+API_BASE_URL_STAGING=https://staging-api.example.com
+
+# Production API URL (default: https://api.example.com)
+API_BASE_URL_RELEASE=https://api.example.com
+
+# =============================================================================
+# Usage
+# =============================================================================
+#
+# These values are read at build time and injected into BuildConfig:
+#
+# Android (via BuildConfig):
+#   val apiUrl = BuildConfig.API_BASE_URL
+#   val isDebug = BuildConfig.DEBUG
+#
+# iOS (via Info.plist):
+#   Add corresponding keys to Info.plist for each build configuration
+#
+# Shared (via AppConfig):
+#   val config: AppConfig = koinInject()
+#   val apiUrl = config.apiBaseUrl
+#   val isDebug = config.isDebug
+#
+# =============================================================================
+# Build Types
+# =============================================================================
+#
+# debug   - Development builds (API_BASE_URL_DEBUG)
+# staging - QA/Testing builds (API_BASE_URL_STAGING)
+# release - Production builds (API_BASE_URL_RELEASE)
+#
+# Run staging build: ./gradlew assembleStagingDebug
+# Run release build: ./gradlew assembleRelease

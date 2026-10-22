@@ -1,0 +1,65 @@
+# Matchfile - iOS Code Signing Configuration
+# Documentation: https://docs.fastlane.tools/actions/match/
+#
+# Match stores your certificates and provisioning profiles in a private git repo.
+# This eliminates "code signing hell" and makes CI/CD simple.
+
+# ============================================================================
+# REPOSITORY CONFIGURATION
+# ============================================================================
+
+# Git repository URL for storing certificates (HTTPS recommended for CI). Every app made from
+# this template shares the owner's private certificates repo; set MATCH_GIT_URL to use another.
+# (CI passes an empty value when the secret is unset, so test for empty rather than nil.)
+match_git_url = ENV['MATCH_GIT_URL'].to_s.strip
+git_url(match_git_url.empty? ? "https://github.com/asterixorobelix/fastlane-certificates.git" : match_git_url)
+storage_mode("git")
+
+# ============================================================================
+# APP CONFIGURATION
+# ============================================================================
+
+# Bundle identifier(s) for the app
+app_identifier([ENV['IOS_APP_IDENTIFIER'] || "com.example.myproject"])
+
+# Apple Developer account email
+username(ENV["APPLE_ID"] || "your-apple-id@email.com")
+
+# Apple Developer Team ID
+team_id(ENV["APPLE_TEAM_ID"] || "YOUR_DEV_TEAM_ID")
+
+# ============================================================================
+# CERTIFICATE TYPES
+# ============================================================================
+
+# Default type - can be overridden per lane
+# Options: appstore, adhoc, development, enterprise
+type("appstore")
+
+# ============================================================================
+# SECURITY OPTIONS
+# ============================================================================
+
+# Don't generate new certificates if they don't exist (safer for CI)
+# Set to false when first setting up
+readonly(false)
+
+# Clone depth for faster checkout
+clone_branch_directly(true)
+shallow_clone(true)
+
+# ============================================================================
+# FIRST-TIME SETUP
+# ============================================================================
+#
+# 1. Create a PRIVATE GitHub repo for certificates (e.g., your-org/certificates)
+#
+# 2. For local use: set MATCH_GIT_URL and MATCH_PASSWORD in fastlane/.env
+#    cd mobile && bundle exec fastlane match development
+#    cd mobile && bundle exec fastlane match appstore
+#
+# 3. For CI (GitHub Actions): set these secrets:
+#    - MATCH_GIT_URL (optional): only when not using the default repo above
+#    - MATCH_PASSWORD: password you chose during match init
+#    - MATCH_GIT_BASIC_AUTHORIZATION: echo -n 'username:PAT' | base64
+#      (PAT needs 'Contents: Read and write' on the certificates repo)

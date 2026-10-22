@@ -1,0 +1,406 @@
+# Mobile CD — manual, transactional store release.
+#
+# Order of operations, so a failure leaves as little behind as possible:
+#   1. prepare        (Linux) secrets and push access, next version, template and mobile gates
+#   2. android-build  (Linux) signed AAB/APK, built before anything is uploaded
+#   3. ios            (macOS) build and upload to TestFlight / App Store Connect
+#   4. android-upload (Linux) upload the already-built AAB to Google Play
+#   5. finalize       (Linux) commit the version bump to main, tag, and publish a GitHub release
+# Release notes come from conventional commits since the previous tag (scripts/release-notes.sh)
+# unless release_notes is given. Ship the tested build wider with Mobile Promote.
+# Git history changes only after every selected upload succeeds. Uploads skip builds the store
+# already has, so after a late failure use "Re-run failed jobs" on the same run; do not start a
+# new run (the version would not have been committed yet, and the stores reject reuse).
+# Secrets are documented in docs/RELEASING.md. Every job runs in the "release" environment, which
+# only protected branches (main) may use, so release secrets stored there are never readable by
+# workflow code in a pull request (scripts/protect-main.sh creates it).
+
+name: Mobile CD
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        type: choice
+        options: [both, android, ios]
+        default: both
+      version_bump:
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+      android_track:
+        type: choice
+        options: [internal, beta, production]
+        default: internal
+      ios_destination:
+        type: choice
+        options: [testflight, testflight_external, appstore]
+        default: testflight
+      release_notes:
+        description: 'Override the generated release notes'
+        type: string
+        required: false
+      store_listing:
+        description: 'Also upload the store listing from mobile/store_assets/STORE_LISTING.md'
+        type: boolean
+        default: false
+
+concurrency:
+  group: mobile-release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  BUMP: ${{ inputs.version_bump }}
+  RUBY_VERSION: '3.3'
+  GRADLE_OPTS: -Dorg.gradle.daemon=false
+  FASTLANE_SKIP_UPDATE_CHECK: '1'
+  FASTLANE_HIDE_CHANGELOG: '1'
+  FASTLANE_OPT_OUT_USAGE: '1'
+
+jobs:
+  prepare:
+    name: Validate release candidate
+    runs-on: ${{ vars.LINUX_RUNNER || 'ubuntu-24.04' }}
+    environment: release
+    timeout-minutes: 30
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      notes: ${{ steps.notes.outputs.notes }}
+      store_notes: ${{ steps.notes.outputs.store_notes }}
+    steps:
+      - name: Require main
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::Run Mobile CD from main (was ${GITHUB_REF})."
+          exit 1
+
+      # Only presence flags reach this job, never secret values.
+      - name: Check secrets and push access
+        env:
+          PLATFORM: ${{ inputs.platform }}
+          GH_TOKEN: ${{ github.token }}
+          HAS_RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN != '' }}
+          HAS_ANDROID_SIGNING_KEY: ${{ secrets.ANDROID_SIGNING_KEY != '' }}
+          HAS_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD != '' }}
+          HAS_ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS != '' }}
+          HAS_ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD != '' }}
+          HAS_GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON != '' }}
+          HAS_MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION != '' }}
+          HAS_MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD != '' }}
+          HAS_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID != '' }}
+          HAS_ASC_KEY_ID: ${{ secrets.ASC_KEY_ID != '' }}
+          HAS_ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID != '' }}
+          HAS_ASC_KEY_CONTENT: ${{ secrets.ASC_KEY_CONTENT != '' }}
+        run: |
+          required=()
+          if [[ "$PLATFORM" != ios ]]; then
+            required+=(ANDROID_SIGNING_KEY ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD
+              GOOGLE_PLAY_SERVICE_ACCOUNT_JSON)
+          fi
+          if [[ "$PLATFORM" != android ]]; then
+            # MATCH_GIT_URL is optional: mobile/fastlane/Matchfile names the certificates repo.
+            required+=(MATCH_GIT_BASIC_AUTHORIZATION MATCH_PASSWORD APPLE_TEAM_ID
+              ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_CONTENT)
+          fi
+          missing=0
+          for name in "${required[@]}"; do
+            flag="HAS_$name"
+            [[ "${!flag}" == true ]] || { echo "::error::Missing secret $name (see docs/RELEASING.md)"; missing=1; }
+          done
+          # The default token cannot push to a protected branch; failing here beats failing
+          # after the stores already have the build.
+          protected="$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .protected)"
+          if [[ "$protected" == true && "$HAS_RELEASE_TOKEN" != true ]]; then
+            echo "::error::main is protected: add a RELEASE_TOKEN secret that may push to it (see docs/RELEASING.md)"
+            missing=1
+          fi
+          exit "$missing"
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0  # release notes since the previous tag
+      - uses: ./.github/actions/java-gradle
+        with:
+          java-version: '21'
+          project-dir: mobile
+          cache-id: mobile
+
+      - name: Release notes
+        id: notes
+        env:
+          OVERRIDE: ${{ inputs.release_notes }}
+        run: |
+          if [[ -n "$OVERRIDE" ]]; then
+            notes="$OVERRIDE"; store_notes="$OVERRIDE"
+          else
+            notes="$(scripts/release-notes.sh)"; store_notes="$(scripts/release-notes.sh --plain)"
+          fi
+          {
+            echo 'notes<<RELEASE_NOTES_EOF'; printf '%s\n' "$notes"; echo 'RELEASE_NOTES_EOF'
+            echo 'store_notes<<RELEASE_NOTES_EOF'; printf '%s\n' "$store_notes"; echo 'RELEASE_NOTES_EOF'
+          } >> "$GITHUB_OUTPUT"
+          printf '%s\n' "$notes" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Calculate version without publishing
+        id: version
+        run: |
+          ./bump-version.sh "$BUMP" --yes
+          version="$(awk -F= '$1=="VERSION_NAME" {print $2}' app.properties)"
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::Could not read version from app.properties"; exit 1; }
+          if git ls-remote --exit-code --tags origin "refs/tags/v$version" >/dev/null; then
+            echo "::error::Tag v$version already exists"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Template contracts
+        run: make check-template
+      # make check-mobile without the iOS link; the iOS job builds the full app before uploading.
+      - name: Mobile gate
+        working-directory: mobile
+        run: >-
+          ./gradlew test detekt ktlintCheck :androidApp:lintDebug :composeApp:lintDebug
+          :androidApp:assembleDebug :composeApp:compileKotlinDesktop :composeApp:verifySqlDelightMigration
+          :composeApp:koverVerifyUnitTests
+
+  android-build:
+    name: Build Android release
+    needs: prepare
+    if: inputs.platform != 'ios'
+    runs-on: ${{ vars.LINUX_RUNNER || 'ubuntu-24.04' }}
+    environment: release
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/java-gradle
+        with:
+          java-version: '21'
+          project-dir: mobile
+          cache-id: mobile
+      - run: ./bump-version.sh "$BUMP" --yes
+      - name: Firebase config (optional)
+        uses: ./.github/actions/firebase-setup
+        with:
+          google-services-json: ${{ secrets.GOOGLE_SERVICES_JSON }}
+      - name: Configure signing
+        env:
+          ANDROID_SIGNING_KEY: ${{ secrets.ANDROID_SIGNING_KEY }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          keystore="$RUNNER_TEMP/release.keystore"
+          printf '%s' "$ANDROID_SIGNING_KEY" | base64 --decode > "$keystore"
+          {
+            printf 'storeFile=%s\n' "$keystore"
+            printf 'storePassword=%s\n' "$KEYSTORE_PASSWORD"
+            printf 'keyAlias=%s\n' "$KEY_ALIAS"
+            printf 'keyPassword=%s\n' "$KEY_PASSWORD"
+          } > mobile/keystore.properties
+      - name: Build signed release
+        working-directory: mobile
+        run: ./gradlew :androidApp:bundleRelease :androidApp:assembleRelease
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: android-release
+          path: |
+            mobile/androidApp/build/outputs/bundle/release/*.aab
+            mobile/androidApp/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+          retention-days: 30
+
+  ios:
+    name: Upload iOS
+    needs: [prepare, android-build]
+    if: >-
+      !cancelled() && needs.prepare.result == 'success' && inputs.platform != 'android' &&
+      (needs.android-build.result == 'success' || needs.android-build.result == 'skipped')
+    # Xcode 26 is the default here; App Store Connect rejects builds from older SDKs.
+    runs-on: ${{ vars.MACOS_RUNNER || 'macos-26' }}
+    environment: release
+    timeout-minutes: 60
+    env:
+      LC_ALL: en_US.UTF-8  # Fastlane needs a UTF-8 locale; Linux runners default to C.UTF-8
+      LANG: en_US.UTF-8
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 20  # TestFlight changelog from recent commits
+          persist-credentials: false
+      - uses: ./.github/actions/java-gradle
+        with:
+          java-version: '21'
+          project-dir: mobile
+          cache-id: ios
+      - uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1.327.0
+        with:
+          ruby-version: ${{ env.RUBY_VERSION }}
+          bundler-cache: true
+          working-directory: mobile
+      - run: ./bump-version.sh "$BUMP" --yes
+      - name: Build and upload
+        working-directory: mobile
+        env:
+          DESTINATION: ${{ inputs.ios_destination }}
+          MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_CONTENT: ${{ secrets.ASC_KEY_CONTENT }}
+          RELEASE_NOTES: ${{ needs.prepare.outputs.store_notes }}
+          # Optional repository variables (Settings → Secrets and variables → Variables).
+          TESTFLIGHT_EXTERNAL_GROUPS: ${{ vars.TESTFLIGHT_EXTERNAL_GROUPS }}
+        run: |
+          case "$DESTINATION" in
+            testflight) bundle exec fastlane ios beta ;;
+            testflight_external) bundle exec fastlane ios beta_external ;;
+            appstore) bundle exec fastlane ios release ;;
+          esac
+      - name: Upload the App Store listing
+        if: inputs.store_listing
+        working-directory: mobile
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_CONTENT: ${{ secrets.ASC_KEY_CONTENT }}
+          COPYRIGHT_HOLDER: ${{ vars.COPYRIGHT_HOLDER }}
+        run: |
+          (cd fastlane && bundle exec ruby sync_store_listing.rb ../store_assets/STORE_LISTING.md ./metadata)
+          bundle exec fastlane ios upload_metadata
+      # The upload has already happened; a missing IPA must not block finalize. (On a re-run
+      # that skipped an already-uploaded build there is no IPA.)
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        continue-on-error: true
+        with:
+          name: ios-release
+          path: mobile/build/*.ipa
+          if-no-files-found: warn
+          retention-days: 30
+
+  android-upload:
+    name: Upload Android
+    needs: [prepare, android-build, ios]
+    if: >-
+      !cancelled() && needs.android-build.result == 'success' &&
+      (needs.ios.result == 'success' || needs.ios.result == 'skipped')
+    runs-on: ${{ vars.LINUX_RUNNER || 'ubuntu-24.04' }}
+    environment: release
+    timeout-minutes: 20
+    env:
+      HAS_FIREBASE_DISTRIBUTION: ${{ secrets.FIREBASE_ANDROID_APP_ID != '' && secrets.FIREBASE_SERVICE_ACCOUNT_JSON != '' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1.327.0
+        with:
+          ruby-version: ${{ env.RUBY_VERSION }}
+          bundler-cache: true
+          working-directory: mobile
+      # Same version as the build, so the Fastfile can recognise an already-uploaded AAB.
+      - run: ./bump-version.sh "$BUMP" --yes
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: android-release
+          path: mobile/androidApp/build/outputs
+      - name: Upload to Google Play
+        working-directory: mobile
+        env:
+          ANDROID_TRACK: ${{ inputs.android_track }}
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          RELEASE_NOTES: ${{ needs.prepare.outputs.store_notes }}
+          PLAY_LOCALE: ${{ vars.PLAY_LOCALE || 'en-US' }}
+        run: |
+          case "$ANDROID_TRACK" in
+            internal) bundle exec fastlane android ci_internal skip_build:true ;;
+            beta) bundle exec fastlane android ci_beta skip_build:true ;;
+            production) bundle exec fastlane android ci_release skip_build:true ;;
+          esac
+      - name: Upload the Play listing
+        if: inputs.store_listing
+        working-directory: mobile
+        env:
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          ANDROID_TRACK: ${{ inputs.android_track }}
+        run: |
+          (cd fastlane && bundle exec ruby sync_store_listing.rb ../store_assets/STORE_LISTING.md ./metadata)
+          bundle exec fastlane android upload_metadata "track:$ANDROID_TRACK"
+      # Optional and after the store upload, so it never blocks the release.
+      - name: Distribute APK to Firebase testers (optional)
+        if: env.HAS_FIREBASE_DISTRIBUTION == 'true'
+        continue-on-error: true
+        uses: wzieba/Firebase-Distribution-Github-Action@bd494989dd4bec0343f78adee87fe66e48279ad6 # v1.7.1
+        with:
+          appId: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
+          serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          groups: ${{ vars.FIREBASE_TESTER_GROUPS || 'beta-testers' }}
+          file: mobile/androidApp/build/outputs/apk/release/androidApp-release.apk
+
+  finalize:
+    name: Publish version and GitHub release
+    needs: [prepare, android-build, ios, android-upload]
+    if: >-
+      !cancelled() && needs.prepare.result == 'success' &&
+      !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
+    runs-on: ${{ vars.LINUX_RUNNER || 'ubuntu-24.04' }}
+    environment: release
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      # With branch protection on main, RELEASE_TOKEN must be a token allowed to push there
+      # (prepare checks this before anything is uploaded).
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          token: ${{ secrets.RELEASE_TOKEN || github.token }}
+
+      # Idempotent: a re-run after the tag was pushed skips straight to the GitHub release.
+      # The commit and tag are pushed atomically and retried on top of a moving main.
+      - name: Commit and tag the released version
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" >/dev/null; then
+            echo "v$VERSION is already tagged; skipping the version commit."
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for attempt in 1 2 3; do
+            git fetch --quiet origin main
+            git reset --quiet --hard origin/main
+            ./bump-version.sh "$BUMP" --yes
+            actual="$(awk -F= '$1=="VERSION_NAME" {print $2}' app.properties)"
+            if [[ "$actual" != "$VERSION" ]]; then
+              echo "::error::main moved to a different version ($actual != $VERSION)"
+              exit 1
+            fi
+            git add app.properties mobile/iosApp/Configuration/Config.xcconfig
+            git commit --quiet -m "chore: release v$VERSION"
+            git tag -a "v$VERSION" -m "v$VERSION"
+            if git push --atomic origin HEAD:refs/heads/main "refs/tags/v$VERSION"; then
+              exit 0
+            fi
+            git tag -d "v$VERSION"
+            echo "::warning::Push attempt $attempt failed; retrying on the latest main."
+            sleep $((attempt * 5))
+          done
+          echo "::error::Could not push the release commit and tag to main"
+          exit 1
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: release-artifacts
+      - uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        with:
+          tag_name: v${{ needs.prepare.outputs.version }}
+          body: ${{ needs.prepare.outputs.notes }}
+          files: release-artifacts/**/*
