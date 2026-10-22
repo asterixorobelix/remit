@@ -16,8 +16,6 @@ class Observability(
 
     fun screen(name: String) = analytics.logScreenView(name)
 
-    fun nonFatal(error: Throwable, context: String) {
-        val safeContext = context.replace(Regex("(?i)(token|password|email)=[^, ]+"), "$1=[redacted]")
-        crashLogger.logException(error, safeContext)
-    }
+    /** The crash logger redacts personal data and credentials ([RedactingCrashLogger]). */
+    fun nonFatal(error: Throwable, context: String) = crashLogger.logException(error, context)
 }

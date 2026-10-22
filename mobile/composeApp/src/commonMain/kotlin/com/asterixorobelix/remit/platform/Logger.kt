@@ -104,3 +104,9 @@ class TaggedLogger(
  * Expected platform-specific implementation
  */
 expect fun createLogger(): Logger
+
+/**
+ * Debug builds log everything; release builds only warnings and errors, so a stray debug line never
+ * reaches production logs. R8 also strips `Log.v`, `Log.d`, and `Log.i` from Android release builds.
+ */
+fun AppConfig.minLogLevel(): LogLevel = if (isDebug) LogLevel.DEBUG else LogLevel.WARN

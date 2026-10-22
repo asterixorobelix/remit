@@ -27,10 +27,12 @@ import com.asterixorobelix.remit.platform.CrashLogger
 import com.asterixorobelix.remit.platform.DefaultAppDispatchers
 import com.asterixorobelix.remit.platform.Logger
 import com.asterixorobelix.remit.platform.Observability
+import com.asterixorobelix.remit.platform.RedactingCrashLogger
 import com.asterixorobelix.remit.platform.createAnalytics
 import com.asterixorobelix.remit.platform.createCrashLogger
 import com.asterixorobelix.remit.platform.createLogger
 import com.asterixorobelix.remit.platform.has
+import com.asterixorobelix.remit.platform.minLogLevel
 import com.asterixorobelix.remit.presentation.app.AppLaunchUseCases
 import com.asterixorobelix.remit.presentation.app.AppViewModel
 import com.asterixorobelix.remit.presentation.developer.DeveloperViewModel
@@ -49,9 +51,10 @@ import org.koin.dsl.module
 internal fun observabilityModule(config: AppConfig): Module = module {
     single<AppConfig> { config }
     singleOf(::DefaultAppDispatchers) bind AppDispatchers::class
-    single<CrashLogger> { createCrashLogger(firebaseEnabled = config.has(Capability.FIREBASE)) }
+    // Crash reports leave the device: redact personal data and credentials on every platform.
+    single<CrashLogger> { RedactingCrashLogger(createCrashLogger(firebaseEnabled = config.has(Capability.FIREBASE))) }
     single<Analytics> { createAnalytics(firebaseEnabled = config.has(Capability.FIREBASE)) }
-    single<Logger> { createLogger() }
+    single<Logger> { createLogger().apply { minLogLevel = config.minLogLevel() } }
     singleOf(::Observability)
 }
 

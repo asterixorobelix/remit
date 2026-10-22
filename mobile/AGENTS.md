@@ -62,6 +62,11 @@ no Compose dependency, so a SwiftUI or desktop app could use it as is.
 - `presentation/app/AppViewModel.kt` resolves the start destination once (onboarding,
   then Home), owns theme, review prompt, and the force-update gate
   (`GET /api/v1/config`, `backend` only; failures never block the app).
+- Logging and crash reports: release builds log WARN and above (`AppConfig.minLogLevel`), and R8
+  strips `Log.v`/`Log.d`/`Log.i` (`androidApp/proguard-rules.pro`). `observabilityModule` wraps the
+  platform crash logger in `RedactingCrashLogger`, which removes emails, bearer tokens, JWTs, API
+  keys, and `name=value` secrets from messages, custom keys, and exception messages (causes
+  included, stack trace kept). Always inject `CrashLogger`; never call Crashlytics directly.
 - `data/network/ApiHttpClient.kt` builds the only API client: per-request
   `X-Request-ID`, base URL resolved per request (debug override applies immediately),
   retries only for idempotent methods (`allowRetry()` opts a POST in, optionally with its own

@@ -115,12 +115,13 @@
     public static ** valueOf(java.lang.String);
 }
 
-# Remove logging in release (optional - uncomment if desired)
-# -assumenosideeffects class android.util.Log {
-#     public static int v(...);
-#     public static int d(...);
-#     public static int i(...);
-# }
+# Release builds drop verbose, debug, and info logging, so a stray Log.d never reaches production
+# (AndroidLogger also stops at WARN there; see AppConfig.minLogLevel). Warnings and errors stay.
+-assumenosideeffects class android.util.Log {
+    public static int v(...);
+    public static int d(...);
+    public static int i(...);
+}
 
 # Keep native methods
 -keepclasseswithmembernames class * {
