@@ -85,7 +85,7 @@ class PaymentValidatorTest {
 
     @Test
     fun jsonNumberFormsOutsidePlainDecimalsAreRejected() {
-        listOf("1e3", "1E-2", "-0.5", "1.5e1").forEach { literal ->
+        listOf("1e3", "1E-2", "-1e3", "1.5e1").forEach { literal ->
             assertEquals(
                 ValidationOutcome.Invalid(setOf(ValidationCode.AMOUNT_NOT_A_NUMBER)),
                 PaymentValidator.validate("a@example.com", literal, "USD"),

@@ -5,8 +5,9 @@ package com.asterixorobelix.remit.shared.domain.model
  * the value is [unscaled] / 10^[scale], so "10.50" is `DecimalAmount(unscaled = 1050, scale = 2)`.
  *
  * Parsing accepts what people type into an amount field: digits with at most one `.` or `,` as the
- * decimal separator ("10.50", "10,50", ".5", "5."). Signs, exponents, grouping separators, and
- * non-ASCII digits are rejected, so "1,000.00" and "1e3" never become a different number.
+ * decimal separator ("10.50", "10,50", ".5", "5."). A minus sign on such a number is reported as
+ * [DecimalParseResult.Failure.NEGATIVE]; other signs, exponents, grouping separators, and non-ASCII
+ * digits are rejected, so "1,000.00" and "1e3" never become a different number.
  */
 data class DecimalAmount(val unscaled: Long, val scale: Int) {
     val isZero: Boolean get() = unscaled == 0L
@@ -29,17 +30,20 @@ data class DecimalAmount(val unscaled: Long, val scale: Int) {
         /** More decimals than any currency has (ISO 4217 goes to 4); keeps the value inside [Long]. */
         const val MAX_FRACTION_DIGITS = 5
         private const val DECIMAL_BASE = 10L
-        private val DECIMAL = Regex("""^([0-9]*)(?:[.,]([0-9]*))?$""")
+        private val DECIMAL = Regex("""^(-?)([0-9]*)(?:[.,]([0-9]*))?$""")
 
         fun parse(text: String): DecimalParseResult {
             val trimmed = text.trim()
-            val match = DECIMAL.matchEntire(trimmed)
-            val whole = match?.groupValues?.get(1).orEmpty()
-            val fraction = match?.groupValues?.get(2).orEmpty()
+            val parts = DECIMAL.matchEntire(trimmed)?.destructured
+            val negative = parts?.component1().orEmpty().isNotEmpty()
+            val whole = parts?.component2().orEmpty()
+            val fraction = parts?.component3().orEmpty()
             return when {
                 trimmed.isEmpty() -> DecimalParseResult.Failure.BLANK
 
-                match == null || (whole.isEmpty() && fraction.isEmpty()) -> DecimalParseResult.Failure.NOT_A_NUMBER
+                parts == null || (whole.isEmpty() && fraction.isEmpty()) -> DecimalParseResult.Failure.NOT_A_NUMBER
+
+                negative -> DecimalParseResult.Failure.NEGATIVE
 
                 whole.trimStart('0').length > MAX_WHOLE_DIGITS -> DecimalParseResult.Failure.OUT_OF_RANGE
 
@@ -59,6 +63,9 @@ sealed interface DecimalParseResult {
     enum class Failure : DecimalParseResult {
         BLANK,
         NOT_A_NUMBER,
+
+        /** A plain decimal with a minus sign, "-0" included: not a positive amount. */
+        NEGATIVE,
 
         /** Too many whole digits to be a payment. */
         OUT_OF_RANGE,

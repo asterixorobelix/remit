@@ -41,7 +41,7 @@ object PaymentValidator {
     private const val ATOM = "[A-Za-z0-9!#\$%&'*+/=?^_`{|}~-]+"
     private const val LABEL = "[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?"
     private val EMAIL = Regex("^$ATOM(?:\\.$ATOM)*@(?:$LABEL\\.)+[A-Za-z]{2,63}$")
-    private val DECIMAL = Regex("""^([0-9]*)(?:[.,]([0-9]*))?$""")
+    private val DECIMAL = Regex("""^(-?)([0-9]*)(?:[.,]([0-9]*))?$""")
 
     fun validate(recipientEmail: String?, amount: String?, currency: String?): ValidationOutcome {
         val email = email(recipientEmail)
@@ -80,19 +80,22 @@ object PaymentValidator {
     }
 
     /**
-     * Null when the amount is well formed but cannot be priced without a valid currency. Too many
-     * whole digits is "above limit"; too many decimals for any currency (a float artefact such as
-     * 0.30000000000000004) is "too many decimals".
+     * Null when the amount is well formed but cannot be priced without a valid currency. A minus
+     * sign on a plain decimal is "not positive"; too many whole digits is "above limit"; too many
+     * decimals for any currency (a float artefact such as 0.30000000000000004) is "too many decimals".
      */
     private fun amountMinor(text: String?, currency: Currency?): Field<Long>? {
         val trimmed = text.orEmpty().trim()
-        val match = DECIMAL.matchEntire(trimmed)
-        val whole = match?.groupValues?.get(1).orEmpty()
-        val fraction = match?.groupValues?.get(2).orEmpty()
+        val parts = DECIMAL.matchEntire(trimmed)?.destructured
+        val negative = parts?.component1().orEmpty().isNotEmpty()
+        val whole = parts?.component2().orEmpty()
+        val fraction = parts?.component3().orEmpty()
         return when {
             trimmed.isEmpty() -> Field.Error(ValidationCode.AMOUNT_BLANK)
 
-            match == null || (whole.isEmpty() && fraction.isEmpty()) -> Field.Error(ValidationCode.AMOUNT_NOT_A_NUMBER)
+            parts == null || (whole.isEmpty() && fraction.isEmpty()) -> Field.Error(ValidationCode.AMOUNT_NOT_A_NUMBER)
+
+            negative -> Field.Error(ValidationCode.AMOUNT_NOT_POSITIVE)
 
             // Digit counts come before BigDecimal: parsing a megabyte of digits takes seconds of CPU.
             whole.trimStart('0').length > MAX_WHOLE_DIGITS -> Field.Error(ValidationCode.AMOUNT_ABOVE_LIMIT)

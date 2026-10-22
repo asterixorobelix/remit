@@ -130,7 +130,8 @@ desktop JVM, and CI links the iOS framework whenever iOS-relevant code changes.
 ## Design decisions
 
 **Money is never a `Double`.** Amounts are `Money(minorUnits: Long, currency)`. Typed text is
-parsed exactly: one `.` or `,` as the decimal separator, no signs, exponents, or grouping. An
+parsed exactly: one `.` or `,` as the decimal separator, no exponents or grouping, and a minus
+sign is "must be more than zero". An
 amount with more decimals than the currency allows is rejected, not rounded, so "1,000" in USD
 is "Use at most two decimal places" rather than $1.00. The API keeps the JSON shape from the
 brief (`"amount": 10.50` is a JSON number), but a custom serializer reads and writes the number's

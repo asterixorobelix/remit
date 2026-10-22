@@ -53,6 +53,7 @@ class PaymentValidator {
         when (val parsed = DecimalAmount.parse(text)) {
             DecimalParseResult.Failure.BLANK -> FieldResult.Error(ValidationError.AMOUNT_BLANK)
             DecimalParseResult.Failure.NOT_A_NUMBER -> FieldResult.Error(ValidationError.AMOUNT_NOT_A_NUMBER)
+            DecimalParseResult.Failure.NEGATIVE -> FieldResult.Error(ValidationError.AMOUNT_NOT_POSITIVE)
             DecimalParseResult.Failure.OUT_OF_RANGE -> FieldResult.Error(ValidationError.AMOUNT_ABOVE_LIMIT)
             DecimalParseResult.Failure.TOO_PRECISE -> FieldResult.Error(ValidationError.AMOUNT_TOO_MANY_DECIMALS)
             is DecimalParseResult.Parsed -> priceAmount(parsed.amount, currency)

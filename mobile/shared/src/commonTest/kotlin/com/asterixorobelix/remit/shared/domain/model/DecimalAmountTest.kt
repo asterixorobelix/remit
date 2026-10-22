@@ -28,9 +28,15 @@ class DecimalAmountTest {
 
     @Test
     fun rejectsAnythingThatIsNotAPlainDecimal() {
-        val inputs = listOf("-1", "+1", "1e3", "1E-2", "NaN", "Infinity", "1,000.00", "1.000,00", "1 000")
-        (inputs + listOf(".", ",", "abc", "$5", "\u0661"))
+        val inputs = listOf("+1", "1e3", "-1e3", "1E-2", "NaN", "Infinity", "1,000.00", "1.000,00", "1 000")
+        (inputs + listOf(".", ",", "-", "--1", "abc", "$5", "\u0661"))
             .forEach { assertEquals(Failure.NOT_A_NUMBER, DecimalAmount.parse(it), it) }
+    }
+
+    @Test
+    fun aMinusSignOnAPlainDecimalIsNegative() {
+        listOf("-1", "-0.5", "-,5", "-0", " -10.50 ", "-99999999999999")
+            .forEach { assertEquals(Failure.NEGATIVE, DecimalAmount.parse(it), it) }
     }
 
     @Test

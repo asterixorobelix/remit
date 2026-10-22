@@ -151,7 +151,7 @@ class PaymentRoutesTest {
         mapOf(
             "0.30000000000000004" to "AMOUNT_TOO_MANY_DECIMALS",
             "1e3" to "AMOUNT_NOT_A_NUMBER",
-            "-5" to "AMOUNT_NOT_A_NUMBER",
+            "-5" to "AMOUNT_NOT_POSITIVE",
         )
             .forEach { (amount, code) ->
                 val response = client.pay(body = valid.replace("10.50", amount), key = "key-$amount-x")

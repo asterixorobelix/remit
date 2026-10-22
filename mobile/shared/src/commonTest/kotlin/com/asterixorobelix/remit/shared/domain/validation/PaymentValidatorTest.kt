@@ -43,8 +43,9 @@ class PaymentValidatorTest {
     @Test
     fun amountRules() {
         assertEquals(setOf(AMOUNT_BLANK), errors(amount = ""))
-        assertEquals(setOf(AMOUNT_NOT_A_NUMBER), errors(amount = "-1"))
+        assertEquals(setOf(AMOUNT_NOT_A_NUMBER), errors(amount = "1e3"))
         assertEquals(setOf(AMOUNT_NOT_POSITIVE), errors(amount = "0.00"))
+        assertEquals(setOf(AMOUNT_NOT_POSITIVE), errors(amount = "-1"))
         assertEquals(setOf(AMOUNT_TOO_MANY_DECIMALS), errors(amount = "1.234"))
         assertEquals(setOf(AMOUNT_ABOVE_LIMIT), errors(amount = "10000.01"))
         assertEquals(setOf(AMOUNT_ABOVE_LIMIT), errors(amount = "9".repeat(30)))

@@ -147,6 +147,33 @@
       "amount": "-5",
       "currency": "USD",
       "expectedErrors": [
+        "AMOUNT_NOT_POSITIVE"
+      ]
+    },
+    {
+      "name": "negative with decimals",
+      "recipientEmail": "alice@example.com",
+      "amount": "-0.50",
+      "currency": "EUR",
+      "expectedErrors": [
+        "AMOUNT_NOT_POSITIVE"
+      ]
+    },
+    {
+      "name": "negative zero",
+      "recipientEmail": "alice@example.com",
+      "amount": "-0",
+      "currency": "USD",
+      "expectedErrors": [
+        "AMOUNT_NOT_POSITIVE"
+      ]
+    },
+    {
+      "name": "negative in exponent form",
+      "recipientEmail": "alice@example.com",
+      "amount": "-1e3",
+      "currency": "USD",
+      "expectedErrors": [
         "AMOUNT_NOT_A_NUMBER"
       ]
     },
