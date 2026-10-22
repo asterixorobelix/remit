@@ -7,6 +7,11 @@ import com.asterixorobelix.remit.shared.domain.validation.PaymentDraft
 import com.asterixorobelix.remit.shared.domain.validation.PaymentField
 import com.asterixorobelix.remit.shared.domain.validation.ValidationError
 
+/**
+ * The Send screen is always a form: there is nothing to load before it can be used, and it is never
+ * empty or broken as a whole (failures are field errors or a snackbar). So it has only [Content],
+ * kept a sealed interface to match the other screens and leave room for a screen-level state.
+ */
 sealed interface SendPaymentUiState {
     /**
      * The form. Field errors appear after the first submit and then update as the user types;

@@ -12,7 +12,8 @@ Scope: `backend/**`. Read `../docs/AI_AGENT_GUIDE.md` for cross-stack contracts 
   UI and allows no CORS origins unless `CORS_ALLOWED_HOSTS` is set. An unknown value refuses to
   start. `./gradlew run`, `make backend`, and docker-compose set `development`; the Docker image
   sets `production`.
-- There is no database and no authentication. Routes live in `routes/`, are wired in
+- Firestore is the only store and Firebase ID tokens the only authentication, both used by the
+  payments feature alone (see "Payments contract"). Routes live in `routes/`, are wired in
   `plugins/Routing.kt`, and must stay thin; put validation and business logic in `service/`. If
   adding a DI container, Koin is the required choice.
 - The JVM runs in UTC (`main()`, the Gradle `run` task, tests, and the Docker image).

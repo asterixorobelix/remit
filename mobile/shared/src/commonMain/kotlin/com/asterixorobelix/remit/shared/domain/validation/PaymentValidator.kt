@@ -10,7 +10,7 @@ import com.asterixorobelix.remit.shared.domain.model.PaymentRequest
 /**
  * Turns form input into a [PaymentRequest] or the set of problems with it, one per field, so the
  * form can show every error at once. The backend applies the same rules (see
- * `testdata/payment-validation-cases.csv`, which both test suites run).
+ * `testdata/payment-validation-cases.json`, which both test suites run).
  */
 class PaymentValidator {
     fun validate(draft: PaymentDraft): ValidationResult {

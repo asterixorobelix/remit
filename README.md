@@ -22,7 +22,9 @@ exactly once and records it in Firestore. Built as a take-home challenge on top 
 - **Payments API.** `POST /api/v1/payments` takes
   `{"recipientEmail": String, "amount": Number, "currency": String}`, validates it, processes it
   (a mock processor that approves every valid payment), writes it to Firestore, and returns the
-  stored payment. Errors use `{"error", "code", "details"}`.
+  stored payment. Errors use `{"error", "code", "details"}`. Every call needs a Firebase ID token
+  (`Authorization: Bearer`) and an `Idempotency-Key` header; step 9 of the
+  [demo script](docs/DEMO.md) has a copy-paste curl that gets a token from the Auth emulator.
 
 ## Run it
 
@@ -46,15 +48,36 @@ remove `FIREBASE_EMULATOR_HOST`, place `google-services.json` in `mobile/android
 the backend with `FIREBASE_PROJECT_ID` and `GOOGLE_APPLICATION_CREDENTIALS` (a service account
 key) exported, using `make backend`.
 
+## Where this differs from the brief
+
+Each of these is deliberate; the reasons are under [Design decisions](#design-decisions).
+
+- **`POST /api/v1/payments`, not `/payments`.** The API is versioned, and the endpoint requires a
+  Firebase ID token and an `Idempotency-Key` header, so a bare
+  `curl -d '{...}' localhost:8085/payments` gets a 404 (and the same call on `/api/v1/payments` a
+  401). Use the curl in step 9 of the [demo script](docs/DEMO.md).
+- **The backend saves the payment to Firestore, not the app.** The brief has the app call the API
+  "then save the transaction to Firestore"; here the server writes it in the same transaction
+  that records the idempotency key, and the app only reads.
+- **`amount` is read as an exact decimal, not a `Double`.** The JSON shape is unchanged (a JSON
+  number), but `10.50` is never a floating-point value on either side.
+- **The Compose UI lives in `mobile/composeApp`, not `androidApp`.** It is Compose
+  Multiplatform, so the same screens run on Android, in the desktop gallery, and in the iOS shell;
+  `androidApp` is the Android entry point and Firebase setup.
+- **The Cucumber "saved to Firestore" step checks an in-memory Firestore**, so the scenarios run
+  in seconds without emulators. The real write is covered by `FirebaseEmulatorTest` (Admin SDK
+  against the Firestore emulator), the rules tests, and the Appium test that finds the payment in
+  History.
+
 ## Tests
 
 | Layer | Command | What it proves | Where |
 |---|---|---|---|
-| Unit (shared) | `make test-mobile` | Money parsing, validation, idempotency keys, API client status mapping, repository, use cases: 68 tests, 94% line coverage (90% floor) | `mobile/shared/src/commonTest` |
-| Unit (app) | `make test-mobile` | ViewModels (Turbine), the SQLDelight pending-payment store, formatting, navigation graph: 75 tests; 83% merged line coverage (80% floor) | `mobile/composeApp/src/*Test` |
-| Unit and route (backend) | `make test-backend` | Validator, service, routes, config: 56 tests, 82% line coverage (80% floor) | `backend/src/test` |
-| Shared validation cases | runs with both of the above | 61 cases in one JSON file that the app and the server must both satisfy | `testdata/payment-validation-cases.json` |
-| BDD (Cucumber) | `make test-bdd` | 12 scenarios: payment processed and saved to Firestore, invalid input never sent, retry after a timeout pays once, a payment interrupted by the app closing finished safely after reopening, history newest first, live updates, per-user isolation | `mobile/shared/src/desktopTest/resources/features` |
+| Unit (shared) | `make test-mobile` | Money parsing, validation, idempotency keys, API client status mapping, repository, use cases: 75 tests, 94% line coverage (90% floor) | `mobile/shared/src/commonTest` |
+| Unit (app) | `make test-mobile` | ViewModels (Turbine), the SQLDelight pending-payment store, formatting, retry policy, crash-report redaction, navigation graph: 90 tests; 84% merged line coverage (80% floor) | `mobile/composeApp/src/*Test` |
+| Unit and route (backend) | `make test-backend` | Validator, service, routes, token verification, config: 62 tests, 83% line coverage (80% floor) | `backend/src/test` |
+| Shared validation cases | runs with both of the above | 65 cases in one JSON file that the app and the server must both satisfy | `testdata/payment-validation-cases.json` |
+| BDD (Cucumber) | `make test-bdd` | 13 scenarios: payment processed and saved to Firestore (an in-memory fake), invalid input never sent, retry after a timeout pays once, edited details after a failure are a new payment, a payment interrupted by the app closing finished safely after reopening, history newest first, live updates, per-user isolation | `mobile/shared/src/desktopTest/resources/features` |
 | Firebase integration | `make test-backend-emulated` | The real Admin SDK against the emulators: ID token verification, the Firestore transaction, ten concurrent requests with one key create one payment | `backend/.../FirebaseEmulatorTest.kt` |
 | Security rules | `make test-rules` | Users read only their own payments; clients can never write | `firebase/rules-tests` |
 | UI (Appium) | `make test-appium` | On a real emulator: a sent payment appears in History, invalid input shows errors, EUR with a comma decimal | `e2e/` |
