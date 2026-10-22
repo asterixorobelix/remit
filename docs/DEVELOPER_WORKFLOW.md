@@ -94,7 +94,10 @@ each build's overrides on every source set, tests included; ktlint's version is 
 
 Gradle configuration cache, build cache, and parallel execution are on in both
 `backend/gradle.properties` and `mobile/gradle.properties`, so repeat runs mostly reuse
-earlier work.
+earlier work. Do not change a task's environment while configuring (for example
+`environment(...)` directly in `tasks.named<JavaExec>("run") { }`): the cache then stores a copy
+of the whole environment, and later runs ignore a changed `PORT` or Firebase project. Set it in
+`doFirst`, as the backend's `run` task does.
 
 Pushes to `main` and pull requests run the same gates in CI, path-filtered per module;
 documentation-only pushes skip CI. CI adds a Semgrep security scan, gitleaks, screenshot
