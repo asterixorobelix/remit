@@ -80,7 +80,9 @@ class PaymentValidatorTest {
                 PaymentValidator.validate("a@example.com", "1.$digits", "USD"),
             )
         }
-        assertTrue(elapsed < 1.seconds, "Took $elapsed")
+        // The digit checks take milliseconds; parsing one of these with BigDecimal takes over ten
+        // seconds. The wide bound keeps a slow or busy CI runner from failing the test.
+        assertTrue(elapsed < 5.seconds, "Took $elapsed")
     }
 
     @Test
