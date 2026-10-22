@@ -145,7 +145,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '503':
-          description: The server has no Firebase project configured (PAYMENTS_UNAVAILABLE)
+          description: |
+            The server has no Firebase project configured (PAYMENTS_UNAVAILABLE), or could not
+            verify the ID token at all, for example because Google's signing keys could not be
+            fetched (AUTH_UNAVAILABLE); retry later
           content:
             application/json:
               schema:

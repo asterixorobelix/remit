@@ -5,6 +5,7 @@ import com.asterixorobelix.remit.error
 import com.asterixorobelix.remit.postJson
 import com.asterixorobelix.remit.service.InMemoryPaymentStore
 import com.asterixorobelix.remit.service.PaymentService
+import com.asterixorobelix.remit.service.TokenVerificationUnavailableException
 import com.asterixorobelix.remit.service.TokenVerifier
 import com.asterixorobelix.remit.startApp
 import com.asterixorobelix.remit.testConfig
@@ -184,11 +185,14 @@ class PaymentRoutesTest {
     }
 
     @Test
-    fun aFailureToVerifyTokensIsAServerErrorNotAnAuthError() = testApplication {
-        val keysUnavailable = TokenVerifier { error("Could not fetch signing keys") }
+    fun aFailureToVerifyTokensIsUnavailableNotAnAuthError() = testApplication {
+        val keysUnavailable = TokenVerifier {
+            throw TokenVerificationUnavailableException(IllegalStateException("Could not fetch signing keys"))
+        }
         startApp(testConfig(), PaymentsFeature(feature.service, keysUnavailable))
         val response = client.pay()
-        assertEquals(HttpStatusCode.InternalServerError, response.status)
+        assertEquals(HttpStatusCode.ServiceUnavailable, response.status)
+        assertEquals("AUTH_UNAVAILABLE", response.code())
         assertTrue(store.payments.isEmpty())
     }
 

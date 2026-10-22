@@ -175,7 +175,9 @@ install has a stable user id. The backend verifies the ID token and stamps the u
 the Firestore rules use the same uid. Upgrading to email or phone sign-in later keeps the same
 user (Firebase account linking).
 
-**Failure handling.** Network errors, timeouts, 5xx, and 429 are retryable and keep the form;
+**Failure handling.** Network errors, timeouts, 5xx, and 429 are retryable and keep the form
+(a server that cannot verify tokens, for example because Google's signing keys are unreachable,
+answers 503, not 401, so it is not mistaken for a bad sign-in);
 validation errors map to fields; an expired token is refreshed once automatically; an unexpected
 response says to check History before sending again. Malformed history documents are skipped
 instead of breaking the list.

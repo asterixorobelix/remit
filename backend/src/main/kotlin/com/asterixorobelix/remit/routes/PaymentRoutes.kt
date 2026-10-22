@@ -5,9 +5,11 @@ import com.asterixorobelix.remit.dto.ErrorResponse
 import com.asterixorobelix.remit.dto.toResponse
 import com.asterixorobelix.remit.service.PaymentResult
 import com.asterixorobelix.remit.service.PaymentService
+import com.asterixorobelix.remit.service.TokenVerificationUnavailableException
 import com.asterixorobelix.remit.service.TokenVerifier
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.log
 import io.ktor.server.request.receive
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
@@ -23,13 +25,19 @@ private val IDEMPOTENCY_KEY = Regex("^[A-Za-z0-9._:-]{8,255}$")
 class PaymentsFeature(val service: PaymentService, val tokens: TokenVerifier)
 
 /**
- * `POST /api/v1/payments`. Order of checks: payments configured (503), caller signed in (401),
- * idempotency key present and well formed (400), body valid (400), key not reused for a different
- * payment (409). A replay answers 201 with the original payment and `Idempotent-Replayed: true`.
+ * `POST /api/v1/payments`. Order of checks: payments configured (503), token verifiable (503),
+ * caller signed in (401), idempotency key present and well formed (400), body valid (400), key not
+ * reused for a different payment (409). A replay answers 201 with the original payment and
+ * `Idempotent-Replayed: true`.
  */
 fun Route.paymentRoutes(feature: PaymentsFeature?) {
     post("/api/v1/payments") {
-        val userId = feature?.let { call.authenticatedUser(it.tokens) }
+        val userId = try {
+            feature?.let { call.authenticatedUser(it.tokens) }
+        } catch (unavailable: TokenVerificationUnavailableException) {
+            call.application.log.warn("ID token verification is unavailable", unavailable)
+            return@post call.fail(HttpStatusCode.ServiceUnavailable, AUTH_UNAVAILABLE)
+        }
         val key = call.request.headers[IDEMPOTENCY_KEY_HEADER]
         when {
             feature == null -> call.fail(HttpStatusCode.ServiceUnavailable, PAYMENTS_UNAVAILABLE)
@@ -71,6 +79,7 @@ private suspend fun RoutingCall.fail(status: HttpStatusCode, error: ErrorRespons
 
 private const val BEARER = "Bearer "
 private val PAYMENTS_UNAVAILABLE = ErrorResponse("Payments are not configured", "PAYMENTS_UNAVAILABLE")
+private val AUTH_UNAVAILABLE = ErrorResponse("Sign-in could not be verified; try again", "AUTH_UNAVAILABLE")
 private val UNAUTHENTICATED = ErrorResponse("A valid Firebase ID token is required", "UNAUTHENTICATED")
 private val KEY_MISSING = ErrorResponse("$IDEMPOTENCY_KEY_HEADER header is required", "IDEMPOTENCY_KEY_MISSING")
 private val KEY_INVALID = ErrorResponse(

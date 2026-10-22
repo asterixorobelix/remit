@@ -46,7 +46,9 @@ Scope: `backend/**`. Read `../docs/AI_AGENT_GUIDE.md` for cross-stack contracts 
 ## Payments contract
 
 - `routes/PaymentRoutes.kt` checks, in order: Firebase configured (503 `PAYMENTS_UNAVAILABLE`),
-  Bearer Firebase ID token (401 `UNAUTHENTICATED`), `Idempotency-Key` present and matching
+  Bearer Firebase ID token (401 `UNAUTHENTICATED`; 503 `AUTH_UNAVAILABLE` when
+  `FirebaseTokenVerifier` cannot check it at all, such as a failed signing-key fetch: only
+  token-specific `AuthErrorCode`s are a 401), `Idempotency-Key` present and matching
   `[A-Za-z0-9._:-]{8,255}` (400), then the body. `module(config, payments)` takes the feature so
   tests pass an in-memory `PaymentsFeature`; production builds it with `FirebaseBackend`.
 - `service/PaymentValidator.kt` must agree with the mobile `shared` module's `PaymentValidator`.
