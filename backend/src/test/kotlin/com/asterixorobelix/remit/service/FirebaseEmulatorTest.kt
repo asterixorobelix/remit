@@ -101,6 +101,19 @@ class FirebaseEmulatorTest {
         assertEquals(CreateOutcome.KeyReused, store.createOnce(key, "other", payment("pay_${UUID.randomUUID()}", 0)))
     }
 
+    @Test
+    fun aReplayWhoseOriginalWasDeletedIsUnavailableNotRecreated() = runBlocking {
+        val store = FirestorePaymentStore(firestore)
+        val key = UUID.randomUUID().toString()
+        val original = payment("pay_${UUID.randomUUID()}", attempt = 0)
+        store.createOnce(key, "fingerprint", original)
+        firestore.collection(FirestorePaymentStore.PAYMENTS).document(original.id).delete().get()
+
+        val replay = store.createOnce(key, "fingerprint", payment("pay_${UUID.randomUUID()}", attempt = 0))
+
+        assertEquals(CreateOutcome.ReplayUnavailable(original.id), replay)
+    }
+
     private fun payment(id: String, attempt: Int) = StoredPayment(
         id = id,
         senderUid = "concurrency-user",

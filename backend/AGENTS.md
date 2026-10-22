@@ -61,6 +61,8 @@ Scope: `backend/**`. Read `../docs/AI_AGENT_GUIDE.md` for cross-stack contracts 
   transaction. Field names are the app's `PaymentFields`; `../firebase/firestore.rules` lets users
   read only their own payments and nothing else. A replay with the same fingerprint (recipient,
   cents, currency) returns the stored payment with `Idempotent-Replayed: true`; a different one is 409.
+  Stored documents are mapped defensively (`storedPaymentOrNull`): a replay whose original is deleted
+  or malformed is a logged 500 `REPLAY_UNAVAILABLE`, never a second payment.
 - `FirebaseConfig` fails closed: production requires `FIREBASE_PROJECT_ID` and refuses emulator hosts.
   `FirebaseEmulatorTest` runs only under `make test-backend-emulated`.
 

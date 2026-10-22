@@ -2,6 +2,7 @@ package com.asterixorobelix.remit.service
 
 import com.asterixorobelix.remit.domain.Currency
 import com.asterixorobelix.remit.domain.PaymentStatus
+import com.asterixorobelix.remit.domain.StoredPayment
 import com.asterixorobelix.remit.dto.CreatePaymentRequest
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -52,6 +53,16 @@ class PaymentServiceTest {
         assertEquals(PaymentResult.KeyReused, service.create("alice", "key-00001", request.copy(amount = "10.51")))
         assertEquals(PaymentResult.KeyReused, service.create("alice", "key-00001", request.copy(currency = "EUR")))
         assertEquals(1, store.payments.size)
+    }
+
+    @Test
+    fun anUnreadableOriginalIsReportedNotRecreated() = runTest {
+        val unreadable = object : PaymentStore {
+            override suspend fun createOnce(idempotencyKey: String, fingerprint: String, payment: StoredPayment) =
+                CreateOutcome.ReplayUnavailable("pay_0")
+        }
+        val result = PaymentService(unreadable, clock).create("alice", "key-00001", request)
+        assertEquals(PaymentResult.ReplayUnavailable("pay_0"), result)
     }
 
     @Test

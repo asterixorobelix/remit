@@ -19,6 +19,8 @@ sealed interface PaymentResult {
     data class Invalid(val codes: Set<ValidationCode>) : PaymentResult
 
     data object KeyReused : PaymentResult
+
+    data class ReplayUnavailable(val paymentId: String?) : PaymentResult
 }
 
 /**
@@ -56,6 +58,7 @@ class PaymentService(
             is CreateOutcome.Created -> PaymentResult.Created(outcome.payment)
             is CreateOutcome.Replayed -> PaymentResult.Replayed(outcome.payment)
             CreateOutcome.KeyReused -> PaymentResult.KeyReused
+            is CreateOutcome.ReplayUnavailable -> PaymentResult.ReplayUnavailable(outcome.paymentId)
         }
     }
 

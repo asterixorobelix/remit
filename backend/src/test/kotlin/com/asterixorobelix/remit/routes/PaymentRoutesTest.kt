@@ -1,10 +1,13 @@
 package com.asterixorobelix.remit.routes
 
 import com.asterixorobelix.remit.body
+import com.asterixorobelix.remit.domain.StoredPayment
 import com.asterixorobelix.remit.error
 import com.asterixorobelix.remit.postJson
+import com.asterixorobelix.remit.service.CreateOutcome
 import com.asterixorobelix.remit.service.InMemoryPaymentStore
 import com.asterixorobelix.remit.service.PaymentService
+import com.asterixorobelix.remit.service.PaymentStore
 import com.asterixorobelix.remit.service.TokenVerificationUnavailableException
 import com.asterixorobelix.remit.service.TokenVerifier
 import com.asterixorobelix.remit.startApp
@@ -182,6 +185,19 @@ class PaymentRoutesTest {
                 it.jsonPrimitive.content
             },
         )
+    }
+
+    @Test
+    fun aReplayWhoseOriginalCannotBeReadIsAServerError() = testApplication {
+        val unreadable = object : PaymentStore {
+            override suspend fun createOnce(idempotencyKey: String, fingerprint: String, payment: StoredPayment) =
+                CreateOutcome.ReplayUnavailable("pay_0")
+        }
+        startApp(testConfig(), PaymentsFeature(PaymentService(unreadable), tokens))
+        val response = client.pay()
+        assertEquals(HttpStatusCode.InternalServerError, response.status)
+        assertEquals("REPLAY_UNAVAILABLE", response.code())
+        assertNull(response.headers[IDEMPOTENT_REPLAYED_HEADER])
     }
 
     @Test

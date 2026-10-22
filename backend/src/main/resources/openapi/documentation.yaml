@@ -144,6 +144,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: |
+            A repeated key whose original payment can no longer be read (REPLAY_UNAVAILABLE). The
+            payment is not sent again; retrying with the same key is safe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '503':
           description: |
             The server has no Firebase project configured (PAYMENTS_UNAVAILABLE), or could not

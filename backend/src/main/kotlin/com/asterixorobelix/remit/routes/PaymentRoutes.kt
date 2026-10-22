@@ -28,7 +28,7 @@ class PaymentsFeature(val service: PaymentService, val tokens: TokenVerifier)
  * `POST /api/v1/payments`. Order of checks: payments configured (503), token verifiable (503),
  * caller signed in (401), idempotency key present and well formed (400), body valid (400), key not
  * reused for a different payment (409). A replay answers 201 with the original payment and
- * `Idempotent-Replayed: true`.
+ * `Idempotent-Replayed: true`, or 500 when that payment can no longer be read (it is not sent again).
  */
 fun Route.paymentRoutes(feature: PaymentsFeature?) {
     post("/api/v1/payments") {
@@ -72,6 +72,11 @@ private suspend fun RoutingCall.respondTo(result: PaymentResult) {
         )
 
         PaymentResult.KeyReused -> fail(HttpStatusCode.Conflict, KEY_REUSED)
+
+        is PaymentResult.ReplayUnavailable -> {
+            application.log.error("Payment {} for a replayed $IDEMPOTENCY_KEY_HEADER is unreadable", result.paymentId)
+            fail(HttpStatusCode.InternalServerError, REPLAY_UNAVAILABLE)
+        }
     }
 }
 
@@ -89,4 +94,8 @@ private val KEY_INVALID = ErrorResponse(
 private val KEY_REUSED = ErrorResponse(
     "$IDEMPOTENCY_KEY_HEADER was already used for a different payment",
     "IDEMPOTENCY_KEY_REUSED",
+)
+private val REPLAY_UNAVAILABLE = ErrorResponse(
+    "The payment for this $IDEMPOTENCY_KEY_HEADER could not be read; it was not sent again",
+    "REPLAY_UNAVAILABLE",
 )

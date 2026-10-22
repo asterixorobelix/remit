@@ -20,6 +20,9 @@ sealed interface CreateOutcome {
     data class Replayed(val payment: StoredPayment) : CreateOutcome
 
     data object KeyReused : CreateOutcome
+
+    /** The key was used for this payment, but the original ([paymentId]) is missing or unreadable. */
+    data class ReplayUnavailable(val paymentId: String?) : CreateOutcome
 }
 
 /** For tests: the same contract as Firestore, serialized with a mutex. */
