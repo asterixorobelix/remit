@@ -91,10 +91,10 @@ feature.
 
 ## Initializer and generator contracts
 
-- `setup.sh` rewrites `com.example.myproject`, its path form, `MyProject` (PascalCase type
-  name), and `myproject` (slug) in every text file outside `build/`, `.git/`, and similar
+- `setup.sh` rewrites `com.asterixorobelix.remit`, its path form, `Remit` (PascalCase type
+  name), and `remit` (slug) in every text file outside `build/`, `.git/`, and similar
   directories. It moves package directories in every source set, including SQLDelight,
-  renames `MyProject*` paths, removes `.planning/`, syncs the xcconfig, and installs hooks.
+  renames `Remit*` paths, removes `.planning/`, syncs the xcconfig, and installs hooks.
   `scripts/test-initializer.sh` pins this behavior with a fixture. `make check-template`
   runs it.
 - `scripts/create-feature.sh PascalCaseName` (`make feature NAME=...`) refuses overwrites

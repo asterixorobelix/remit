@@ -3,13 +3,13 @@
 // scripts/sync-app-config.sh keep this file in sync.
 TEAM_ID=$(APPLE_TEAM_ID)
 
-PRODUCT_NAME=MyProject
-PRODUCT_BUNDLE_IDENTIFIER=com.example.myproject
+PRODUCT_NAME=Remit
+PRODUCT_BUNDLE_IDENTIFIER=com.asterixorobelix.remit
 
 CURRENT_PROJECT_VERSION=10000
 MARKETING_VERSION=1.0.0
-CAPABILITIES=auth,offline,backend
-IOS_BILLING_PRODUCT=com.example.myproject.premium.monthly
+CAPABILITIES=backend,firebase
+IOS_BILLING_PRODUCT=com.asterixorobelix.remit.premium.monthly
 
 // Release (TestFlight/App Store) targets production; Debug targets the local backend.
 APP_ENVIRONMENT=production

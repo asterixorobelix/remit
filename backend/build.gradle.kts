@@ -30,11 +30,11 @@ java {
     targetCompatibility = JavaVersion.VERSION_17
 }
 
-group = "com.example.myproject"
+group = "com.asterixorobelix.remit"
 version = appVersion
 
 application {
-    mainClass.set("com.example.myproject.ApplicationKt")
+    mainClass.set("com.asterixorobelix.remit.ApplicationKt")
 
     val isDevelopment: Boolean = project.ext.has("development")
     // TIMESTAMP columns are zone-less, so the JVM must always run in UTC.
@@ -170,8 +170,8 @@ kover {
         filters {
             excludes {
                 // Serializable data holders and the main() entry point (tests call module() directly).
-                packages("com.example.myproject.dto")
-                classes("com.example.myproject.ApplicationKt")
+                packages("com.asterixorobelix.remit.dto")
+                classes("com.asterixorobelix.remit.ApplicationKt")
             }
         }
         verify {

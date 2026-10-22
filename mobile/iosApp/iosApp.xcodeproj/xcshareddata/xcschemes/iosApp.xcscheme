@@ -14,7 +14,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "B9DA97B02DC1472C00A4DA20"
-               BuildableName = "MyProject.app"
+               BuildableName = "Remit.app"
                BlueprintName = "iosApp"
                ReferencedContainer = "container:iosApp.xcodeproj">
             </BuildableReference>
@@ -34,8 +34,8 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "203D28D42F4B190100FD4827"
-               BuildableName = "MyProjectUITests.xctest"
-               BlueprintName = "MyProjectUITests"
+               BuildableName = "RemitUITests.xctest"
+               BlueprintName = "RemitUITests"
                ReferencedContainer = "container:iosApp.xcodeproj">
             </BuildableReference>
          </TestableReference>
@@ -59,7 +59,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "B9DA97B02DC1472C00A4DA20"
-            BuildableName = "MyProject.app"
+            BuildableName = "Remit.app"
             BlueprintName = "iosApp"
             ReferencedContainer = "container:iosApp.xcodeproj">
          </BuildableReference>

@@ -60,7 +60,7 @@ for wrapper in backend/gradlew mobile/gradlew; do
 done
 
 if [[ -f "$ROOT/app.properties" ]]; then
-  if grep -Eq '^PACKAGE_NAME=com\.example\.myproject$' "$ROOT/app.properties"; then
+  if grep -Eq '^PACKAGE_NAME=com\.example\.remit$' "$ROOT/app.properties"; then
     printf '[warn]     %-12s %s\n' template 'not initialized yet: run ./setup.sh --name ... --package ...'
   fi
   if grep -Eq '^API_BASE_URL_(RELEASE|STAGING)=https://(staging-)?api\.example\.com' "$ROOT/app.properties"; then

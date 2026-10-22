@@ -1,0 +1,8 @@
+package com.asterixorobelix.remit.util
+
+/**
+ * Platform-specific UUID generation.
+ *
+ * @return A new random UUID string
+ */
+expect fun generateId(): String

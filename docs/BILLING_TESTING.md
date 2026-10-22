@@ -3,7 +3,7 @@
 The template uses product IDs from `app.properties`:
 
 - Android: `PLAY_BILLING_PRODUCT=premium_monthly_test`
-- iOS: `IOS_BILLING_PRODUCT=com.example.myproject.premium.monthly`
+- iOS: `IOS_BILLING_PRODUCT=com.asterixorobelix.remit.premium.monthly`
 
 The shared Xcode scheme loads `mobile/iosApp/iosApp/Products.storekit`, so purchase, cancellation,
 restore, and interrupted-transaction flows can be tested locally without App Store

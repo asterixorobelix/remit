@@ -10,7 +10,7 @@
 json_key_file(ENV["GOOGLE_PLAY_KEY_FILE"] || "")
 
 # Android package name
-package_name(ENV["ANDROID_PACKAGE_NAME"] || "com.example.myproject")
+package_name(ENV["ANDROID_PACKAGE_NAME"] || "com.asterixorobelix.remit")
 
 # ============================================================================
 # iOS CONFIGURATION
@@ -20,7 +20,7 @@ package_name(ENV["ANDROID_PACKAGE_NAME"] || "com.example.myproject")
 apple_id(ENV["APPLE_ID"] || "your-apple-id@email.com")
 
 # iOS app bundle identifier
-app_identifier(ENV["IOS_APP_IDENTIFIER"] || "com.example.myproject")
+app_identifier(ENV["IOS_APP_IDENTIFIER"] || "com.asterixorobelix.remit")
 
 # App Store Connect Team ID (numeric)
 # Find at: https://appstoreconnect.apple.com -> Users and Access -> Team ID
@@ -36,5 +36,5 @@ team_id(ENV["APPLE_TEAM_ID"] || "YOUR_DEV_TEAM_ID")
 
 # You can override values per lane like this:
 # for_lane :beta do
-#   app_identifier("com.example.myproject.beta")
+#   app_identifier("com.asterixorobelix.remit.beta")
 # end

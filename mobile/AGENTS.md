@@ -6,8 +6,8 @@ Scope: `mobile/**`. Read `../docs/AI_AGENT_GUIDE.md` for the cross-stack behavio
 
 | Target | Entry point |
 |---|---|
-| Shared UI/domain/data | `composeApp/src/commonMain/kotlin/com/example/myproject` |
-| Android app | `androidApp`, `MainActivity`, `MyProjectApplication` |
+| Shared UI/domain/data | `composeApp/src/commonMain/kotlin/com/asterixorobelix/remit` |
+| Android app | `androidApp`, `MainActivity`, `RemitApplication` |
 | iOS app | `iosApp/iosApp/iOSApp.swift`, shared `MainViewController.kt` |
 | Desktop gallery | `composeApp/src/desktopMain/.../ComponentGallery.kt` |
 

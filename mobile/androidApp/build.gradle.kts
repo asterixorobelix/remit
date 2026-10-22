@@ -51,7 +51,7 @@ kotlin {
 }
 
 extensions.configure<ApplicationExtension> {
-    namespace = "com.example.myproject.app"
+    namespace = "com.asterixorobelix.remit.app"
     compileSdk =
         libs.versions.android.compileSdk
             .get()

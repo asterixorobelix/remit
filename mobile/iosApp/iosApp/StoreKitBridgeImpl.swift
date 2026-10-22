@@ -13,7 +13,7 @@ import StoreKit
 /// Callbacks are delivered on the main actor for safe Kotlin/Native invocation.
 public class StoreKitBridgeImpl: NSObject, StoreKitBridge {
     private let productId = Bundle.main.object(forInfoDictionaryKey: "IOS_BILLING_PRODUCT") as? String
-        ?? "com.example.myproject.premium.monthly"
+        ?? "com.asterixorobelix.remit.premium.monthly"
     private var updatesTask: _Concurrency.Task<Void, Never>?
 
     deinit {

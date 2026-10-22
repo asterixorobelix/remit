@@ -2,7 +2,7 @@
 # CI runs `swiftlint lint --strict` from this directory, so warnings fail the build.
 included:
   - iosApp
-  - MyProjectUITests
+  - RemitUITests
 excluded:
   - build
   - DerivedData

@@ -1,4 +1,4 @@
-rootProject.name = "myproject"
+rootProject.name = "remit"
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {

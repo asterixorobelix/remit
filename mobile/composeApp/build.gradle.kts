@@ -160,19 +160,19 @@ kotlin {
 // Pin the generated Res package to the app package so setup.sh renames it with the
 // sources; the default derives it from rootProject.name, which may not be a valid package.
 compose.resources {
-    packageOfResClass = "com.example.myproject.generated.resources"
+    packageOfResClass = "com.asterixorobelix.remit.generated.resources"
 }
 
 compose.desktop {
     application {
-        mainClass = "com.example.myproject.gallery.ComponentGalleryKt"
+        mainClass = "com.asterixorobelix.remit.gallery.ComponentGalleryKt"
     }
 }
 
 sqldelight {
     databases {
         create("AppDatabase") {
-            packageName.set("com.example.myproject.data.db")
+            packageName.set("com.asterixorobelix.remit.data.db")
             schemaOutputDirectory.set(file("src/commonMain/sqldelight/databases"))
             verifyMigrations.set(true)
         }
@@ -180,7 +180,7 @@ sqldelight {
 }
 
 android {
-    namespace = "com.example.myproject"
+    namespace = "com.asterixorobelix.remit"
     compileSdk =
         libs.versions.android.compileSdk
             .get()
@@ -366,8 +366,8 @@ kover {
                 // SQLDelight package (generated database, queries, and row classes; its only
                 // hand-written code is the SqlDriverFactory interface and platform drivers).
                 packages(
-                    "com.example.myproject.generated.resources",
-                    "com.example.myproject.data.db",
+                    "com.asterixorobelix.remit.generated.resources",
+                    "com.asterixorobelix.remit.data.db",
                 )
                 // BuildConfig (plus the Activity/Fragment/databinding names the Android plugin generates).
                 androidGeneratedClasses()
@@ -382,12 +382,12 @@ kover {
                 // logic: domain, data, ViewModels, navigation. Desktop platform stubs are glue
                 // like the Android actuals above.
                 packages(
-                    "com.example.myproject.ui.components",
-                    "com.example.myproject.ui.theme",
+                    "com.asterixorobelix.remit.ui.components",
+                    "com.asterixorobelix.remit.ui.theme",
                 )
                 classes("*.platform.Console*", "*.platform.Desktop*", "*.platform.NoLocation")
                 // Desktop component gallery: a developer tool whose entry point is main().
-                packages("com.example.myproject.gallery")
+                packages("com.asterixorobelix.remit.gallery")
             }
         }
     }

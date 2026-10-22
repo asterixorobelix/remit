@@ -1,6 +1,6 @@
 # Common commands. Run `make` (or `make help`) to list them.
 
-DB_NAME := myproject
+DB_NAME := remit
 PACKAGE := $(shell awk -F= '$$1=="PACKAGE_NAME" { print $$2 }' app.properties)
 DB_ENV := DATABASE_URL=jdbc:postgresql://localhost:5432/$(DB_NAME) DATABASE_USER=dev DATABASE_PASSWORD=dev
 MOBILE_GATES := test detekt ktlintCheck :androidApp:lintDebug :composeApp:lintDebug \
@@ -45,7 +45,7 @@ ui: ## Run the desktop component gallery (shared Compose UI)
 	@cd mobile && ./gradlew :composeApp:run
 
 ui-hot: ## Run the desktop gallery with Compose Hot Reload
-	@cd mobile && ./gradlew :composeApp:hotRunDesktop --mainClass com.example.myproject.gallery.ComponentGalleryKt
+	@cd mobile && ./gradlew :composeApp:hotRunDesktop --mainClass com.asterixorobelix.remit.gallery.ComponentGalleryKt
 
 run: db-start backend ## Start PostgreSQL and the backend against it
 

@@ -20,7 +20,7 @@ storage_mode("git")
 # ============================================================================
 
 # Bundle identifier(s) for the app
-app_identifier([ENV['IOS_APP_IDENTIFIER'] || "com.example.myproject"])
+app_identifier([ENV['IOS_APP_IDENTIFIER'] || "com.asterixorobelix.remit"])
 
 # Apple Developer account email
 username(ENV["APPLE_ID"] || "your-apple-id@email.com")

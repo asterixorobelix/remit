@@ -18,18 +18,18 @@
 }
 
 # Keep serializable classes in the app package (setup.sh renames the package).
--keep,includedescriptorclasses class com.example.myproject.**$$serializer { *; }
--keepclassmembers class com.example.myproject.** {
+-keep,includedescriptorclasses class com.asterixorobelix.remit.**$$serializer { *; }
+-keepclassmembers class com.asterixorobelix.remit.** {
     *** Companion;
 }
--keepclasseswithmembers class com.example.myproject.** {
+-keepclasseswithmembers class com.asterixorobelix.remit.** {
     kotlinx.serialization.KSerializer serializer(...);
 }
 
 # Keep model classes used for serialization
--keep class com.example.myproject.models.** { *; }
--keep class com.example.myproject.network.** { *; }
--keep class com.example.myproject.data.** { *; }
+-keep class com.asterixorobelix.remit.models.** { *; }
+-keep class com.asterixorobelix.remit.network.** { *; }
+-keep class com.asterixorobelix.remit.data.** { *; }
 
 # ============================================================================
 # KTOR CLIENT

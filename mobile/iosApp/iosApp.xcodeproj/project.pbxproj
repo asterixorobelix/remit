@@ -21,8 +21,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		203D28D52F4B190100FD4827 /* MyProjectUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MyProjectUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		B9DA97B12DC1472C00A4DA20 /* MyProject.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MyProject.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		203D28D52F4B190100FD4827 /* RemitUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RemitUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B9DA97B12DC1472C00A4DA20 /* Remit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Remit.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -36,9 +36,9 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		203D28D62F4B190100FD4827 /* MyProjectUITests */ = {
+		203D28D62F4B190100FD4827 /* RemitUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = MyProjectUITests;
+			path = RemitUITests;
 			sourceTree = "<group>";
 		};
 		B9DA97B32DC1472C00A4DA20 /* iosApp */ = {
@@ -80,7 +80,7 @@
 			children = (
 				B9DA98002DC14AA900A4DA20 /* Configuration */,
 				B9DA97B32DC1472C00A4DA20 /* iosApp */,
-				203D28D62F4B190100FD4827 /* MyProjectUITests */,
+				203D28D62F4B190100FD4827 /* RemitUITests */,
 				B9DA97B22DC1472C00A4DA20 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -88,8 +88,8 @@
 		B9DA97B22DC1472C00A4DA20 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				B9DA97B12DC1472C00A4DA20 /* MyProject.app */,
-				203D28D52F4B190100FD4827 /* MyProjectUITests.xctest */,
+				B9DA97B12DC1472C00A4DA20 /* Remit.app */,
+				203D28D52F4B190100FD4827 /* RemitUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -97,9 +97,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		203D28D42F4B190100FD4827 /* MyProjectUITests */ = {
+		203D28D42F4B190100FD4827 /* RemitUITests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 203D28DF2F4B190100FD4827 /* Build configuration list for PBXNativeTarget "MyProjectUITests" */;
+			buildConfigurationList = 203D28DF2F4B190100FD4827 /* Build configuration list for PBXNativeTarget "RemitUITests" */;
 			buildPhases = (
 				203D28D12F4B190100FD4827 /* Sources */,
 				203D28D22F4B190100FD4827 /* Frameworks */,
@@ -111,14 +111,14 @@
 				203D28DC2F4B190100FD4827 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				203D28D62F4B190100FD4827 /* MyProjectUITests */,
+				203D28D62F4B190100FD4827 /* RemitUITests */,
 			);
-			name = MyProjectUITests;
+			name = RemitUITests;
 			packageProductDependencies = (
 				B22C33D44E55F66778899AA0 /* MapLibre */,
 			);
-			productName = MyProjectUITests;
-			productReference = 203D28D52F4B190100FD4827 /* MyProjectUITests.xctest */;
+			productName = RemitUITests;
+			productReference = 203D28D52F4B190100FD4827 /* RemitUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 		B9DA97B02DC1472C00A4DA20 /* iosApp */ = {
@@ -141,7 +141,7 @@
 			packageProductDependencies = (
 			);
 			productName = iosApp;
-			productReference = B9DA97B12DC1472C00A4DA20 /* MyProject.app */;
+			productReference = B9DA97B12DC1472C00A4DA20 /* Remit.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -181,7 +181,7 @@
 			projectRoot = "";
 			targets = (
 				B9DA97B02DC1472C00A4DA20 /* iosApp */,
-				203D28D42F4B190100FD4827 /* MyProjectUITests */,
+				203D28D42F4B190100FD4827 /* RemitUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -260,7 +260,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.myproject.uitests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.asterixorobelix.remit.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -281,7 +281,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.myproject.uitests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.asterixorobelix.remit.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -489,7 +489,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		203D28DF2F4B190100FD4827 /* Build configuration list for PBXNativeTarget "MyProjectUITests" */ = {
+		203D28DF2F4B190100FD4827 /* Build configuration list for PBXNativeTarget "RemitUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				203D28DD2F4B190100FD4827 /* Debug */,

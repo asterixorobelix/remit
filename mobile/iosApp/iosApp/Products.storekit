@@ -13,7 +13,7 @@
           "locale" : "en_US"
         }
       ],
-      "productID" : "com.example.myproject.premium.monthly",
+      "productID" : "com.asterixorobelix.remit.premium.monthly",
       "referenceName" : "Premium",
       "type" : "NonConsumable"
     }

@@ -1,7 +1,7 @@
 # Screenshot baselines
 
 Roborazzi baselines for the desktop screenshot tests
-(`src/desktopTest/kotlin/com/example/myproject/screenshots/ScreenshotTest.kt`) live in `desktop/`.
+(`src/desktopTest/kotlin/com/asterixorobelix/remit/screenshots/ScreenshotTest.kt`) live in `desktop/`.
 
 CI records them on Linux. Fonts render differently on macOS and Windows, so never commit images
 recorded on another OS: they would fail verification in CI.

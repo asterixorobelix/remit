@@ -7,7 +7,7 @@ Read [AGENTS.md](AGENTS.md) for current functionality and implementation contrac
 ./gradlew test detekt :androidApp:assembleDebug :androidApp:assembleRelease
 ./gradlew :composeApp:linkDebugFrameworkIosSimulatorArm64
 ./gradlew :composeApp:verifySqlDelightMigration
-./gradlew :composeApp:hotRunDesktop --mainClass com.example.myproject.gallery.ComponentGalleryKt
+./gradlew :composeApp:hotRunDesktop --mainClass com.asterixorobelix.remit.gallery.ComponentGalleryKt
 ```
 
 `androidApp` produces the APK. `composeApp` owns shared UI/domain/data and platform

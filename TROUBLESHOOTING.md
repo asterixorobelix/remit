@@ -8,7 +8,7 @@ whether the iOS xcconfig matches `app.properties`.
 | Symptom | Fix |
 |---|---|
 | `setup.sh`: `already initialized as ...` | The tree was renamed already. Use `--force` only to change the package again; class and display names stay as they are. |
-| `setup.sh`: `must not contain 'myproject'` or `is a Kotlin/Java keyword` | Choose a package without the template name and without segments such as `fun`, `in`, `object`. |
+| `setup.sh`: `must not contain 'remit'` or `is a Kotlin/Java keyword` | Choose a package without the template name and without segments such as `fun`, `in`, `object`. |
 | `Skipped Git hooks: ... not a Git repository` | `git init`, then `./setup-hooks.sh`. |
 | `iOS xcconfig is out of sync with app.properties` | `scripts/sync-app-config.sh`. Edit `app.properties`, never the synced xcconfig keys. |
 

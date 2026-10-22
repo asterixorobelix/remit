@@ -15,7 +15,7 @@ services:
       dockerfile: backend/Dockerfile
     environment:
       APP_ENVIRONMENT: development
-      DATABASE_URL: jdbc:postgresql://db:5432/myproject
+      DATABASE_URL: jdbc:postgresql://db:5432/remit
       DATABASE_USER: dev
       DATABASE_PASSWORD: dev
       # Clients connect directly (no reverse proxy), so X-Forwarded-For is not trusted.
@@ -28,19 +28,19 @@ services:
 
   db:
     image: postgres:16-alpine
-    container_name: myproject-db
+    container_name: remit-db
     restart: unless-stopped
     environment:
       POSTGRES_USER: dev
       POSTGRES_PASSWORD: dev
-      POSTGRES_DB: myproject
+      POSTGRES_DB: remit
     ports:
       # Loopback only: the dev credentials must not be reachable from the network.
       - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U dev -d myproject"]
+      test: ["CMD-SHELL", "pg_isready -U dev -d remit"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -48,7 +48,7 @@ services:
   # pgAdmin (optional web UI for PostgreSQL) at http://localhost:5050, login admin@local.dev / admin
   # pgadmin:
   #   image: dpage/pgadmin4:latest
-  #   container_name: myproject-pgadmin
+  #   container_name: remit-pgadmin
   #   restart: unless-stopped
   #   environment:
   #     PGADMIN_DEFAULT_EMAIL: admin@local.dev
@@ -65,10 +65,10 @@ volumes:
 # Other useful commands:
 #   docker compose ps
 #   docker compose logs -f backend
-#   docker compose exec db psql -U dev -d myproject
+#   docker compose exec db psql -U dev -d remit
 #
 # Run the backend with Gradle against the Docker database (`./gradlew run` defaults to
 # APP_ENVIRONMENT=development):
 #   docker compose up -d db
-#   cd backend && DATABASE_URL=jdbc:postgresql://localhost:5432/myproject \
+#   cd backend && DATABASE_URL=jdbc:postgresql://localhost:5432/remit \
 #     DATABASE_USER=dev DATABASE_PASSWORD=dev ./gradlew run

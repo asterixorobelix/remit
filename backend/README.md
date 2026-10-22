@@ -28,7 +28,7 @@ With PostgreSQL from the repository's `docker-compose.yml`:
 
 ```bash
 docker compose up -d db            # from the repository root
-DATABASE_URL=jdbc:postgresql://localhost:5432/myproject \
+DATABASE_URL=jdbc:postgresql://localhost:5432/remit \
   DATABASE_USER=dev DATABASE_PASSWORD=dev ./gradlew run
 ```
 
@@ -57,7 +57,7 @@ APP_ENVIRONMENT=development java -jar build/libs/backend-all.jar
 
 ```bash
 # from the repository root
-docker build -f backend/Dockerfile -t myproject-backend .
+docker build -f backend/Dockerfile -t remit-backend .
 docker compose up -d --build       # PostgreSQL + backend in development mode
 ```
 
@@ -125,7 +125,7 @@ message; unexpected failures are a generic 500 and are logged with the request i
 ## Layout
 
 ```
-src/main/kotlin/com/example/myproject/
+src/main/kotlin/com/asterixorobelix/remit/
 ├── Application.kt        # main() and Application.module(config)
 ├── configuration/        # AppConfig (environment variables), Environment, BuildInfo
 ├── plugins/              # Ktor plugins: database, security, HTTP, logging, errors, routing, docs
