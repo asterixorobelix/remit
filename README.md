@@ -159,6 +159,17 @@ desktop JVM, and CI links the iOS framework whenever iOS-relevant code changes.
   SwiftUI and call the same use cases.
 - **UI:** the Compose screens are already multiplatform and render in the desktop gallery; the
   iOS app shell from the template hosts them in a `UIViewController`.
+- **Strings:** every user-facing string is in one shared Compose Multiplatform resource file,
+  `mobile/composeApp/src/commonMain/composeResources/values/strings.xml`, read on Android, iOS,
+  and desktop through `stringResource(Res.string.…)`. English only for now; a translation is a
+  `values-<locale>/strings.xml` beside it. The architecture check fails literal UI text outside
+  previews. The only other string file is Android's `res/values/strings.xml`, holding `app_name`
+  for the launcher; iOS takes its display name from `app.properties` through the xcconfig.
+- **No strings in `shared`:** it returns codes (`ValidationError.EMAIL_INVALID`,
+  `PaymentFailure.TIMEOUT`) and `composeApp` maps them to text in
+  `presentation/payments/PaymentMessages.kt`, so a SwiftUI app could word them its own way. The
+  backend returns the same codes in `details`, so server-side rejections appear in the app's
+  wording.
 
 ## Design decisions
 
