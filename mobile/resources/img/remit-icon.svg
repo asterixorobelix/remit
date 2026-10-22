@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Remit launcher icon, content only: each platform adds the #6750A4 background. Regenerate with
+       the app-icons generator: Android mipmaps and adaptive foregrounds, and the iOS 1024 icon. -->
+  <!-- A paper plane (the app's Send icon) over a coin: money, sent. -->
+  <circle cx="512" cy="512" r="380" fill="#EADDFF" fill-opacity="0.18"/>
+  <circle cx="512" cy="512" r="318" fill="none" stroke="#EADDFF" stroke-opacity="0.42" stroke-width="24"/>
+  <g transform="translate(500 528) scale(1.2) translate(-522 -522)" stroke-linejoin="round" stroke-width="10">
+    <path d="M232 512 L812 232 L506 612 Z" fill="#FFFFFF" stroke="#FFFFFF"/>
+    <path d="M506 612 L812 232 L598 812 Z" fill="#E8DEF8" stroke="#E8DEF8"/>
+    <path d="M506 612 L598 812 L476 712 Z" fill="#CBB8F0" stroke="#CBB8F0"/>
+  </g>
+</svg>
