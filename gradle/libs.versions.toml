@@ -57,6 +57,7 @@ googleServices = "4.4.2"
 # Testing
 junit = "4.13.2"
 junitBom = "5.14.4"
+cucumber = "7.34.9"
 
 # Code quality
 detekt = "1.23.8"
@@ -161,6 +162,9 @@ firebase-firestore = { module = "com.google.firebase:firebase-firestore" }
 junit = { module = "junit:junit", version.ref = "junit" }
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junitBom" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+junit-platform-suite = { module = "org.junit.platform:junit-platform-suite" }
+cucumber-java = { module = "io.cucumber:cucumber-java", version.ref = "cucumber" }
+cucumber-junit-platform-engine = { module = "io.cucumber:cucumber-junit-platform-engine", version.ref = "cucumber" }
 turbine = { module = "app.cash.turbine:turbine", version = "1.2.1" }
 roborazzi-compose-desktop = { module = "io.github.takahirom.roborazzi:roborazzi-compose-desktop", version.ref = "roborazzi" }
 

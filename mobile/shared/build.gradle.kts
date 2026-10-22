@@ -42,6 +42,16 @@ kotlin {
             implementation(libs.turbine)
             implementation(libs.ktor.client.mock)
         }
+        // Cucumber BDD scenarios (src/desktopTest/resources/features) run on the JUnit Platform.
+        named("desktopTest") {
+            dependencies {
+                implementation(project.dependencies.platform(libs.junit.bom))
+                implementation(libs.cucumber.java)
+                implementation(libs.cucumber.junit.platform.engine)
+                implementation(libs.junit.platform.suite)
+                implementation(libs.ktor.client.mock)
+            }
+        }
         androidMain.dependencies {
             implementation(project.dependencies.platform(libs.firebase.bom))
             implementation(libs.firebase.auth)
@@ -146,6 +156,9 @@ kover {
 
 // The validation case table shared with the backend tests (testdata/ at the repository root).
 tasks.named<Test>("desktopTest") {
+    useJUnitPlatform()
+    // Cucumber's readable scenario report, next to Gradle's test report.
+    systemProperty("cucumber.plugin", "pretty, html:build/reports/cucumber/index.html")
     val cases = rootProject.file("../testdata/payment-validation-cases.json")
     inputs.file(cases)
     systemProperty("validationCases", cases.absolutePath)

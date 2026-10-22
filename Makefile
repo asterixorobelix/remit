@@ -10,7 +10,7 @@ BACKEND_GATES := test detekt ktlintCheck koverVerify
 .DEFAULT_GOAL := help
 .PHONY: help setup bootstrap doctor app-checklist setup-hooks ui ui-hot backend backend-emulated emulators \
 	mobile apk apk-install apk-release ios ios-app ios-run feature \
-	test test-backend test-backend-emulated test-rules test-perf test-mobile test-mobile-fast test-watch lint lint-repo lint-backend lint-mobile format \
+	test test-backend test-backend-emulated test-rules test-perf test-bdd test-mobile test-mobile-fast test-watch lint lint-repo lint-backend lint-mobile format \
 	quick quick-all check-template check check-backend check-mobile coverage \
 	build build-backend build-mobile jar clean loc \
 	version release-patch release-minor release-major release-notes protect-main
@@ -98,6 +98,10 @@ test-mobile:
 
 test-backend-emulated: ## Backend tests plus the Firebase integration tests (starts the emulators)
 	@firebase emulators:exec --only auth,firestore --project demo-remit-test "cd backend && ./gradlew test --rerun"
+
+test-bdd: ## Cucumber scenarios for sending payments and history (shared module, JVM)
+	@cd mobile && ./gradlew :shared:desktopTest --tests '*CucumberTest*'
+	@echo "Report: mobile/shared/build/reports/cucumber/index.html"
 
 test-rules: ## Firestore security rules tests on the emulator
 	@./scripts/test-rules.sh
