@@ -57,6 +57,21 @@ sheet is not proof that someone completed a share.
 - [ ] Host the privacy policy and terms (templates in `docs/`) and link them in the stores.
 - [ ] Choose a license for the repository if it will be public.
 
+## Firebase and payments
+
+- [ ] In the Firebase console, open Authentication and enable the **Anonymous** provider (the
+      app signs in anonymously; the API can't do this without billing on the project).
+- [ ] Create a service account key (Project settings > Service accounts) for the backend and
+      set `FIREBASE_PROJECT_ID` and `GOOGLE_APPLICATION_CREDENTIALS` where it runs. Never commit it.
+- [ ] Deploy rules and indexes after changing them: `firebase deploy --only firestore`.
+- [ ] Set `API_BASE_URL_RELEASE` (and staging) in `app.properties` to the deployed API.
+- [ ] Before calling the project done, review the production data layer beyond Firestore:
+      double-entry ledgers and balance invariants, Firestore's per-document write limit versus
+      row locks, database-enforced constraints, exact `NUMERIC` amounts, reconciliation in SQL,
+      the transactional outbox and at-least-once delivery, CQRS (Postgres writes, Firestore
+      reads), and purpose-built ledgers such as TigerBeetle. README "Production architecture"
+      summarises the plan.
+
 ## Backend deployment
 
 - [ ] Configure the hosting platform ([backend/README.md](backend/README.md#deploy)): keep

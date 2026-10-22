@@ -38,7 +38,11 @@ app: they read identity from `app.properties`, and `setup.sh` renames the rest.
   name there. Keep actions pinned to commit SHAs, keep path filters and `timeout-minutes`,
   and avoid adding macOS jobs (10x minutes) where Linux works.
 
-The Android app module is `:androidApp`; `:composeApp` is the shared library.
+The Android app module is `:androidApp`; `:composeApp` is the shared Compose library and
+`:shared` the payments logic with no UI. Payments span the app, the backend, Firestore rules,
+and `testdata/`; read "Payments contract" in [docs/AI_AGENT_GUIDE.md](docs/AI_AGENT_GUIDE.md)
+before changing any of them. `e2e/` (Appium) and `perf/` (JMeter) need the local stack
+(`make emulators`, `make backend-emulated`).
 
 ## Working through pull requests
 

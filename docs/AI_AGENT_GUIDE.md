@@ -11,11 +11,11 @@ app.properties ──┬─ Android BuildConfig / desktop system properties (rea
                  ├─ Fastlane identity (package / bundle id)
                  └─ backend version (build-info.properties)
 
-Compose UI → ViewModel → Use Case → Domain Repository
-                                      ↓ implementation
-                              SQLDelight + Ktor client
-                                      ↓
-                              Ktor routes → service
+Compose UI (composeApp) → ViewModel → Use Case (shared) → PaymentRepository (shared)
+                                                      ↓ implementation
+                              KtorPaymentsApi ── POST /api/v1/payments ──→ Ktor routes → PaymentService
+                                                                                  ↓ one transaction
+                              Firestore snapshot listener ←────────────────── Firestore payments/{id}
 ```
 
 `app.properties` is authoritative for the app name, package, semantic and integer versions,
@@ -38,11 +38,30 @@ files or Gradle dependencies.
 `NavigationGraphTest` (desktopTest) resolves every reachable ViewModel for several
 capability sets. Add new routes to it.
 
+## Payments contract
+
+The app's feature. Details in `mobile/AGENTS.md` (Payments) and `backend/AGENTS.md`
+(Payments contract); the essentials, which span both builds:
+
+- Money is whole minor units of a currency (`Money` / `amountMinor`), never `Double`. On the wire
+  the amount is a JSON number whose literal text both sides read exactly (`DecimalTextSerializer`
+  in each build).
+- Validation exists twice (`shared` `PaymentValidator`, backend `PaymentValidator`) and must
+  agree: both test suites run `testdata/payment-validation-cases.json`. The codes are shared and
+  the server returns them in `details`.
+- Every POST carries an `Idempotency-Key` that the app reuses for retries of the same payment;
+  the backend records the payment and `idempotencyKeys/{uid}_{key}` in one Firestore transaction.
+- Callers authenticate with Firebase ID tokens (anonymous sign-in). Only the backend writes to
+  Firestore; `firebase/firestore.rules` lets users read their own `payments` and nothing else, and
+  `make test-rules` tests that.
+- Firestore document fields are defined by `PaymentFields` (shared) and written by
+  `FirestorePaymentStore` (backend); change them together, with `firebase/firestore.indexes.json`.
+
 ## UI and extension points
 
 Implemented: onboarding (start destination resolved once in `AppViewModel`), typed
-Compose Navigation with capability-gated routes, Material 3 theming with `Dimens`, a
-placeholder Home tab (to be replaced by the app's main feature), Settings (theme, feedback,
+Compose Navigation with capability-gated routes, Material 3 theming with `Dimens`, the Send
+tab (route `AppRoute.Home`) and History tab, Settings (theme, feedback,
 rate the app, privacy/terms in an in-app web view, version), force update, the in-app
 review prompt, and debug-only Developer tools (validated API override that applies
 immediately, plus a reset of onboarding and local settings).

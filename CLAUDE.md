@@ -1,6 +1,8 @@
-# Project Setup Template
+# Remit
 
-Full-stack Kotlin app template: Compose Multiplatform/KMP client plus Ktor backend.
+A Compose Multiplatform payments app with a Ktor backend and Firestore, built from the owner's
+full-stack template. Payments rules span both builds: see "Payments contract" in
+[docs/AI_AGENT_GUIDE.md](docs/AI_AGENT_GUIDE.md).
 
 For current functionality and source locations, read [AGENTS.md](AGENTS.md) and
 [docs/AI_AGENT_GUIDE.md](docs/AI_AGENT_GUIDE.md). Those documents are authoritative;
@@ -30,8 +32,10 @@ Use `setup.sh` for package renaming, `bump-version.sh` for versions, and
 
 | Path | Purpose |
 |---|---|
-| `mobile/` | Android, iOS, desktop gallery, shared domain/data/UI |
-| `backend/` | Ktor API (health, status, remote config), OpenAPI spec, Dockerfile |
+| `mobile/` | `shared` (payments logic, KMP), `composeApp` (Compose UI), Android, iOS, desktop gallery |
+| `backend/` | Ktor API (payments on Firestore, health, status, remote config), OpenAPI spec, Dockerfile |
+| `firebase/`, `testdata/` | Firestore rules, indexes, and rules tests; validation cases shared by app and backend |
+| `e2e/`, `perf/` | Appium UI tests and the JMeter plan (need `make emulators` and `make backend-emulated`) |
 | `scripts/` | Doctor, config sync, resource checks, initializer and feature generator tests |
 | `.github/workflows/` | CI, device smoke, CodeQL, transactional Mobile CD |
 | `docs/` | Workflow, releasing, Firebase, and agent guides; privacy/terms templates |

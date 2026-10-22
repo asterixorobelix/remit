@@ -1,109 +1,219 @@
-# Kotlin Full-Stack App Template
+# Remit
 
-A starting point for shipping an Android + iOS app with a Kotlin backend: Compose
-Multiplatform client (plus a desktop component gallery), Ktor API, and CI/CD that goes
-all the way to the stores.
+A Compose Multiplatform payments app: send money to an email address in USD or EUR, and watch
+your transaction history update live from Firestore. A Ktor backend processes each payment
+exactly once and records it in Firestore. Built as a take-home challenge on top of
+[my own project template](docs/TEMPLATE.md).
 
-Finish the app-specific work in [APP_CHECKLIST.md](APP_CHECKLIST.md) before shipping
-(Share app, legal links, store IDs, and more).
+![Send with validation, confirmation, a live history update, and the history list](docs/images/remit-screens.png)
 
-## What's included
+[Demo video (82 s)](docs/images/remit-demo.mp4) · [Demo script](docs/DEMO.md)
 
-| Area | Implementation |
-|---|---|
-| Mobile | Compose Multiplatform (Android, iOS, desktop gallery), Material 3, Compose Navigation, Koin, StateFlow + Channel effects |
-| Data | Ktor client (request IDs, retries for idempotent calls), SQLDelight, kotlinx.serialization/datetime |
-| Backend | Ktor: health, status, and remote app configuration endpoints, uniform errors, request IDs, Swagger UI |
-| Capabilities | `backend`, `firebase` toggled in `app.properties` |
-| Quality | Unit tests, detekt (with Compose rules), ktlint, Android Lint, SwiftLint, screenshot tests, Kover coverage gates plus coverage of changed lines, an OpenAPI contract test, architecture-contract checks, Semgrep and gitleaks, pre-commit hook |
-| Agents | `AGENTS.md`/`CLAUDE.md` guides, edit and shell hooks for Claude Code and Codex (per-file lint feedback; blocks on generated files, credentials, applied migrations, `--no-verify`, and force pushes), a permission allowlist, and a mobile MCP server for emulators and simulators |
-| Review | AI review on pull requests through OpenRouter (any model), CODEOWNERS for sensitive paths, auto-merge once checks pass and review threads are resolved |
-| Delivery | Path-filtered GitHub Actions CI tuned for low minutes, preview builds for labelled pull requests, nightly device smoke tests, transactional Mobile CD, and Mobile Promote to ship tested builds without rebuilding |
+## What it does
 
-## Quick start
+- **Send a payment.** Recipient email, amount, and a USD/EUR picker. Validation runs on the device
+  and again on the server, with the same rules, and every problem is shown next to its field.
+  Success shows "Sent $10.50 to bob@example.com" with a link to History; a failure explains
+  what happened and offers Retry when retrying can help.
+- **Transaction history.** Your payments from Firestore, newest first, each with recipient,
+  amount, currency, time, and status. A Firestore snapshot listener keeps the list live:
+  a payment recorded anywhere appears without a refresh.
+- **Payments API.** `POST /api/v1/payments` takes
+  `{"recipientEmail": String, "amount": Number, "currency": String}`, validates it, processes it
+  (a mock processor that approves every valid payment), writes it to Firestore, and returns the
+  stored payment. Errors use `{"error", "code", "details"}`.
 
-Requirements: JDK 21+, Android SDK, Xcode (for iOS), optionally Docker for the backend container.
+## Run it
+
+Requirements: JDK 21+, Android SDK with an emulator, Node 22+, and the Firebase CLI
+(`npm install -g firebase-tools`). Everything runs locally against the Firebase Emulator Suite;
+no Firebase account or credentials are needed.
 
 ```bash
-# 1. Create your repo from this template, clone it, then rename the project.
-./setup.sh --name Focus --package dev.example.focus --features backend --dry-run
-./setup.sh --name Focus --package dev.example.focus --features backend
-
-# 2. Install the lint/hook tools (Homebrew) and Git hooks, check the toolchain, run every gate.
-make bootstrap         # brew bundle + setup-hooks + doctor
-make check
-
-# 3. Run it.
-make backend           # API on http://localhost:8085 in development mode
-make mobile            # install the Android debug app (talks to 10.0.2.2:8085)
-make ui                # desktop component gallery for fast UI iteration
-open mobile/iosApp/iosApp.xcodeproj   # iOS: run the iosApp scheme on a simulator
-
-# 4. Before the first release: per-app work, GitHub secrets, and store setup.
-make app-checklist     # make doctor also lists release secrets missing on GitHub
+make emulators            # terminal 1: Firebase Auth + Firestore emulators (UI on http://localhost:4000)
+make backend-emulated     # terminal 2: the API on http://localhost:8085 against the emulators
+echo 'FIREBASE_EMULATOR_HOST=10.0.2.2' >> mobile/local.properties   # debug app -> emulators
+make mobile               # build, install, and launch the Android debug app
 ```
 
-`setup.sh` rewrites the package, the PascalCase type name (`FocusApplication`,
-`FocusUITests`), and the lowercase slug (Gradle root project, backend service name) across
-Kotlin, Gradle, Swift, Xcode, Fastlane, ProGuard, Docker, and docs. It moves every
-source set (including SQLDelight), then removes the template's maintainer notes.
-Run it once. `--force` re-runs a package change on an initialized tree.
+Then send a payment and open History. Swagger UI is at <http://localhost:8085/swagger>.
 
-## Everyday commands
+To use the real Firebase project instead: enable Anonymous sign-in in the Firebase console,
+remove `FIREBASE_EMULATOR_HOST`, place `google-services.json` in `mobile/androidApp/`, and start
+the backend with `FIREBASE_PROJECT_ID` and `GOOGLE_APPLICATION_CREDENTIALS` (a service account
+key) exported, using `make backend`.
 
-`make help` lists everything. The ones you'll use most:
+## Tests
 
-| Command | Does |
-|---|---|
-| `make quick` | Fast checks for modules changed on this branch (inner loop) |
-| `make check` | All CI gates: template contracts, backend, mobile (Android, desktop, iOS, migrations) |
-| `make check-backend` / `make check-mobile` | One side only |
-| `make backend` | API on http://localhost:8085 in development mode |
-| `make mobile` / `make ios-run` / `make ui` | Install and launch on Android / iOS simulator / desktop gallery |
-| `make test-watch` | Re-run shared JVM tests on every save |
-| `make feature NAME=Bookmarks` | Scaffold a feature (contract, screen, ViewModel, use cases, repository, Koin, test, table) and wire it into DI, navigation, and `NavigationGraphTest` |
-| `make release-patch` | Bump the version in `app.properties` and the iOS xcconfig (no commit) |
+| Layer | Command | What it proves | Where |
+|---|---|---|---|
+| Unit (shared) | `make test-mobile` | Money parsing, validation, idempotency keys, API client status mapping, repository, use cases: 64 tests, 94% line coverage (90% floor) | `mobile/shared/src/commonTest` |
+| Unit (app) | `make test-mobile` | ViewModels (Turbine), formatting, navigation graph: 67 tests; 82% merged line coverage | `mobile/composeApp/src/*Test` |
+| Unit and route (backend) | `make test-backend` | Validator, service, routes, config: 56 tests, 82% line coverage (80% floor) | `backend/src/test` |
+| Shared validation cases | runs with both of the above | 61 cases in one JSON file that the app and the server must both satisfy | `testdata/payment-validation-cases.json` |
+| BDD (Cucumber) | `make test-bdd` | 11 scenarios: payment processed and saved to Firestore, invalid input never sent, retry after a timeout pays once, history newest first, live updates, per-user isolation | `mobile/shared/src/desktopTest/resources/features` |
+| Firebase integration | `make test-backend-emulated` | The real Admin SDK against the emulators: ID token verification, the Firestore transaction, ten concurrent requests with one key create one payment | `backend/.../FirebaseEmulatorTest.kt` |
+| Security rules | `make test-rules` | Users read only their own payments; clients can never write | `firebase/rules-tests` |
+| UI (Appium) | `make test-appium` | On a real emulator: a sent payment appears in History, invalid input shows errors, EUR with a comma decimal | `e2e/` |
+| Performance (JMeter) | `make test-perf` | 5 concurrent users creating and replaying payments, with assertions on status, replay header, and latency | `perf/payments.jmx` |
 
-## Configuration
+`make check` runs every CI gate (tests, detekt, ktlint, Android Lint, coverage floors, iOS
+framework link, template contracts). Appium and JMeter need the local stack running:
 
-`app.properties` is the single source for app name, package, version, API endpoints,
-and capabilities. Android and desktop read it at build time. The
-iOS xcconfig mirrors it: `scripts/sync-app-config.sh` writes the xcconfig, and
-`--check` fails CI if it drifts. Release builds on both platforms use
-`API_BASE_URL_RELEASE`; debug builds use the local backend.
+```bash
+make emulators            # terminal 1
+make backend-emulated     # terminal 2
+make test-appium          # starts its own Appium server (pinned in e2e/appium)
+make test-perf            # HTML dashboard in build/perf/report/index.html
+```
 
-The backend is configured with environment variables. It defaults to production (no
-Swagger UI, no CORS origins). See [backend/README.md](backend/README.md).
+JMeter on a laptop against the local emulators (5 users, 20 iterations each, 5 s ramp-up):
 
-## Project layout
+| Request | Samples | Errors | Mean | p95 | p99 |
+|---|---|---|---|---|---|
+| Create payment | 100 | 0 | 8 ms | 19 ms | 39 ms |
+| Replay (same key) | 100 | 0 | 8 ms | 13 ms | 18 ms |
+
+These numbers show the plan works and the endpoint has no obvious bottleneck. They say little
+about production, where Firestore is a network hop away; run the same plan against a deployed
+API with `-Jhost=... -Jprotocol=https -Jport=443`.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    subgraph Device["Android app"]
+        UI["composeApp<br/>Compose UI + ViewModels"] --> UC["shared (KMP)<br/>use cases, validation, Money"]
+        UC --> API["KtorPaymentsApi"]
+        UC --> HIST["PaymentHistorySource<br/>(expect/actual: Firestore listener)"]
+        UC --> AUTH["AuthSession<br/>(expect/actual: anonymous Firebase Auth)"]
+    end
+    API -- "POST /api/v1/payments<br/>Bearer ID token, Idempotency-Key" --> BE["Ktor backend<br/>validate, process, record once"]
+    BE -- "one transaction:<br/>payment + idempotency record" --> FS[("Firestore")]
+    FS -- "snapshot listener<br/>(rules: own payments only)" --> HIST
+```
+
+| Module | Holds | Depends on Compose? |
+|---|---|---|
+| `mobile/shared` | Payment models, `Money`, validation, use cases, Ktor API client, Firebase auth and history (expect/actual), Koin module | No |
+| `mobile/composeApp` | Compose Multiplatform UI (Send, History, Settings), ViewModels, app shell from the template | Yes |
+| `mobile/androidApp` | Android entry point, Firebase setup (`google-services.json`), test tags for Appium | Yes |
+| `backend` | Ktor API, server-side validation, Firestore store, token verification, OpenAPI spec | n/a |
+| `firebase` | Firestore rules, indexes, rules tests | n/a |
+
+The layers follow the template's clean architecture: screens send events to ViewModels, which
+call use cases; use cases depend on a repository interface; the domain has no framework code.
+State is a sealed `UiState` in a `StateFlow`; one-off events (snackbars) go through a `Channel`.
+
+### Kotlin Multiplatform and its cross-platform potential
+
+Only Android is implemented, but almost everything except the UI shell and the Firebase SDK
+calls is common code. The `shared` module targets Android, iOS (arm64 and simulator), and the
+desktop JVM, and CI links the iOS framework whenever iOS-relevant code changes.
+
+- **Shared:** models, money parsing, validation, idempotency handling, the HTTP client and its
+  error mapping, the repository, use cases, and dependency injection. The Cucumber suite runs
+  on the desktop JVM against exactly this code.
+- **expect/actual:** `platformAuthSession()` and `platformPaymentHistorySource()`. Android uses
+  the Firebase SDK. iOS and desktop return implementations that fail with a clear "not wired on
+  this platform" error instead of pretending to have data.
+- **To ship iOS:** add the Firebase iOS SDK (Swift Package Manager) and write the two `iosMain`
+  actuals against it, or switch both actuals to a KMP Firebase wrapper such as GitLive's.
+  Because `shared` has no Compose dependency, an iOS team could also build the screens in
+  SwiftUI and call the same use cases.
+- **UI:** the Compose screens are already multiplatform and render in the desktop gallery; the
+  iOS app shell from the template hosts them in a `UIViewController`.
+
+## Design decisions
+
+**Money is never a `Double`.** Amounts are `Money(minorUnits: Long, currency)`. Typed text is
+parsed exactly: one `.` or `,` as the decimal separator, no signs, exponents, or grouping. An
+amount with more decimals than the currency allows is rejected, not rounded, so "1,000" in USD
+is "Use at most two decimal places" rather than $1.00. The API keeps the JSON shape from the
+brief (`"amount": 10.50` is a JSON number), but a custom serializer reads and writes the number's
+literal text, so no floating-point value is ever involved, and the server converts with
+`BigDecimal`. A JavaScript client sending `0.30000000000000004` gets "too many decimals",
+not a silently rounded payment.
+
+**Idempotency, end to end.** Every payment carries an `Idempotency-Key`.
+- *On the device:* `SendPaymentUseCase` keeps one key per payment. A retry after a timeout, or
+  a double tap (sends are serialized), reuses it; editing the details or starting a new payment
+  after a success gets a new one. Because of the key, the template's retry plugin can safely
+  retry the POST automatically.
+- *On the server:* the payment and an `idempotencyKeys/{uid}_{key}` record are written in one
+  Firestore transaction. The same key with the same payment returns the original
+  (`Idempotent-Replayed: true`); with a different payment it is a 409. Concurrent retries are
+  safe because Firestore serializes the two transactions, so the second one sees the record.
+- *Tested:* the Cucumber scenario "Retrying after a timeout does not pay twice", the emulator test
+  with ten concurrent requests, the JMeter replay sampler, and a manual run that sent a payment
+  with the backend stopped and retried it after a restart (stored once).
+
+**The backend writes to Firestore, the app only reads.** If the app saved payments itself after
+the API call, a crash or a lost connection between the two steps would leave a processed payment
+missing from history, and anyone could write fake payments. Here a payment appears in history
+only when the server has recorded it, and Firestore rules let users read only their own
+documents and never write.
+
+**One set of validation rules on two platforms.** The backend is a separate Gradle build, so it
+cannot use the KMP module directly without dragging Android tooling into its Docker build.
+Instead both validators run `testdata/payment-validation-cases.json`; the file caught a real
+divergence during development. Validation codes are shared too: the server returns
+`details: ["EMAIL_INVALID"]`, and the app highlights that field.
+
+**Authentication without a login screen.** The app signs in anonymously with Firebase, so every
+install has a stable user id. The backend verifies the ID token and stamps the uid on the payment;
+the Firestore rules use the same uid. Upgrading to email or phone sign-in later keeps the same
+user (Firebase account linking).
+
+**Failure handling.** Network errors, timeouts, 5xx, and 429 are retryable and keep the form;
+validation errors map to fields; an expired token is refreshed once automatically; an unexpected
+response says to check History before sending again. Malformed history documents are skipped
+instead of breaking the list.
+
+## Beyond the brief
+
+- **A maintained template, not a one-off.** I keep a full-stack template for my own apps, and
+  Remit is a real instance of it: the first commit is the template (`git diff template-base..main`
+  shows only the challenge work), the next removes its demo features, and the rest builds the app.
+  See [docs/TEMPLATE.md](docs/TEMPLATE.md).
+- **CI/CD from that template.** Path-filtered GitHub Actions for backend, Android, iOS, and
+  Fastlane; Semgrep and gitleaks; coverage floors plus 80% coverage on changed lines in pull
+  requests; an OpenAPI contract test that fails when a route and the spec disagree; screenshot
+  tests; preview builds; nightly device smoke tests; transactional store delivery.
+- **Agent guardrails.** `AGENTS.md` files and edit hooks that lint every change and block edits
+  to credentials and generated files. This project was built with AI assistance, and the
+  guardrails are part of why the result stays consistent.
+- **Fail-closed configuration.** Production refuses to start without a Firebase project or with
+  emulator hosts set.
+- **Security rules with tests**, a Firestore index for the history query, and an exact amount
+  format in the OpenAPI spec.
+
+## Production architecture: what I'd change next
+
+- **A relational ledger as the source of truth.** Firestore is enough here because nothing holds
+  a balance. Real money movement needs double-entry postings, database-enforced constraints
+  (`CHECK (balance >= 0)`, unique idempotency keys), exact `NUMERIC` amounts, and SQL for
+  reconciliation. I would record payments in PostgreSQL and publish them to Firestore through a
+  transactional outbox, keeping Firestore as the read model the app listens to.
+- **A real processor** called between validation and recording, with the same idempotency key so
+  the processor deduplicates too, plus `PENDING` and `FAILED` states driven by its webhooks.
+- **Limits and abuse controls:** per-user rate limits, daily limits tied to verification level,
+  and App Check so only the genuine app can call the API.
+- **A durable client-side outbox:** persist the pending payment and its key (SQLDelight) so a
+  retry after the app is killed mid-send still reuses the key.
+- **Paging** for long histories, push notifications for incoming payments, and the iOS actuals.
+
+## Repository guide
 
 | Path | Contents |
 |---|---|
-| `mobile/composeApp` | Shared UI, domain, data, platform actuals, SQLDelight schema, desktop gallery |
-| `mobile/androidApp` / `mobile/iosApp` | Android application module / Xcode project |
-| `mobile/fastlane` | Store upload lanes (read identity from `app.properties`) |
-| `backend` | Ktor API, OpenAPI spec, Dockerfile |
-| `scripts` | Doctor, initializer tests, config sync, resource checks, feature generator, branch protection |
-| `.github/workflows` | CI, device smoke, CodeQL, Mobile CD |
+| `mobile/shared`, `mobile/composeApp`, `mobile/androidApp`, `mobile/iosApp` | The app (see [mobile/AGENTS.md](mobile/AGENTS.md)) |
+| `backend` | The API (see [backend/README.md](backend/README.md)) |
+| `firebase`, `firebase.json` | Firestore rules, indexes, rules tests, emulator configuration |
+| `testdata` | Validation cases shared by the app and the backend |
+| `e2e` | Appium UI tests |
+| `perf` | JMeter plan |
+| `docs` | [Demo script](docs/DEMO.md), [template overview](docs/TEMPLATE.md), workflow and release guides |
 
-## Documentation
-
-| Doc | For |
-|---|---|
-| [docs/DEVELOPER_WORKFLOW.md](docs/DEVELOPER_WORKFLOW.md) | Day-to-day setup, iteration, features, releases |
-| [docs/RELEASING.md](docs/RELEASING.md) | Store accounts, signing, GitHub secrets, Mobile CD |
-| [docs/FIREBASE.md](docs/FIREBASE.md) | Optional Crashlytics/Analytics |
-| [APP_CHECKLIST.md](APP_CHECKLIST.md) / [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md) | Per-app work and store submission |
-| [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | Common build and runtime problems |
-| [AGENTS.md](AGENTS.md), [docs/AI_AGENT_GUIDE.md](docs/AI_AGENT_GUIDE.md) | Contracts and source map for coding agents |
-| [backend/README.md](backend/README.md), [mobile/AGENTS.md](mobile/AGENTS.md) | Module details |
-
-## Stack
-
-Versions live in [`gradle/libs.versions.toml`](gradle/libs.versions.toml), shared by
-both builds and watched by Dependabot. Kotlin 2.3, Compose Multiplatform 1.10, AGP 9,
-Ktor 3.3, Koin 4.1, SQLDelight 2.3. Android minSdk 24 and targetSdk 36; iOS 18.2+.
-
-## License
-
-The template has no license file. Add one that fits your app before publishing it.
+`make help` lists every command. Kotlin 2.3, Compose Multiplatform 1.10, Ktor 3.3, Koin 4.1,
+Firebase Admin SDK 9; versions live in [`gradle/libs.versions.toml`](gradle/libs.versions.toml).
