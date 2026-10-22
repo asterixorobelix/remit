@@ -8,9 +8,9 @@ MOBILE_GATES := test detekt ktlintCheck :androidApp:lintDebug :composeApp:lintDe
 BACKEND_GATES := test detekt ktlintCheck koverVerify
 
 .DEFAULT_GOAL := help
-.PHONY: help setup bootstrap doctor app-checklist setup-hooks ui ui-hot backend \
+.PHONY: help setup bootstrap doctor app-checklist setup-hooks ui ui-hot backend backend-emulated emulators \
 	mobile apk apk-install apk-release ios ios-app ios-run feature \
-	test test-backend test-mobile test-mobile-fast test-watch lint lint-repo lint-backend lint-mobile format \
+	test test-backend test-backend-emulated test-rules test-mobile test-mobile-fast test-watch lint lint-repo lint-backend lint-mobile format \
 	quick quick-all check-template check check-backend check-mobile coverage \
 	build build-backend build-mobile jar clean loc \
 	version release-patch release-minor release-major release-notes protect-main
@@ -46,6 +46,18 @@ ui-hot: ## Run the desktop gallery with Compose Hot Reload
 
 backend: ## Start the backend API on http://localhost:8085 in development mode
 	@cd backend && APP_ENVIRONMENT=development ./gradlew run
+
+backend-emulated: ## Start the backend against the Firebase emulators (make emulators first)
+	@cd backend && APP_ENVIRONMENT=development FIREBASE_PROJECT_ID=$(FIREBASE_PROJECT) \
+		FIRESTORE_EMULATOR_HOST=localhost:8080 FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 ./gradlew run
+
+# ---------------------------------------------------------------- Firebase
+# The emulators use the real project id so the debug app's google-services.json matches; they
+# never touch the real project's data. Tests use an emulator-only demo- project instead.
+FIREBASE_PROJECT ?= remit-payments
+
+emulators: ## Start the Firebase Auth and Firestore emulators (UI on http://localhost:4000)
+	@firebase emulators:start --only auth,firestore --project $(FIREBASE_PROJECT)
 
 # ---------------------------------------------------------------- Mobile
 mobile: apk-install ## Build, install, and launch the Android debug app
@@ -83,6 +95,12 @@ test-backend:
 
 test-mobile:
 	@cd mobile && ./gradlew test
+
+test-backend-emulated: ## Backend tests plus the Firebase integration tests (starts the emulators)
+	@firebase emulators:exec --only auth,firestore --project demo-remit-test "cd backend && ./gradlew test --rerun"
+
+test-rules: ## Firestore security rules tests on the emulator
+	@./scripts/test-rules.sh
 
 test-mobile-fast: ## Shared + desktop JVM tests only (no Android/iOS test variants)
 	@cd mobile && ./gradlew :composeApp:desktopTest

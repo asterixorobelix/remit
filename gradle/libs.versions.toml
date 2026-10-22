@@ -70,6 +70,7 @@ roborazzi = "1.76.0"
 
 # Backend-specific
 logback = "1.6.4"
+firebaseAdmin = "9.9.0"
 
 [libraries]
 # Kotlin
@@ -165,6 +166,7 @@ compose-rules-detekt = { module = "io.nlopez.compose.rules:detekt", version.ref 
 
 # Backend
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
+firebase-admin = { module = "com.google.firebase:firebase-admin", version.ref = "firebaseAdmin" }
 
 [plugins]
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }

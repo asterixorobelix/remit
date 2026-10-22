@@ -1,0 +1,546 @@
+{
+  "description": "Payment validation cases run by both the mobile shared-module tests and the backend tests, so the app and the server apply the same rules. An empty expectedErrors means valid; expectedMinorUnits is the amount in cents.",
+  "cases": [
+    {
+      "name": "plain amount",
+      "recipientEmail": "alice@example.com",
+      "amount": "10.50",
+      "currency": "USD",
+      "expectedErrors": [],
+      "expectedMinorUnits": 1050
+    },
+    {
+      "name": "comma decimal separator",
+      "recipientEmail": "bob@example.co.uk",
+      "amount": "10,50",
+      "currency": "EUR",
+      "expectedErrors": [],
+      "expectedMinorUnits": 1050
+    },
+    {
+      "name": "whole amount",
+      "recipientEmail": "alice@example.com",
+      "amount": "100",
+      "currency": "USD",
+      "expectedErrors": [],
+      "expectedMinorUnits": 10000
+    },
+    {
+      "name": "leading decimal point",
+      "recipientEmail": "alice@example.com",
+      "amount": ".5",
+      "currency": "USD",
+      "expectedErrors": [],
+      "expectedMinorUnits": 50
+    },
+    {
+      "name": "trailing decimal point",
+      "recipientEmail": "alice@example.com",
+      "amount": "5.",
+      "currency": "EUR",
+      "expectedErrors": [],
+      "expectedMinorUnits": 500
+    },
+    {
+      "name": "smallest amount",
+      "recipientEmail": "alice@example.com",
+      "amount": "0.01",
+      "currency": "USD",
+      "expectedErrors": [],
+      "expectedMinorUnits": 1
+    },
+    {
+      "name": "leading zeros",
+      "recipientEmail": "alice@example.com",
+      "amount": "007.10",
+      "currency": "USD",
+      "expectedErrors": [],
+      "expectedMinorUnits": 710
+    },
+    {
+      "name": "exactly the limit",
+      "recipientEmail": "alice@example.com",
+      "amount": "10000",
+      "currency": "USD",
+      "expectedErrors": [],
+      "expectedMinorUnits": 1000000
+    },
+    {
+      "name": "exactly the limit with decimals",
+      "recipientEmail": "alice@example.com",
+      "amount": "10000.00",
+      "currency": "EUR",
+      "expectedErrors": [],
+      "expectedMinorUnits": 1000000
+    },
+    {
+      "name": "surrounding whitespace is trimmed",
+      "recipientEmail": "  Alice@Example.COM  ",
+      "amount": "  7.25 ",
+      "currency": "USD",
+      "expectedErrors": [],
+      "expectedMinorUnits": 725
+    },
+    {
+      "name": "plus tag in local part",
+      "recipientEmail": "alice+rent@example.com",
+      "amount": "12",
+      "currency": "USD",
+      "expectedErrors": [],
+      "expectedMinorUnits": 1200
+    },
+    {
+      "name": "apostrophe in local part",
+      "recipientEmail": "o'brien@example.ie",
+      "amount": "12",
+      "currency": "EUR",
+      "expectedErrors": [],
+      "expectedMinorUnits": 1200
+    },
+    {
+      "name": "subdomains",
+      "recipientEmail": "pay@mail.eu.example.org",
+      "amount": "1",
+      "currency": "EUR",
+      "expectedErrors": [],
+      "expectedMinorUnits": 100
+    },
+    {
+      "name": "blank amount",
+      "recipientEmail": "alice@example.com",
+      "amount": "",
+      "currency": "USD",
+      "expectedErrors": [
+        "AMOUNT_BLANK"
+      ]
+    },
+    {
+      "name": "whitespace amount",
+      "recipientEmail": "alice@example.com",
+      "amount": "   ",
+      "currency": "USD",
+      "expectedErrors": [
+        "AMOUNT_BLANK"
+      ]
+    },
+    {
+      "name": "zero",
+      "recipientEmail": "alice@example.com",
+      "amount": "0",
+      "currency": "USD",
+      "expectedErrors": [
+        "AMOUNT_NOT_POSITIVE"
+      ]
+    },
+    {
+      "name": "zero with decimals",
+      "recipientEmail": "alice@example.com",
+      "amount": "0.00",
+      "currency": "EUR",
+      "expectedErrors": [
+        "AMOUNT_NOT_POSITIVE"
+      ]
+    },
+    {
+      "name": "negative",
+      "recipientEmail": "alice@example.com",
+      "amount": "-5",
+      "currency": "USD",
+      "expectedErrors": [
+        "AMOUNT_NOT_A_NUMBER"
+      ]
+    },
+    {
+      "name": "explicit plus sign",
+      "recipientEmail": "alice@example.com",
+      "amount": "+5",
+      "currency": "USD",
+      "expectedErrors": [
+        "AMOUNT_NOT_A_NUMBER"
+      ]
+    },
+    {
+      "name": "three decimals",
+      "recipientEmail": "alice@example.com",
+      "amount": "0.001",
+      "currency": "USD",
+      "expectedErrors": [
+        "AMOUNT_TOO_MANY_DECIMALS"
+      ]
+    },
+    {
+      "name": "trailing zero beyond cents",
+      "recipientEmail": "alice@example.com",
+      "amount": "10.500",
+      "currency": "USD",
+      "expectedErrors": [
+        "AMOUNT_TOO_MANY_DECIMALS"
+      ]
+    },
+    {
+      "name": "floating-point artefact from 0.1 + 0.2",
+      "recipientEmail": "alice@example.com",
+      "amount": "0.30000000000000004",
+      "currency": "USD",
+      "expectedErrors": [
+        "AMOUNT_TOO_MANY_DECIMALS"
+      ]
+    },
+    {
+      "name": "too many decimals for any currency",
+      "recipientEmail": "alice@example.com",
+      "amount": "1.000000",
+      "currency": null,
+      "expectedErrors": [
+        "AMOUNT_TOO_MANY_DECIMALS",
+        "CURRENCY_MISSING"
+      ]
+    },
+    {
+      "name": "thousands separator is not read as cents",
+      "recipientEmail": "alice@example.com",
+      "amount": "1,000",
+      "currency": "USD",
+      "expectedErrors": [
+        "AMOUNT_TOO_MANY_DECIMALS"
+      ]
+    },
+    {
+      "name": "grouping and decimal separators",
+      "recipientEmail": "alice@example.com",
+      "amount": "1,000.00",
+      "currency": "USD",
+      "expectedErrors": [
+        "AMOUNT_NOT_A_NUMBER"
+      ]
+    },
+    {
+      "name": "space as grouping",
+      "recipientEmail": "alice@example.com",
+      "amount": "1 000",
+      "currency": "EUR",
+      "expectedErrors": [
+        "AMOUNT_NOT_A_NUMBER"
+      ]
+    },
+    {
+      "name": "exponent",
+      "recipientEmail": "alice@example.com",
+      "amount": "1e3",
+      "currency": "USD",
+      "expectedErrors": [
+        "AMOUNT_NOT_A_NUMBER"
+      ]
+    },
+    {
+      "name": "NaN",
+      "recipientEmail": "alice@example.com",
+      "amount": "NaN",
+      "currency": "USD",
+      "expectedErrors": [
+        "AMOUNT_NOT_A_NUMBER"
+      ]
+    },
+    {
+      "name": "Infinity",
+      "recipientEmail": "alice@example.com",
+      "amount": "Infinity",
+      "currency": "USD",
+      "expectedErrors": [
+        "AMOUNT_NOT_A_NUMBER"
+      ]
+    },
+    {
+      "name": "letters",
+      "recipientEmail": "alice@example.com",
+      "amount": "ten",
+      "currency": "USD",
+      "expectedErrors": [
+        "AMOUNT_NOT_A_NUMBER"
+      ]
+    },
+    {
+      "name": "lone decimal point",
+      "recipientEmail": "alice@example.com",
+      "amount": ".",
+      "currency": "USD",
+      "expectedErrors": [
+        "AMOUNT_NOT_A_NUMBER"
+      ]
+    },
+    {
+      "name": "currency symbol in amount",
+      "recipientEmail": "alice@example.com",
+      "amount": "$10",
+      "currency": "USD",
+      "expectedErrors": [
+        "AMOUNT_NOT_A_NUMBER"
+      ]
+    },
+    {
+      "name": "non-ASCII digits",
+      "recipientEmail": "alice@example.com",
+      "amount": "١٠",
+      "currency": "USD",
+      "expectedErrors": [
+        "AMOUNT_NOT_A_NUMBER"
+      ]
+    },
+    {
+      "name": "one cent over the limit",
+      "recipientEmail": "alice@example.com",
+      "amount": "10000.01",
+      "currency": "USD",
+      "expectedErrors": [
+        "AMOUNT_ABOVE_LIMIT"
+      ]
+    },
+    {
+      "name": "far over the limit",
+      "recipientEmail": "alice@example.com",
+      "amount": "250000",
+      "currency": "EUR",
+      "expectedErrors": [
+        "AMOUNT_ABOVE_LIMIT"
+      ]
+    },
+    {
+      "name": "too many digits to represent",
+      "recipientEmail": "alice@example.com",
+      "amount": "1000000000000000000000",
+      "currency": "USD",
+      "expectedErrors": [
+        "AMOUNT_ABOVE_LIMIT"
+      ]
+    },
+    {
+      "name": "fourteen whole digits",
+      "recipientEmail": "alice@example.com",
+      "amount": "10000000000000",
+      "currency": "EUR",
+      "expectedErrors": [
+        "AMOUNT_ABOVE_LIMIT"
+      ]
+    },
+    {
+      "name": "blank email",
+      "recipientEmail": "",
+      "amount": "10",
+      "currency": "USD",
+      "expectedErrors": [
+        "EMAIL_BLANK"
+      ]
+    },
+    {
+      "name": "whitespace email",
+      "recipientEmail": "   ",
+      "amount": "10",
+      "currency": "USD",
+      "expectedErrors": [
+        "EMAIL_BLANK"
+      ]
+    },
+    {
+      "name": "missing at sign",
+      "recipientEmail": "alice.example.com",
+      "amount": "10",
+      "currency": "USD",
+      "expectedErrors": [
+        "EMAIL_INVALID"
+      ]
+    },
+    {
+      "name": "missing domain",
+      "recipientEmail": "alice@",
+      "amount": "10",
+      "currency": "USD",
+      "expectedErrors": [
+        "EMAIL_INVALID"
+      ]
+    },
+    {
+      "name": "missing local part",
+      "recipientEmail": "@example.com",
+      "amount": "10",
+      "currency": "USD",
+      "expectedErrors": [
+        "EMAIL_INVALID"
+      ]
+    },
+    {
+      "name": "no top-level domain",
+      "recipientEmail": "alice@example",
+      "amount": "10",
+      "currency": "USD",
+      "expectedErrors": [
+        "EMAIL_INVALID"
+      ]
+    },
+    {
+      "name": "one-letter top-level domain",
+      "recipientEmail": "alice@example.c",
+      "amount": "10",
+      "currency": "USD",
+      "expectedErrors": [
+        "EMAIL_INVALID"
+      ]
+    },
+    {
+      "name": "numeric top-level domain",
+      "recipientEmail": "alice@example.123",
+      "amount": "10",
+      "currency": "USD",
+      "expectedErrors": [
+        "EMAIL_INVALID"
+      ]
+    },
+    {
+      "name": "consecutive dots",
+      "recipientEmail": "alice..smith@example.com",
+      "amount": "10",
+      "currency": "USD",
+      "expectedErrors": [
+        "EMAIL_INVALID"
+      ]
+    },
+    {
+      "name": "leading dot",
+      "recipientEmail": ".alice@example.com",
+      "amount": "10",
+      "currency": "USD",
+      "expectedErrors": [
+        "EMAIL_INVALID"
+      ]
+    },
+    {
+      "name": "domain label starts with hyphen",
+      "recipientEmail": "alice@-example.com",
+      "amount": "10",
+      "currency": "USD",
+      "expectedErrors": [
+        "EMAIL_INVALID"
+      ]
+    },
+    {
+      "name": "space inside",
+      "recipientEmail": "alice smith@example.com",
+      "amount": "10",
+      "currency": "USD",
+      "expectedErrors": [
+        "EMAIL_INVALID"
+      ]
+    },
+    {
+      "name": "two at signs",
+      "recipientEmail": "alice@bob@example.com",
+      "amount": "10",
+      "currency": "USD",
+      "expectedErrors": [
+        "EMAIL_INVALID"
+      ]
+    },
+    {
+      "name": "local part over 64 characters",
+      "recipientEmail": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@example.com",
+      "amount": "10",
+      "currency": "USD",
+      "expectedErrors": [
+        "EMAIL_INVALID"
+      ]
+    },
+    {
+      "name": "address over 254 characters",
+      "recipientEmail": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.com",
+      "amount": "10",
+      "currency": "USD",
+      "expectedErrors": [
+        "EMAIL_TOO_LONG"
+      ]
+    },
+    {
+      "name": "no currency",
+      "recipientEmail": "alice@example.com",
+      "amount": "10",
+      "currency": null,
+      "expectedErrors": [
+        "CURRENCY_MISSING"
+      ]
+    },
+    {
+      "name": "empty currency",
+      "recipientEmail": "alice@example.com",
+      "amount": "10",
+      "currency": "",
+      "expectedErrors": [
+        "CURRENCY_MISSING"
+      ]
+    },
+    {
+      "name": "lower-case code",
+      "recipientEmail": "alice@example.com",
+      "amount": "10",
+      "currency": "usd",
+      "expectedErrors": [
+        "CURRENCY_UNSUPPORTED"
+      ]
+    },
+    {
+      "name": "unsupported currency",
+      "recipientEmail": "alice@example.com",
+      "amount": "10",
+      "currency": "GBP",
+      "expectedErrors": [
+        "CURRENCY_UNSUPPORTED"
+      ]
+    },
+    {
+      "name": "padded code",
+      "recipientEmail": "alice@example.com",
+      "amount": "10",
+      "currency": " USD",
+      "expectedErrors": [
+        "CURRENCY_UNSUPPORTED"
+      ]
+    },
+    {
+      "name": "everything blank",
+      "recipientEmail": "",
+      "amount": "",
+      "currency": null,
+      "expectedErrors": [
+        "EMAIL_BLANK",
+        "AMOUNT_BLANK",
+        "CURRENCY_MISSING"
+      ]
+    },
+    {
+      "name": "zero amount without currency",
+      "recipientEmail": "alice@example.com",
+      "amount": "0",
+      "currency": null,
+      "expectedErrors": [
+        "AMOUNT_NOT_POSITIVE",
+        "CURRENCY_MISSING"
+      ]
+    },
+    {
+      "name": "decimals cannot be judged without currency",
+      "recipientEmail": "alice@example.com",
+      "amount": "0.001",
+      "currency": null,
+      "expectedErrors": [
+        "CURRENCY_MISSING"
+      ]
+    },
+    {
+      "name": "bad email and bad amount",
+      "recipientEmail": "nope",
+      "amount": "abc",
+      "currency": "EUR",
+      "expectedErrors": [
+        "EMAIL_INVALID",
+        "AMOUNT_NOT_A_NUMBER"
+      ]
+    }
+  ]
+}

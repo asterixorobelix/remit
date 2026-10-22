@@ -41,6 +41,25 @@ Scope: `backend/**`. Read `../docs/AI_AGENT_GUIDE.md` for cross-stack contracts 
 | `GET /swagger` | Swagger UI for `resources/openapi/documentation.yaml` (`SWAGGER_ENABLED`) |
 | `GET /api/v1/status` | API status and version |
 | `GET /api/v1/config` | Remote app/version configuration (`MIN_APP_VERSION`, `LATEST_APP_VERSION`, `FORCE_UPDATE`, `MAINTENANCE_MODE`) |
+| `POST /api/v1/payments` | Validate and record a payment in Firestore, once per `Idempotency-Key` per user (Firebase ID token required) |
+
+## Payments contract
+
+- `routes/PaymentRoutes.kt` checks, in order: Firebase configured (503 `PAYMENTS_UNAVAILABLE`),
+  Bearer Firebase ID token (401 `UNAUTHENTICATED`), `Idempotency-Key` present and matching
+  `[A-Za-z0-9._:-]{8,255}` (400), then the body. `module(config, payments)` takes the feature so
+  tests pass an in-memory `PaymentsFeature`; production builds it with `FirebaseBackend`.
+- `service/PaymentValidator.kt` must agree with the mobile `shared` module's `PaymentValidator`.
+  Change both together and extend `../testdata/payment-validation-cases.json`, which both test
+  suites run. Codes (`ValidationCode`) are the mobile `ValidationError` names.
+- Money is never a `Double`: `dto/DecimalTextSerializer` reads the JSON number's literal text,
+  `BigDecimal` converts it to `amountMinor` (cents), and responses write the same exact text back.
+- `service/FirestorePaymentStore.kt` writes `payments/{id}` and `idempotencyKeys/{uid}_{key}` in one
+  transaction. Field names are the app's `PaymentFields`; `../firebase/firestore.rules` lets users
+  read only their own payments and nothing else. A replay with the same fingerprint (recipient,
+  cents, currency) returns the stored payment with `Idempotent-Replayed: true`; a different one is 409.
+- `FirebaseConfig` fails closed: production requires `FIREBASE_PROJECT_ID` and refuses emulator hosts.
+  `FirebaseEmulatorTest` runs only under `make test-backend-emulated`.
 
 Update `openapi/documentation.yaml` with any route change: `OpenApiContractTest` fails when a
 served route (method and path) is missing from the spec or the spec documents one that is not

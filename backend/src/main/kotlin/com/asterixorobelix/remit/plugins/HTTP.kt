@@ -2,6 +2,8 @@ package com.asterixorobelix.remit.plugins
 
 import com.asterixorobelix.remit.configuration.CorsConfig
 import com.asterixorobelix.remit.configuration.ServerConfig
+import com.asterixorobelix.remit.routes.IDEMPOTENCY_KEY_HEADER
+import com.asterixorobelix.remit.routes.IDEMPOTENT_REPLAYED_HEADER
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.server.application.Application
@@ -34,7 +36,9 @@ fun Application.configureHTTP(server: ServerConfig, cors: CorsConfig) {
         allowHeader(HttpHeaders.Authorization)
         allowHeader(HttpHeaders.ContentType)
         allowHeader(HttpHeaders.XRequestId)
+        allowHeader(IDEMPOTENCY_KEY_HEADER)
         exposeHeader(HttpHeaders.XRequestId)
+        exposeHeader(IDEMPOTENT_REPLAYED_HEADER)
         cors.allowedHosts.forEach(::allowOrigin)
         allowCredentials = cors.allowCredentials
     }

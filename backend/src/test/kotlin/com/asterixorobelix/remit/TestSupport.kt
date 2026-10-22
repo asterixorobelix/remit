@@ -5,6 +5,7 @@ import com.asterixorobelix.remit.configuration.CorsConfig
 import com.asterixorobelix.remit.configuration.Environment
 import com.asterixorobelix.remit.configuration.FeatureFlags
 import com.asterixorobelix.remit.configuration.RemoteConfig
+import com.asterixorobelix.remit.routes.PaymentsFeature
 import io.ktor.client.HttpClient
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.post
@@ -34,8 +35,12 @@ fun testConfig(
     remoteConfig = remoteConfig,
 )
 
-fun ApplicationTestBuilder.startApp(config: AppConfig = testConfig()): AppConfig {
-    application { module(config) }
+/** Starts the app with [payments] (none by default, so payments answer 503 as without Firebase). */
+fun ApplicationTestBuilder.startApp(
+    config: AppConfig = testConfig(),
+    payments: PaymentsFeature? = null,
+): AppConfig {
+    application { module(config, payments) }
     return config
 }
 

@@ -68,9 +68,13 @@ dependencies {
     // Logging
     implementation(libs.logback.classic)
 
+    // Payments: Firestore and Firebase Auth token verification
+    implementation(libs.firebase.admin)
+
     // Testing
     testImplementation(platform(libs.junit.bom))
     testImplementation(libs.ktor.server.test.host)
+    testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.kotlin.testJunit5)
     testRuntimeOnly(libs.junit.platform.launcher)
 }
@@ -159,4 +163,11 @@ kover {
 
 tasks.check {
     dependsOn(tasks.koverVerify)
+}
+
+// The validation case table shared with the mobile tests (testdata/ at the repository root).
+tasks.test {
+    val cases = rootProject.file("../testdata/payment-validation-cases.json")
+    inputs.file(cases)
+    systemProperty("validationCases", cases.absolutePath)
 }

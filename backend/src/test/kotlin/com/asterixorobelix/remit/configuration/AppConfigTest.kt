@@ -20,8 +20,11 @@ class AppConfigTest {
 
     @Test
     fun `unset environment loads secure production defaults`() {
-        val config = load(emptyMap())
+        // Production also requires a Firebase project; without one the server refuses to start.
+        assertFailsWith<IllegalArgumentException> { load(emptyMap()) }
+        val config = load(mapOf("FIREBASE_PROJECT_ID" to "remit-payments"))
         assertEquals(Environment.PRODUCTION, config.environment)
+        assertEquals("remit-payments", config.firebase.projectId)
         assertEquals(emptyList(), config.cors.allowedHosts)
         assertFalse(config.cors.allowCredentials)
         assertFalse(config.features.swaggerEnabled)
@@ -51,6 +54,7 @@ class AppConfigTest {
         val config = load(
             mapOf(
                 "APP_ENVIRONMENT" to "production",
+                "FIREBASE_PROJECT_ID" to "remit-payments",
                 "PORT" to "9090",
                 "HOST" to "127.0.0.1",
                 "SHUTDOWN_GRACE_PERIOD_MS" to "250",

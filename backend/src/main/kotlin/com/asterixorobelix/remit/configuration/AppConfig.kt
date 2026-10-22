@@ -20,6 +20,7 @@ data class AppConfig(
     val cors: CorsConfig = CorsConfig(),
     val features: FeatureFlags = FeatureFlags(),
     val remoteConfig: RemoteConfig = RemoteConfig(),
+    val firebase: FirebaseConfig = FirebaseConfig(),
 ) {
     companion object {
         /** Loads configuration from [env]; the environment decides the defaults. */
@@ -31,6 +32,7 @@ data class AppConfig(
                 cors = CorsConfig.fromEnv(env, environment),
                 features = FeatureFlags.fromEnv(env, environment),
                 remoteConfig = RemoteConfig.fromEnv(env),
+                firebase = FirebaseConfig.fromEnv(env, environment),
             )
         }
     }

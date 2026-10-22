@@ -8,6 +8,8 @@ import com.asterixorobelix.remit.plugins.configureMonitoring
 import com.asterixorobelix.remit.plugins.configureRouting
 import com.asterixorobelix.remit.plugins.configureSerialization
 import com.asterixorobelix.remit.plugins.configureStatusPages
+import com.asterixorobelix.remit.routes.PaymentsFeature
+import com.asterixorobelix.remit.service.FirebaseBackend
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationStopping
 import io.ktor.server.application.log
@@ -46,8 +48,16 @@ fun main() {
     ).start(wait = true)
 }
 
-fun Application.module(config: AppConfig) {
+/**
+ * [payments] defaults to the Firebase-backed feature from [AppConfig.firebase] (null without a
+ * project, so payments answer 503); tests pass an in-memory one.
+ */
+fun Application.module(
+    config: AppConfig,
+    payments: PaymentsFeature? = FirebaseBackend.paymentsFeature(config.firebase),
+) {
     log.info("Swagger UI: {}", if (config.features.swaggerEnabled) "/swagger" else "disabled")
+    log.info("Payments: {}", paymentsStatus(config, payments))
     monitor.subscribe(ApplicationStopping) { log.info("Shutting down") }
 
     configureMonitoring()
@@ -55,5 +65,11 @@ fun Application.module(config: AppConfig) {
     configureHTTP(config.server, config.cors)
     configureStatusPages()
     configureDocumentation(config.features.swaggerEnabled)
-    configureRouting(config)
+    configureRouting(config, payments)
+}
+
+private fun paymentsStatus(config: AppConfig, payments: PaymentsFeature?): String = when {
+    payments == null -> "disabled (set FIREBASE_PROJECT_ID)"
+    config.firebase.usesEmulators -> "Firebase emulators for ${config.firebase.projectId}"
+    else -> "Firebase project ${config.firebase.projectId}"
 }
