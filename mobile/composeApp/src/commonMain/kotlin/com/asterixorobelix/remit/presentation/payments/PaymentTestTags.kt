@@ -10,6 +10,7 @@ object PaymentTestTags {
     const val CURRENCY = "send_currency"
     const val CURRENCY_OPTION_PREFIX = "send_currency_"
     const val SUBMIT = "send_submit"
+    const val UNFINISHED = "send_unfinished"
     const val HISTORY_LIST = "history_list"
     const val HISTORY_ITEM = "history_item"
     const val HISTORY_EMPTY = "history_empty"

@@ -36,6 +36,16 @@ Feature: Send a payment
     Then the payment is accepted
     And exactly 1 payment to "carol@example.com" is recorded
 
+  Scenario: A payment interrupted by the app closing is finished safely after reopening
+    Given the payments API times out once after processing the payment
+    And I enter a payment of "40" "USD" to "erin@example.com"
+    When I submit the payment
+    Then the payment fails with "TIMEOUT"
+    When the app is closed and reopened
+    And I send the unfinished payment again
+    Then the payment is accepted
+    And exactly 1 payment to "erin@example.com" is recorded
+
   Scenario: The same details sent as a new payment are a second payment
     Given I have sent "5.00" "USD" to "dave@example.com"
     And I have sent "5.00" "USD" to "dave@example.com"

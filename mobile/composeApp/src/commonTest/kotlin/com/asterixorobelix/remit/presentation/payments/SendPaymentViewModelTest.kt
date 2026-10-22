@@ -7,6 +7,7 @@ import com.asterixorobelix.remit.presentation.payments.send.SendPaymentUiState
 import com.asterixorobelix.remit.presentation.payments.send.SendPaymentViewModel
 import com.asterixorobelix.remit.shared.domain.model.Currency
 import com.asterixorobelix.remit.shared.domain.model.PaymentRequest
+import com.asterixorobelix.remit.shared.domain.repository.InMemoryPendingPaymentStore
 import com.asterixorobelix.remit.shared.domain.repository.PaymentFailure
 import com.asterixorobelix.remit.shared.domain.repository.PaymentRepository
 import com.asterixorobelix.remit.shared.domain.repository.SendPaymentResult
@@ -35,6 +36,7 @@ import kotlin.test.assertTrue
 @OptIn(ExperimentalCoroutinesApi::class)
 class SendPaymentViewModelTest {
     private var keys = 0
+    private val store = InMemoryPendingPaymentStore()
 
     @BeforeTest
     fun setup() {
@@ -47,7 +49,7 @@ class SendPaymentViewModelTest {
     }
 
     private fun viewModel(repository: FakePaymentRepository) = SendPaymentViewModel(
-        SendPaymentUseCase(PaymentValidator(), repository, IdempotencyKeys { "key-${++keys}" }),
+        SendPaymentUseCase(PaymentValidator(), repository, IdempotencyKeys(store) { "key-${++keys}" }),
         ValidatePaymentUseCase(PaymentValidator()),
     )
 
@@ -145,6 +147,65 @@ class SendPaymentViewModelTest {
     }
 
     @Test
+    fun afterARestartAnUnfinishedPaymentIsBackInTheFormWithItsKey() = runTest {
+        val repository = FakePaymentRepository(
+            SendPaymentResult.Failed(PaymentFailure.TIMEOUT),
+            SendPaymentResult.Success(testPayment()),
+        )
+        val first = viewModel(repository)
+        first.onEvent(SendPaymentEvent.CurrencySelected(Currency.EUR))
+        first.fill(amount = "7,5")
+        first.onEvent(SendPaymentEvent.Submit)
+
+        // The process dies; a new ViewModel over the same store is the reopened app.
+        val reopened = viewModel(repository)
+        assertEquals(
+            SendPaymentUiState.Content(
+                recipientEmail = "bob@example.com",
+                amount = "7.50",
+                currency = Currency.EUR,
+                unfinished = true,
+            ),
+            reopened.form,
+        )
+
+        reopened.onEvent(SendPaymentEvent.Submit)
+        assertEquals(listOf("key-1", "key-1"), repository.sends.map { it.second })
+        assertEquals(false, reopened.form.unfinished)
+    }
+
+    @Test
+    fun discardingAnUnfinishedPaymentClearsItForGood() = runTest {
+        val repository = FakePaymentRepository(SendPaymentResult.Failed(PaymentFailure.NETWORK))
+        viewModel(repository).apply {
+            fill()
+            onEvent(SendPaymentEvent.Submit)
+        }
+        val reopened = viewModel(repository)
+        assertTrue(reopened.form.unfinished)
+
+        reopened.onEvent(SendPaymentEvent.DiscardUnfinished)
+
+        assertEquals(SendPaymentUiState.Content(), reopened.form)
+        assertEquals(SendPaymentUiState.Content(), viewModel(repository).form)
+    }
+
+    @Test
+    fun editingAnUnfinishedPaymentMakesItANewOne() = runTest {
+        val repository = FakePaymentRepository(SendPaymentResult.Failed(PaymentFailure.NETWORK))
+        viewModel(repository).apply {
+            fill()
+            onEvent(SendPaymentEvent.Submit)
+        }
+        val reopened = viewModel(repository)
+        reopened.onEvent(SendPaymentEvent.AmountChanged("11.00"))
+        assertEquals(false, reopened.form.unfinished)
+
+        reopened.onEvent(SendPaymentEvent.Submit)
+        assertEquals(listOf("key-1", "key-2"), repository.sends.map { it.second })
+    }
+
+    @Test
     fun whileSendingTheFormIsLockedAndASecondSubmitIsIgnored() = runTest {
         val release = CompletableDeferred<Unit>()
         val repository = object : PaymentRepository by FakePaymentRepository(
@@ -162,7 +223,13 @@ class SendPaymentViewModelTest {
             }
         }
         val vm = SendPaymentViewModel(
-            SendPaymentUseCase(PaymentValidator(), repository, IdempotencyKeys { "key" }),
+            SendPaymentUseCase(
+                PaymentValidator(),
+                repository,
+                IdempotencyKeys(InMemoryPendingPaymentStore()) {
+                    "key"
+                },
+            ),
             ValidatePaymentUseCase(PaymentValidator()),
         )
         vm.fill()

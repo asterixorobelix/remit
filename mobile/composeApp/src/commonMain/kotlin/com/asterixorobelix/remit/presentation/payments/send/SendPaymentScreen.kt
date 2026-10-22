@@ -14,11 +14,15 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -36,6 +40,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalFocusManager
@@ -55,14 +60,20 @@ import com.asterixorobelix.remit.generated.resources.send_submit
 import com.asterixorobelix.remit.generated.resources.send_success
 import com.asterixorobelix.remit.generated.resources.send_title
 import com.asterixorobelix.remit.generated.resources.send_view_history
+import com.asterixorobelix.remit.generated.resources.unfinished_body
+import com.asterixorobelix.remit.generated.resources.unfinished_discard
+import com.asterixorobelix.remit.generated.resources.unfinished_title
 import com.asterixorobelix.remit.presentation.payments.PaymentTestTags
 import com.asterixorobelix.remit.presentation.payments.formatted
 import com.asterixorobelix.remit.presentation.payments.groupThousands
 import com.asterixorobelix.remit.presentation.payments.message
 import com.asterixorobelix.remit.shared.domain.model.Currency
+import com.asterixorobelix.remit.shared.domain.model.DecimalAmount
+import com.asterixorobelix.remit.shared.domain.model.DecimalParseResult
 import com.asterixorobelix.remit.shared.domain.validation.PaymentField
 import com.asterixorobelix.remit.shared.domain.validation.PaymentLimits
 import com.asterixorobelix.remit.shared.domain.validation.ValidationError
+import com.asterixorobelix.remit.ui.components.AppTextButton
 import com.asterixorobelix.remit.ui.components.PrimaryButton
 import com.asterixorobelix.remit.ui.theme.Dimens
 import org.jetbrains.compose.resources.StringResource
@@ -146,6 +157,10 @@ fun SendPaymentContent(
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        if (state.unfinished) {
+            Spacer(modifier = Modifier.height(Dimens.spacingMedium))
+            UnfinishedPaymentCard(state = state, onDiscard = { onEvent(SendPaymentEvent.DiscardUnfinished) })
+        }
         Spacer(modifier = Modifier.height(Dimens.spacingLarge))
         OutlinedTextField(
             value = state.recipientEmail,
@@ -199,6 +214,49 @@ fun SendPaymentContent(
             icon = Icons.AutoMirrored.Filled.Send,
         )
         Spacer(modifier = Modifier.height(Dimens.spacingSection))
+    }
+}
+
+@Composable
+private fun UnfinishedPaymentCard(
+    state: SendPaymentUiState.Content,
+    onDiscard: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val amount = (DecimalAmount.parse(state.amount) as? DecimalParseResult.Parsed)
+        ?.amount?.toMoney(state.currency)?.formatted() ?: state.amount
+    Card(
+        modifier = modifier.fillMaxWidth().testTag(PaymentTestTags.UNFINISHED),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
+    ) {
+        Column(modifier = Modifier.padding(Dimens.paddingMedium)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Dimens.spacingSmall),
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Schedule,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                )
+                Text(
+                    text = stringResource(Res.string.unfinished_title),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                )
+            }
+            Spacer(modifier = Modifier.height(Dimens.spacingSmall))
+            Text(
+                text = stringResource(Res.string.unfinished_body, amount, state.recipientEmail),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onTertiaryContainer,
+            )
+            AppTextButton(
+                onClick = onDiscard,
+                text = stringResource(Res.string.unfinished_discard),
+                modifier = Modifier.align(Alignment.End),
+            )
+        }
     }
 }
 

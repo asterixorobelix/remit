@@ -115,6 +115,9 @@
     <string name="send_success">Sent %1$s to %2$s</string>
     <string name="send_view_history">View</string>
     <string name="send_retry">Retry</string>
+    <string name="unfinished_title">Unfinished payment</string>
+    <string name="unfinished_body">Sending %1$s to %2$s may not have finished when the app closed. Sending it again is safe: it can't be charged twice.</string>
+    <string name="unfinished_discard">Discard</string>
     <string name="currency_usd">USD · US dollar</string>
     <string name="currency_eur">EUR · Euro</string>
     <string name="error_email_blank">Enter the recipient's email</string>

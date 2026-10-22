@@ -7,6 +7,7 @@ import com.asterixorobelix.remit.shared.domain.model.Currency
 import com.asterixorobelix.remit.shared.domain.model.DecimalAmount
 import com.asterixorobelix.remit.shared.domain.model.DecimalParseResult
 import com.asterixorobelix.remit.shared.domain.model.Payment
+import com.asterixorobelix.remit.shared.domain.repository.InMemoryPendingPaymentStore
 import com.asterixorobelix.remit.shared.domain.repository.PaymentFailure
 import com.asterixorobelix.remit.shared.domain.repository.SendPaymentResult
 import com.asterixorobelix.remit.shared.domain.usecase.IdempotencyKeys
@@ -55,11 +56,8 @@ class PaymentSteps {
         history = firestore,
         auth = auth,
     )
-    private val sendPayment = SendPaymentUseCase(
-        PaymentValidator(),
-        repository,
-        IdempotencyKeys { UUID.randomUUID().toString() },
-    )
+    private val pendingStore = InMemoryPendingPaymentStore()
+    private var sendPayment = newSession()
     private val viewing = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     private var draft: PaymentDraft? = null
@@ -67,8 +65,28 @@ class PaymentSteps {
     private var history: List<Payment> = emptyList()
     private var liveHistory: StateFlow<List<Payment>?>? = null
 
+    /** What the app builds on launch; the pending payment store is the device's disk. */
+    private fun newSession() = SendPaymentUseCase(
+        PaymentValidator(),
+        repository,
+        IdempotencyKeys(pendingStore) { UUID.randomUUID().toString() },
+    )
+
     @After
     fun stopViewing() = viewing.cancel()
+
+    @When("the app is closed and reopened")
+    fun restartApp() {
+        sendPayment = newSession()
+    }
+
+    @When("I send the unfinished payment again")
+    fun resendUnfinished() {
+        val unfinished = assertNotNull(runBlocking { sendPayment.unfinishedPayment() }, "No unfinished payment")
+        val request = unfinished.request
+        draft = PaymentDraft(request.recipient.value, request.amount.toDecimalString(), request.amount.currency.code)
+        submit()
+    }
 
     @Given("I am signed in")
     fun signedIn() = signedInAs("user-a")

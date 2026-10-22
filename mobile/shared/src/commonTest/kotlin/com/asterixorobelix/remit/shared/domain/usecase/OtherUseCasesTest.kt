@@ -1,6 +1,7 @@
 package com.asterixorobelix.remit.shared.domain.usecase
 
 import app.cash.turbine.test
+import com.asterixorobelix.remit.shared.domain.repository.InMemoryPendingPaymentStore
 import com.asterixorobelix.remit.shared.domain.validation.PaymentDraft
 import com.asterixorobelix.remit.shared.domain.validation.PaymentValidator
 import com.asterixorobelix.remit.shared.domain.validation.ValidationResult
@@ -31,9 +32,9 @@ class OtherUseCasesTest {
     }
 
     @Test
-    fun keysAreStablePerRequestAndResettable() {
+    fun keysAreStablePerRequestAndResettable() = runTest {
         var counter = 0
-        val keys = IdempotencyKeys { "k${counter++}" }
+        val keys = IdempotencyKeys(InMemoryPendingPaymentStore()) { "k${counter++}" }
         val request = paymentRequest()
 
         val first = keys.keyFor(request)

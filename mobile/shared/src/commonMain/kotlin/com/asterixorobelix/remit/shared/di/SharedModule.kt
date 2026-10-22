@@ -22,9 +22,10 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 /**
- * The payments feature for any host app. The host provides an `HttpClient` and an `ApiEndpoint`,
- * and optionally a `PaymentRequestConfigurer`; everything else, including the platform Firebase
- * pieces, comes from here.
+ * The payments feature for any host app. The host provides an `HttpClient`, an `ApiEndpoint`, and a
+ * `PendingPaymentStore` (durable storage for the payment in flight), and optionally a
+ * `PaymentRequestConfigurer`; everything else, including the platform Firebase pieces, comes
+ * from here.
  */
 fun paymentsModule(firebase: FirebaseSettings): Module = module {
     single { platformAuthSession(firebase) }
@@ -34,7 +35,7 @@ fun paymentsModule(firebase: FirebaseSettings): Module = module {
     }
     singleOf(::PaymentRepositoryImpl) bind PaymentRepository::class
     factoryOf(::PaymentValidator)
-    factory { IdempotencyKeys(::newIdempotencyKey) }
+    factory { IdempotencyKeys(get(), ::newIdempotencyKey) }
     factoryOf(::SendPaymentUseCase)
     factoryOf(::ValidatePaymentUseCase)
     factoryOf(::ObservePaymentHistoryUseCase)

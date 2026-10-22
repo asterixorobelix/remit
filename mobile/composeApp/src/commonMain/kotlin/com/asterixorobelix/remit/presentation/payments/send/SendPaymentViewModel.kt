@@ -27,12 +27,41 @@ class SendPaymentViewModel(
     private val effectChannel = Channel<SendPaymentEffect>(Channel.BUFFERED)
     val effects: Flow<SendPaymentEffect> = effectChannel.receiveAsFlow()
 
+    init {
+        viewModelScope.launch { restoreUnfinishedPayment() }
+    }
+
     fun onEvent(event: SendPaymentEvent) {
         when (event) {
-            is SendPaymentEvent.RecipientChanged -> edit { copy(recipientEmail = event.value) }
-            is SendPaymentEvent.AmountChanged -> edit { copy(amount = event.value) }
-            is SendPaymentEvent.CurrencySelected -> edit { copy(currency = event.currency) }
+            is SendPaymentEvent.RecipientChanged -> edit { copy(recipientEmail = event.value, unfinished = false) }
+            is SendPaymentEvent.AmountChanged -> edit { copy(amount = event.value, unfinished = false) }
+            is SendPaymentEvent.CurrencySelected -> edit { copy(currency = event.currency, unfinished = false) }
             SendPaymentEvent.Submit -> submit()
+            SendPaymentEvent.DiscardUnfinished -> discardUnfinished()
+        }
+    }
+
+    /** After a restart, put the payment that may not have gone through back in the form. */
+    private suspend fun restoreUnfinishedPayment() {
+        val request = sendPayment.unfinishedPayment()?.request ?: return
+        mutableState.update { current ->
+            if (current != SendPaymentUiState.Content()) {
+                current
+            } else {
+                SendPaymentUiState.Content(
+                    recipientEmail = request.recipient.value,
+                    amount = request.amount.toDecimalString(),
+                    currency = request.amount.currency,
+                    unfinished = true,
+                )
+            }
+        }
+    }
+
+    private fun discardUnfinished() {
+        viewModelScope.launch {
+            sendPayment.startNewPayment()
+            mutableState.update { SendPaymentUiState.Content(currency = it.currency) }
         }
     }
 
@@ -49,7 +78,12 @@ class SendPaymentViewModel(
     private fun submit() {
         val current = mutableState.value
         if (current.isSubmitting) return
-        mutableState.value = current.copy(isSubmitting = true, showErrors = true, errors = errorsFor(current))
+        mutableState.value = current.copy(
+            isSubmitting = true,
+            showErrors = true,
+            unfinished = false,
+            errors = errorsFor(current),
+        )
         viewModelScope.launch {
             when (val result = sendPayment(current.toDraft())) {
                 is SendPaymentResult.Success -> {

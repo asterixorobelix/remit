@@ -1,0 +1,19 @@
+-- The payment being sent and its idempotency key: written before the request goes out, cleared
+-- when the user starts a new payment. At most one row, so a restart can finish it safely.
+CREATE TABLE PendingPayment (
+    id INTEGER NOT NULL PRIMARY KEY CHECK (id = 1),
+    idempotency_key TEXT NOT NULL,
+    recipient_email TEXT NOT NULL,
+    amount_minor INTEGER NOT NULL,
+    currency TEXT NOT NULL
+);
+
+get:
+SELECT idempotency_key, recipient_email, amount_minor, currency FROM PendingPayment WHERE id = 1;
+
+save:
+INSERT OR REPLACE INTO PendingPayment(id, idempotency_key, recipient_email, amount_minor, currency)
+VALUES (1, ?, ?, ?, ?);
+
+clear:
+DELETE FROM PendingPayment;

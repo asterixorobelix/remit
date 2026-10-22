@@ -35,7 +35,11 @@ Keep the Emulator Suite UI open at <http://localhost:4000/firestore> to watch do
    payment: "Couldn't reach the server, so the payment wasn't sent", with **Retry**. Start the
    backend again and tap **Send payment**: it goes through, and Firestore holds exactly one
    document for it, because the retry reused the idempotency key.
-8. **The API directly.** Show idempotency with curl (an ID token from the Auth emulator):
+8. **An interrupted payment.** Stop the backend, send a payment so it fails, then swipe the app
+   away (or `adb shell am force-stop com.asterixorobelix.remit.debug`). Start the backend and
+   reopen the app: "Unfinished payment" shows it with the form filled in. Send it again: one
+   payment, because the key was saved before the first attempt went out.
+9. **The API directly.** Show idempotency with curl (an ID token from the Auth emulator):
 
    ```bash
    TOKEN=$(curl -s -X POST 'http://localhost:9099/identitytoolkit.googleapis.com/v1/accounts:signUp?key=fake-api-key' \

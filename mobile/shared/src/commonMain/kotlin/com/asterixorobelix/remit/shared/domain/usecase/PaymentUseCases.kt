@@ -3,6 +3,7 @@ package com.asterixorobelix.remit.shared.domain.usecase
 import com.asterixorobelix.remit.shared.domain.model.Payment
 import com.asterixorobelix.remit.shared.domain.repository.PaymentFailure
 import com.asterixorobelix.remit.shared.domain.repository.PaymentRepository
+import com.asterixorobelix.remit.shared.domain.repository.PendingPayment
 import com.asterixorobelix.remit.shared.domain.repository.SendPaymentResult
 import com.asterixorobelix.remit.shared.domain.validation.PaymentDraft
 import com.asterixorobelix.remit.shared.domain.validation.PaymentValidator
@@ -28,14 +29,25 @@ class SendPaymentUseCase(
 
             is ValidationResult.Valid -> {
                 val result = repository.send(validation.request, keys.keyFor(validation.request))
-                if (result == SendPaymentResult.Failed(PaymentFailure.IDEMPOTENCY_CONFLICT)) keys.reset()
+                // Never processed (server rejected it) or the key is unusable: nothing to finish later.
+                if (result is SendPaymentResult.Invalid || result == CONFLICT) keys.reset()
                 result
             }
         }
     }
 
+    private companion object {
+        val CONFLICT = SendPaymentResult.Failed(PaymentFailure.IDEMPOTENCY_CONFLICT)
+    }
+
     /** The next submit is a new payment, even with identical details. */
     suspend fun startNewPayment() = mutex.withLock { keys.reset() }
+
+    /**
+     * The payment last sent that the user has not moved on from. After a restart it may have gone
+     * through or not; sending it again is safe because it reuses its idempotency key.
+     */
+    suspend fun unfinishedPayment(): PendingPayment? = mutex.withLock { keys.pending() }
 }
 
 /** Validates without sending, for showing field errors as the user edits. */

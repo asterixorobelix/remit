@@ -25,6 +25,10 @@ no Compose dependency, so a SwiftUI or desktop app could use it as is.
   (`IdempotencyKeys`): a retry or double tap reuses it; `startNewPayment()` (after success) or an
   edited draft gets a new one. The POST opts in to `allowRetry()` through
   `PaymentRequestConfigurer`, which is safe only because of that key.
+- The key is written ahead of the request to `PendingPaymentStore`, implemented by
+  `SqlDelightPendingPaymentStore` (`PendingPayment.sq`, one row). After a restart
+  `SendPaymentViewModel` restores it as an "Unfinished payment" the user can send again (same key)
+  or discard. A server rejection or an idempotency conflict clears it.
 - `KtorPaymentsApi` maps every outcome to `SendPaymentResult`; `PaymentRepositoryImpl` refreshes
   an expired Firebase ID token once under the same key. The app never writes to Firestore; the
   backend does, and History listens (`platformPaymentHistorySource`, a snapshot listener on

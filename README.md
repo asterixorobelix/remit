@@ -47,11 +47,11 @@ key) exported, using `make backend`.
 
 | Layer | Command | What it proves | Where |
 |---|---|---|---|
-| Unit (shared) | `make test-mobile` | Money parsing, validation, idempotency keys, API client status mapping, repository, use cases: 64 tests, 94% line coverage (90% floor) | `mobile/shared/src/commonTest` |
-| Unit (app) | `make test-mobile` | ViewModels (Turbine), formatting, navigation graph: 67 tests; 82% merged line coverage | `mobile/composeApp/src/*Test` |
+| Unit (shared) | `make test-mobile` | Money parsing, validation, idempotency keys, API client status mapping, repository, use cases: 68 tests, 94% line coverage (90% floor) | `mobile/shared/src/commonTest` |
+| Unit (app) | `make test-mobile` | ViewModels (Turbine), the SQLDelight pending-payment store, formatting, navigation graph: 75 tests; 83% merged line coverage (80% floor) | `mobile/composeApp/src/*Test` |
 | Unit and route (backend) | `make test-backend` | Validator, service, routes, config: 56 tests, 82% line coverage (80% floor) | `backend/src/test` |
 | Shared validation cases | runs with both of the above | 61 cases in one JSON file that the app and the server must both satisfy | `testdata/payment-validation-cases.json` |
-| BDD (Cucumber) | `make test-bdd` | 11 scenarios: payment processed and saved to Firestore, invalid input never sent, retry after a timeout pays once, history newest first, live updates, per-user isolation | `mobile/shared/src/desktopTest/resources/features` |
+| BDD (Cucumber) | `make test-bdd` | 12 scenarios: payment processed and saved to Firestore, invalid input never sent, retry after a timeout pays once, a payment interrupted by the app closing finished safely after reopening, history newest first, live updates, per-user isolation | `mobile/shared/src/desktopTest/resources/features` |
 | Firebase integration | `make test-backend-emulated` | The real Admin SDK against the emulators: ID token verification, the Firestore transaction, ten concurrent requests with one key create one payment | `backend/.../FirebaseEmulatorTest.kt` |
 | Security rules | `make test-rules` | Users read only their own payments; clients can never write | `firebase/rules-tests` |
 | UI (Appium) | `make test-appium` | On a real emulator: a sent payment appears in History, invalid input shows errors, EUR with a comma decimal | `e2e/` |
@@ -140,13 +140,19 @@ not a silently rounded payment.
   a double tap (sends are serialized), reuses it; editing the details or starting a new payment
   after a success gets a new one. Because of the key, the template's retry plugin can safely
   retry the POST automatically.
+- *Across a crash:* the key and the payment are written to SQLDelight before the request goes
+  out. If the app is killed mid-send, reopening it shows "Unfinished payment" with the form
+  filled in; sending it again reuses the key, so the server returns the original if it already
+  processed it. This replaced the template's demo table, so the template's database tooling
+  serves a real purpose.
 - *On the server:* the payment and an `idempotencyKeys/{uid}_{key}` record are written in one
   Firestore transaction. The same key with the same payment returns the original
   (`Idempotent-Replayed: true`); with a different payment it is a 409. Concurrent retries are
   safe because Firestore serializes the two transactions, so the second one sees the record.
-- *Tested:* the Cucumber scenario "Retrying after a timeout does not pay twice", the emulator test
-  with ten concurrent requests, the JMeter replay sampler, and a manual run that sent a payment
-  with the backend stopped and retried it after a restart (stored once).
+- *Tested:* the Cucumber scenarios for a retry after a timeout and for a payment interrupted by the
+  app closing, the emulator test with ten concurrent requests, the JMeter replay sampler, and
+  manual runs on the emulator: a send with the backend stopped and retried after a restart, and
+  the app force-stopped after a failed send and reopened (each stored exactly once).
 
 **The backend writes to Firestore, the app only reads.** If the app saved payments itself after
 the API call, a crash or a lost connection between the two steps would leave a processed payment
@@ -199,8 +205,6 @@ instead of breaking the list.
   the processor deduplicates too, plus `PENDING` and `FAILED` states driven by its webhooks.
 - **Limits and abuse controls:** per-user rate limits, daily limits tied to verification level,
   and App Check so only the genuine app can call the API.
-- **A durable client-side outbox:** persist the pending payment and its key (SQLDelight) so a
-  retry after the app is killed mid-send still reuses the key.
 - **Paging** for long histories, push notifications for incoming payments, and the iOS actuals.
 
 ## Repository guide
