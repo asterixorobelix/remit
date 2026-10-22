@@ -47,6 +47,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.asterixorobelix.remit.generated.resources.Res
 import com.asterixorobelix.remit.generated.resources.currency_eur
@@ -76,6 +77,7 @@ import com.asterixorobelix.remit.shared.domain.validation.PaymentLimits
 import com.asterixorobelix.remit.shared.domain.validation.ValidationError
 import com.asterixorobelix.remit.ui.components.AppTextButton
 import com.asterixorobelix.remit.ui.components.PrimaryButton
+import com.asterixorobelix.remit.ui.preview.ScreenStates
 import com.asterixorobelix.remit.ui.theme.Dimens
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.getString
@@ -318,3 +320,29 @@ private val Currency.label: StringResource
         Currency.USD -> Res.string.currency_usd
         Currency.EUR -> Res.string.currency_eur
     }
+
+@Preview
+@Composable
+@Suppress("UnusedPrivateMember")
+private fun SendPaymentContentPreview() {
+    val states = listOf(
+        SendPaymentUiState.Content(),
+        SendPaymentUiState.Content(
+            recipientEmail = "bob",
+            amount = "1,000",
+            showErrors = true,
+            errors = mapOf(
+                PaymentField.RECIPIENT_EMAIL to ValidationError.EMAIL_INVALID,
+                PaymentField.AMOUNT to ValidationError.AMOUNT_TOO_MANY_DECIMALS,
+            ),
+        ),
+        SendPaymentUiState.Content(
+            recipientEmail = "bob@example.com",
+            amount = "10.50",
+            currency = Currency.EUR,
+            isSubmitting = true,
+        ),
+        SendPaymentUiState.Content(recipientEmail = "erin@example.com", amount = "40", unfinished = true),
+    )
+    ScreenStates(states) { state -> SendPaymentContent(state = state, onEvent = {}) }
+}

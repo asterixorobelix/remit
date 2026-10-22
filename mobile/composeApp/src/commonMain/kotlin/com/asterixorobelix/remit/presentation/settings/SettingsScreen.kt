@@ -40,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.asterixorobelix.remit.domain.settings.ThemeMode
 import com.asterixorobelix.remit.generated.resources.Res
@@ -58,6 +59,7 @@ import com.asterixorobelix.remit.generated.resources.settings_theme_system
 import com.asterixorobelix.remit.generated.resources.settings_version
 import com.asterixorobelix.remit.platform.RequestInAppReview
 import com.asterixorobelix.remit.ui.components.SectionHeader
+import com.asterixorobelix.remit.ui.preview.ScreenStates
 import com.asterixorobelix.remit.ui.theme.Dimens
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -186,4 +188,16 @@ private fun ThemeOption(
         )
         RadioButton(selected = selected, onClick = null)
     }
+}
+
+@Preview
+@Composable
+@Suppress("UnusedPrivateMember")
+private fun SettingsContentPreview() {
+    val navigation = SettingsNavigation(toFeedback = {}, toWebView = { _, _ -> }, toDeveloper = {})
+    val states = listOf(
+        SettingsUiState.Content(ThemeMode.SYSTEM, appVersion = "1.0.0 (10000)", showDeveloperTools = true),
+        SettingsUiState.Content(ThemeMode.DARK, appVersion = "1.0.0 (10000)", showDeveloperTools = false),
+    )
+    ScreenStates(states) { state -> SettingsContent(state = state, onEvent = {}, navigation = navigation) }
 }

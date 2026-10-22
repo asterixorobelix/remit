@@ -27,12 +27,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import com.asterixorobelix.remit.generated.resources.Res
 import com.asterixorobelix.remit.generated.resources.force_update_button
 import com.asterixorobelix.remit.generated.resources.force_update_message
 import com.asterixorobelix.remit.generated.resources.force_update_title
 import com.asterixorobelix.remit.ui.components.PrimaryButton
+import com.asterixorobelix.remit.ui.preview.ScreenStates
 import com.asterixorobelix.remit.ui.theme.Dimens
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
@@ -44,8 +47,10 @@ fun ForceUpdateScreen(
     onUpdateClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var showIcon by remember { mutableStateOf(false) }
-    var showContent by remember { mutableStateOf(false) }
+    // Previews show the end state: the entrance animation needs effects, which previews do not run.
+    val inPreview = LocalInspectionMode.current
+    var showIcon by remember { mutableStateOf(inPreview) }
+    var showContent by remember { mutableStateOf(inPreview) }
 
     LaunchedEffect(Unit) {
         showIcon = true
@@ -107,4 +112,11 @@ fun ForceUpdateScreen(
             }
         }
     }
+}
+
+@Preview
+@Composable
+@Suppress("UnusedPrivateMember")
+private fun ForceUpdateScreenPreview() {
+    ScreenStates({ ForceUpdateScreen(onUpdateClick = {}) })
 }

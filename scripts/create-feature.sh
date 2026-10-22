@@ -262,12 +262,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import $PACKAGE.generated.resources.Res
 import $PACKAGE.generated.resources.cd_navigate_back
 import $PACKAGE.generated.resources.${KEY}_empty
+import $PACKAGE.generated.resources.${KEY}_error_load
 import $PACKAGE.generated.resources.${KEY}_title
 import $PACKAGE.ui.components.FullScreenError
+import $PACKAGE.ui.preview.ScreenStates
 import $PACKAGE.ui.theme.Dimens
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
@@ -350,6 +353,26 @@ private fun ${NAME}Content(
                 Text(item.title, style = MaterialTheme.typography.bodyLarge)
             }
         }
+    }
+}
+
+/** Every UiState side by side; replace the sample items with realistic data. */
+@Preview
+@Composable
+@Suppress("UnusedPrivateMember")
+private fun ${NAME}ScreenPreview() {
+    val items = listOf(
+        ${NAME}Item(id = "1", title = "First"),
+        ${NAME}Item(id = "2", title = "Second"),
+    )
+    val states = listOf(
+        ${NAME}UiState.Loading,
+        ${NAME}UiState.Empty(),
+        ${NAME}UiState.Error(Res.string.${KEY}_error_load),
+        ${NAME}UiState.Content(items),
+    )
+    ScreenStates(states) { state ->
+        ${NAME}Screen(state = state, onEvent = {}, onNavigateBack = {})
     }
 }
 EOF

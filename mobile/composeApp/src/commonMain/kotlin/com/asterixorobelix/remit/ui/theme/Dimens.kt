@@ -343,4 +343,14 @@ object Dimens {
 
     /** 3.dp - Stroke around the user-location dot */
     val mapLocationStrokeWidth: Dp = 3.dp
+
+    // ===========================================
+    // Previews - Phone-sized frames for screen previews
+    // ===========================================
+
+    /** 360.dp - Width of one screen state in a preview */
+    val previewFrameWidth: Dp = 360.dp
+
+    /** 720.dp - Height of one screen state in a preview */
+    val previewFrameHeight: Dp = 720.dp
 }

@@ -26,6 +26,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.asterixorobelix.remit.generated.resources.Res
 import com.asterixorobelix.remit.generated.resources.cd_navigate_back
@@ -40,6 +41,7 @@ import com.asterixorobelix.remit.generated.resources.settings_feedback
 import com.asterixorobelix.remit.generated.resources.support_email
 import com.asterixorobelix.remit.platform.openUrl
 import com.asterixorobelix.remit.ui.components.PrimaryButton
+import com.asterixorobelix.remit.ui.preview.ScreenStates
 import com.asterixorobelix.remit.ui.theme.Dimens
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
@@ -156,4 +158,19 @@ private fun FeedbackContent(
         )
         Spacer(modifier = Modifier.height(Dimens.spacingSection))
     }
+}
+
+@Preview
+@Composable
+@Suppress("UnusedPrivateMember")
+private fun FeedbackContentPreview() {
+    val states = listOf(
+        FeedbackUiState.Content(),
+        FeedbackUiState.Content(subjectError = true, messageError = true),
+        FeedbackUiState.Content(
+            subject = "History shows the wrong time",
+            message = "A payment I sent at 10:30 shows 08:30 in History.",
+        ),
+    )
+    ScreenStates(states) { state -> FeedbackContent(state = state, onEvent = {}, onSubmit = {}) }
 }

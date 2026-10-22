@@ -36,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import com.asterixorobelix.remit.generated.resources.Res
 import com.asterixorobelix.remit.generated.resources.button_next
 import com.asterixorobelix.remit.generated.resources.onboarding_desc_1
@@ -47,6 +48,7 @@ import com.asterixorobelix.remit.generated.resources.onboarding_title_1
 import com.asterixorobelix.remit.generated.resources.onboarding_title_2
 import com.asterixorobelix.remit.generated.resources.onboarding_title_3
 import com.asterixorobelix.remit.ui.components.PrimaryButton
+import com.asterixorobelix.remit.ui.preview.ScreenStates
 import com.asterixorobelix.remit.ui.theme.Dimens
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
@@ -82,11 +84,21 @@ fun OnboardingScreen(
             }
         }
     }
-    val pagerState = rememberPagerState(pageCount = { ONBOARDING_PAGE_COUNT })
+    OnboardingContent(onFinish = viewModel::onFinish, modifier = modifier)
+}
+
+/** The pager and its controls; [onFinish] is Skip, or Get started on the last page. */
+@Composable
+private fun OnboardingContent(
+    onFinish: () -> Unit,
+    modifier: Modifier = Modifier,
+    initialPage: Int = 0,
+) {
+    val pagerState = rememberPagerState(initialPage = initialPage, pageCount = { ONBOARDING_PAGE_COUNT })
     val coroutineScope = rememberCoroutineScope()
     val isLastPage = pagerState.currentPage == ONBOARDING_PAGE_COUNT - 1
 
-    val completeOnboarding = viewModel::onFinish
+    val completeOnboarding = onFinish
 
     Column(
         modifier = modifier
@@ -200,5 +212,14 @@ private fun PageContent(page: OnboardingPage) {
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = Dimens.paddingExtraLarge),
         )
+    }
+}
+
+@Preview
+@Composable
+@Suppress("UnusedPrivateMember")
+private fun OnboardingContentPreview() {
+    ScreenStates((0 until ONBOARDING_PAGE_COUNT).toList()) { page ->
+        OnboardingContent(onFinish = {}, initialPage = page)
     }
 }

@@ -138,12 +138,14 @@ Static analysis and coverage, per build:
 - UI: a sealed `UiState` with Loading/Content/Error/Empty, immutable public StateFlow,
   events up and state down, and a Channel-backed effect Flow for one-time actions. No
   literal user-facing strings, colors, or dimensions: use resources, `MaterialTheme`, and `Dimens`.
+- Previews: every screen file has one private `@Preview` that shows every UiState through
+  `ui/preview/ScreenStates`, rendering the stateless content (never a `koinViewModel()` screen).
 - Use Ktor, kotlinx.serialization, SQLDelight, kotlinx-datetime, Compose Navigation,
   Material 3, Compose resources, and accessible content descriptions.
 - Mobile database changes require migrations: SQLDelight `.sqm` plus an updated schema
   baseline after the database has shipped. Never edit an applied migration.
 - Never add Hilt/Dagger, Voyager, LiveData, Retrofit, Gson, or a public MutableStateFlow.
-  `scripts/check-architecture.sh` enforces these and the layer, Koin, and UI-literal rules.
+  `scripts/check-architecture.sh` enforces these and the layer, Koin, UI-literal, and preview rules.
 - Change identity only through `setup.sh`. Change versions through `bump-version.sh`,
   and endpoints in `app.properties` followed by `scripts/sync-app-config.sh`.
 - Never let version scripts or failed release uploads create commits or tags.

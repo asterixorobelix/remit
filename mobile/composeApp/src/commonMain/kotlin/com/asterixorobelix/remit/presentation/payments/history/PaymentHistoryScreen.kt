@@ -27,6 +27,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.asterixorobelix.remit.generated.resources.Res
 import com.asterixorobelix.remit.generated.resources.cd_payment_row
@@ -40,6 +41,9 @@ import com.asterixorobelix.remit.presentation.payments.PaymentTestTags
 import com.asterixorobelix.remit.presentation.payments.formatted
 import com.asterixorobelix.remit.presentation.payments.formattedLocal
 import com.asterixorobelix.remit.presentation.payments.label
+import com.asterixorobelix.remit.shared.domain.model.Currency
+import com.asterixorobelix.remit.shared.domain.model.EmailAddress
+import com.asterixorobelix.remit.shared.domain.model.Money
 import com.asterixorobelix.remit.shared.domain.model.Payment
 import com.asterixorobelix.remit.shared.domain.model.PaymentStatus
 import com.asterixorobelix.remit.ui.components.BadgeStatus
@@ -47,9 +51,11 @@ import com.asterixorobelix.remit.ui.components.EmptyState
 import com.asterixorobelix.remit.ui.components.FullScreenError
 import com.asterixorobelix.remit.ui.components.FullScreenLoading
 import com.asterixorobelix.remit.ui.components.StatusBadge
+import com.asterixorobelix.remit.ui.preview.ScreenStates
 import com.asterixorobelix.remit.ui.theme.Dimens
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import kotlin.time.Instant
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -157,3 +163,34 @@ private val PaymentStatus.badge: BadgeStatus
         PaymentStatus.FAILED -> BadgeStatus.Error
         PaymentStatus.PENDING, PaymentStatus.UNKNOWN -> BadgeStatus.Warning
     }
+
+@Preview
+@Composable
+@Suppress("UnusedPrivateMember")
+private fun PaymentHistoryContentPreview() {
+    val states = listOf(
+        PaymentHistoryUiState.Loading,
+        PaymentHistoryUiState.Empty,
+        PaymentHistoryUiState.Error,
+        PaymentHistoryUiState.Content(previewPayments),
+    )
+    ScreenStates(states) { state -> PaymentHistoryContent(state = state, onEvent = {}) }
+}
+
+private val previewPayments = listOf(
+    previewPayment("pay_4", "bob@example.com", minorUnits = 1050, Currency.USD, PaymentStatus.COMPLETED),
+    previewPayment("pay_3", "dave@example.com", minorUnits = 750, Currency.EUR, PaymentStatus.PENDING),
+    previewPayment("pay_2", "carol@example.co.uk", minorUnits = 1_000_000, Currency.EUR, PaymentStatus.FAILED),
+    previewPayment("pay_1", "erin@example.com", minorUnits = 4000, Currency.USD, PaymentStatus.UNKNOWN),
+)
+
+private fun previewPayment(id: String, recipient: String, minorUnits: Long, currency: Currency, status: PaymentStatus) =
+    Payment(
+        id = id,
+        recipient = checkNotNull(EmailAddress.parse(recipient)),
+        amount = Money(minorUnits, currency),
+        status = status,
+        createdAt = Instant.fromEpochMilliseconds(epochMilliseconds = PREVIEW_SENT_AT_MILLIS),
+    )
+
+private const val PREVIEW_SENT_AT_MILLIS = 1_792_657_800_000

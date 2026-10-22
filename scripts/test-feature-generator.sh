@@ -93,4 +93,6 @@ while IFS= read -r file; do
 done < <(find "$SRC" -path '*/feature/*' -name '*.kt')
 # compose-rules LambdaParameterInRestartableEffect: effects read the latest callback.
 expect "$feature/SampleFeatureScreen.kt" 'val currentOnMessage by rememberUpdatedState(onMessage)'
+# Every screen previews all of its states (check-architecture.sh enforces it).
+expect "$feature/SampleFeatureScreen.kt" 'private fun SampleFeatureScreenPreview() {'
 printf 'Feature generator contract passed.\n'

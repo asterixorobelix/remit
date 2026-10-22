@@ -126,6 +126,16 @@ Queries can be added freely; table changes need a migration.
   make a change pass. AGP 9 lints `androidMain`, not `commonMain`.
 - **SwiftLint** (`iosApp/.swiftlint.yml`, run in strict mode) for the Swift shell.
 - `../scripts/check-architecture.sh` and `../scripts/check-resources.sh` (contracts, strings).
+  The architecture check fails a file that declares a `*Screen(` composable without a `@Preview`.
+
+## Previews
+
+Every screen file ends with one private `@Preview` that renders the stateless content in every
+UiState, side by side, through `ui/preview/ScreenStates` (`ScreenStates(states) { MyContent(it, onEvent = {}) }`).
+Never preview a screen that calls `koinViewModel()`: split out the stateless part (as
+`OnboardingScreen` does). Entrance animations start visible when `LocalInspectionMode.current` is
+true (`ForceUpdateScreen`). `create-feature.sh` generates the preview for new features. The only
+screen without one is `WebViewScreen`, an `expect` declaration around a platform view.
 
 ## Coverage and screenshots
 

@@ -26,15 +26,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.asterixorobelix.remit.generated.resources.Res
 import com.asterixorobelix.remit.generated.resources.cd_navigate_back
 import com.asterixorobelix.remit.generated.resources.developer_api_url
 import com.asterixorobelix.remit.generated.resources.developer_api_url_note
 import com.asterixorobelix.remit.generated.resources.developer_environment
+import com.asterixorobelix.remit.generated.resources.developer_invalid_url
 import com.asterixorobelix.remit.generated.resources.developer_reset
 import com.asterixorobelix.remit.generated.resources.developer_save
 import com.asterixorobelix.remit.generated.resources.developer_title
+import com.asterixorobelix.remit.ui.preview.ScreenStates
 import com.asterixorobelix.remit.ui.theme.Dimens
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
@@ -125,4 +128,19 @@ private fun DeveloperContent(
             Text(stringResource(Res.string.developer_reset))
         }
     }
+}
+
+@Preview
+@Composable
+@Suppress("UnusedPrivateMember")
+private fun DeveloperContentPreview() {
+    val saved = DeveloperUiState.Content(
+        environment = "development",
+        versionName = "1.0.0",
+        capabilities = "backend, firebase",
+        defaultApiUrl = "http://10.0.2.2:8085",
+        apiUrlDraft = "http://10.0.2.2:8085",
+    )
+    val invalid = saved.copy(apiUrlDraft = "not a url", urlError = Res.string.developer_invalid_url)
+    ScreenStates(listOf(saved, invalid)) { state -> DeveloperContent(state = state, onEvent = {}) }
 }

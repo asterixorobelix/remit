@@ -126,6 +126,21 @@ check_ui 'Hard-coded dimension outside the theme' \
   "(^|[^A-Za-z0-9_.])([1-9][0-9]*|0[.][0-9]*[1-9])([.][0-9]+)?[.](dp|sp)([^A-Za-z0-9_]|\$)" \
   "${SHARED_UI[@]}" ":(exclude,glob)$SRC/commonMain/**/ui/theme/**"
 
+# Every file that declares a screen previews it (expect declarations have no body to preview).
+screens_without_preview="$(git ls-files --cached --others --exclude-standard -- \
+  ":(glob)$SRC/commonMain/**/*.kt" | while IFS= read -r file; do
+  if grep -qE '^(internal )?fun [A-Z][A-Za-z0-9]*Screen[(]' "$file" && ! grep -q '@Preview' "$file"; then
+    printf '%s\n' "$file"
+  fi
+done)"
+if [[ -n "$screens_without_preview" ]]; then
+  printf '[architecture] Screen without a @Preview\n'
+  printf '  fix: add one private @Preview showing every UiState (ui/preview/ScreenStates)\n'
+  printf '  %s\n' "${screens_without_preview//$'\n'/$'\n'  }"
+  printf '\n'
+  status=1
+fi
+
 if ((status == 0)); then
   printf 'Architecture contracts passed.\n'
 fi
