@@ -111,6 +111,7 @@ jobs:
               - '.github/workflows/ci.yml'
             mobile:
               - 'mobile/**'
+              - 'e2e/**'
               - 'testdata/**'
               - 'gradle/libs.versions.toml'
               - 'app.properties'

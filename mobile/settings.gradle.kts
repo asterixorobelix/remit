@@ -39,3 +39,7 @@ dependencyResolutionManagement {
 include(":shared")
 include(":composeApp")
 include(":androidApp")
+
+// Appium UI tests (repository-root e2e/); they run only with -Pe2e, see scripts/test-appium.sh.
+include(":e2e")
+project(":e2e").projectDir = file("../e2e")

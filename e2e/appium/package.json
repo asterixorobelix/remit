@@ -1,0 +1,12 @@
+{
+  "name": "remit-appium",
+  "private": true,
+  "description": "Appium server and UiAutomator2 driver for the Android UI tests (make test-appium).",
+  "scripts": {
+    "appium": "appium"
+  },
+  "devDependencies": {
+    "appium": "3.8.0",
+    "appium-uiautomator2-driver": "8.7.0"
+  }
+}

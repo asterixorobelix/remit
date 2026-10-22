@@ -58,6 +58,7 @@ googleServices = "4.4.2"
 junit = "4.13.2"
 junitBom = "5.14.4"
 cucumber = "7.34.9"
+appiumJavaClient = "10.1.1"
 
 # Code quality
 detekt = "1.23.8"
@@ -165,6 +166,7 @@ junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher
 junit-platform-suite = { module = "org.junit.platform:junit-platform-suite" }
 cucumber-java = { module = "io.cucumber:cucumber-java", version.ref = "cucumber" }
 cucumber-junit-platform-engine = { module = "io.cucumber:cucumber-junit-platform-engine", version.ref = "cucumber" }
+appium-java-client = { module = "io.appium:java-client", version.ref = "appiumJavaClient" }
 turbine = { module = "app.cash.turbine:turbine", version = "1.2.1" }
 roborazzi-compose-desktop = { module = "io.github.takahirom.roborazzi:roborazzi-compose-desktop", version.ref = "roborazzi" }
 

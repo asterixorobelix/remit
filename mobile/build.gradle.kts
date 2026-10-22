@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.composeCompiler) apply false
     alias(libs.plugins.kotlinMultiplatform) apply false
     alias(libs.plugins.kotlinAndroid) apply false
+    alias(libs.plugins.kotlin) apply false
     alias(libs.plugins.detekt)
     alias(libs.plugins.sqlDelight) apply false
     alias(libs.plugins.kover) apply false
