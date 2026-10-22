@@ -98,7 +98,11 @@ class SendPaymentViewModel(
                 is SendPaymentResult.Success -> {
                     sendPayment.startNewPayment()
                     mutableState.value = SendPaymentUiState.Content(currency = current.currency)
-                    effectChannel.send(SendPaymentEffect.PaymentSent(result.payment, alreadySent = result.replayed))
+                    // A replay also answers an automatic retry of this very tap (the first attempt
+                    // went through but its response was lost); only a payment restored after a
+                    // restart was sent "earlier" as far as the user knows.
+                    val alreadySent = result.replayed && current.unfinished
+                    effectChannel.send(SendPaymentEffect.PaymentSent(result.payment, alreadySent))
                 }
 
                 is SendPaymentResult.Invalid -> mutableState.update {

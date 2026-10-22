@@ -40,6 +40,8 @@ no Compose dependency, so a SwiftUI or desktop app could use it as is.
   `startFirebaseForEmulators` (project `FirebaseSettings.EMULATOR_PROJECT_ID`, which must match the
   Makefile's `FIREBASE_PROJECT`); with neither, the Android actuals fall back to the "not set up"
   implementations instead of crashing.
+- The Send screen shows "Already sent" only for a restored unfinished payment the server replays;
+  a replay answering this tap's own automatic retry is a plain success.
 - Test tags in `PaymentTestTags` are exposed as Android resource ids (`MainActivity`) for Appium;
   keep them stable.
 - Kover: `shared` has its own 90% floor and is merged into `composeApp`'s report.

@@ -204,12 +204,30 @@ class SendPaymentViewModelTest {
     }
 
     @Test
-    fun aReplayedPaymentIsAnnouncedAsAlreadySent() = runTest {
+    fun aRestoredPaymentTheServerReplaysIsAnnouncedAsAlreadySent() = runTest {
+        val repository = FakePaymentRepository(
+            SendPaymentResult.Failed(PaymentFailure.NETWORK),
+            SendPaymentResult.Success(testPayment(), replayed = true),
+        )
+        viewModel(repository).apply {
+            fill()
+            onEvent(SendPaymentEvent.Submit)
+        }
+        val reopened = viewModel(repository)
+        reopened.effects.test {
+            reopened.onEvent(SendPaymentEvent.Submit)
+            assertEquals(SendPaymentEffect.PaymentSent(testPayment(), alreadySent = true), awaitItem())
+        }
+    }
+
+    @Test
+    fun aReplayOfThisVeryTapIsAnnouncedAsSent() = runTest {
+        // The automatic retry got the replay: the first attempt's response was lost.
         val vm = viewModel(FakePaymentRepository(SendPaymentResult.Success(testPayment(), replayed = true)))
         vm.fill()
         vm.effects.test {
             vm.onEvent(SendPaymentEvent.Submit)
-            assertEquals(SendPaymentEffect.PaymentSent(testPayment(), alreadySent = true), awaitItem())
+            assertEquals(SendPaymentEffect.PaymentSent(testPayment(), alreadySent = false), awaitItem())
         }
     }
 

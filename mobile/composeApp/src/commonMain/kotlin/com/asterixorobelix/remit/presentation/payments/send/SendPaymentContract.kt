@@ -41,7 +41,10 @@ sealed interface SendPaymentEvent {
 }
 
 sealed interface SendPaymentEffect {
-    /** [alreadySent]: the server had processed it before (a replay), so no new payment was made. */
+    /**
+     * [alreadySent]: an unfinished payment restored after a restart had gone through before (the
+     * server replayed it), so no new payment was made.
+     */
     data class PaymentSent(val payment: Payment, val alreadySent: Boolean = false) : SendPaymentEffect
 
     data class PaymentFailed(val reason: PaymentFailure) : SendPaymentEffect
