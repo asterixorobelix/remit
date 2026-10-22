@@ -1,10 +1,10 @@
 # Common commands. Run `make` (or `make help`) to list them.
 
 PACKAGE := $(shell awk -F= '$$1=="PACKAGE_NAME" { print $$2 }' app.properties)
-MOBILE_GATES := test detekt ktlintCheck :androidApp:lintDebug :composeApp:lintDebug \
+MOBILE_GATES := test detekt ktlintCheck :androidApp:lintDebug :composeApp:lintDebug :shared:lintDebug \
 	:androidApp:assembleDebug :composeApp:compileKotlinDesktop \
 	:composeApp:linkDebugFrameworkIosSimulatorArm64 :composeApp:verifySqlDelightMigration \
-	:composeApp:koverVerifyUnitTests
+	:composeApp:koverVerifyUnitTests :shared:koverVerifyUnitTests
 BACKEND_GATES := test detekt ktlintCheck koverVerify
 
 .DEFAULT_GOAL := help
@@ -126,7 +126,7 @@ lint-backend:
 	@cd backend && ./gradlew detekt ktlintCheck
 
 lint-mobile:
-	@cd mobile && ./gradlew detekt ktlintCheck :androidApp:lintDebug :composeApp:lintDebug
+	@cd mobile && ./gradlew detekt ktlintCheck :androidApp:lintDebug :composeApp:lintDebug :shared:lintDebug
 	@./scripts/check-resources.sh
 
 quick: ## Fast checks for modules changed on this branch (inner loop)
