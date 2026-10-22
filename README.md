@@ -11,7 +11,8 @@ exactly once and records it in Firestore. Built as a take-home challenge on top 
 
 ## What it does
 
-- **Send a payment.** Recipient email, amount, and a USD/EUR picker. Validation runs on the device
+- **Send a payment.** Recipient email, amount, and a USD/EUR picker. The amount field accepts only
+  digits and one decimal separator (`.` or `,`). Validation runs on the device
   and again on the server, with the same rules, and every problem is shown next to its field.
   Success shows "Sent $10.50 to bob@example.com" with a link to History; a failure explains
   what happened and offers Retry when retrying can help.

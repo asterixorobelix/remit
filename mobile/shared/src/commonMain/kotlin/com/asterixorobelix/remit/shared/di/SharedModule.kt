@@ -12,6 +12,7 @@ import com.asterixorobelix.remit.shared.domain.usecase.IdempotencyKeys
 import com.asterixorobelix.remit.shared.domain.usecase.ObservePaymentHistoryUseCase
 import com.asterixorobelix.remit.shared.domain.usecase.SendPaymentUseCase
 import com.asterixorobelix.remit.shared.domain.usecase.ValidatePaymentUseCase
+import com.asterixorobelix.remit.shared.domain.validation.FilterAmountInputUseCase
 import com.asterixorobelix.remit.shared.domain.validation.PaymentValidator
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.factoryOf
@@ -38,6 +39,7 @@ fun paymentsModule(firebase: FirebaseSettings): Module = module {
     factory { IdempotencyKeys(get(), ::newIdempotencyKey) }
     factoryOf(::SendPaymentUseCase)
     factoryOf(::ValidatePaymentUseCase)
+    factoryOf(::FilterAmountInputUseCase)
     factoryOf(::ObservePaymentHistoryUseCase)
 }
 
