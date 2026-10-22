@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -29,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.asterixorobelix.remit.generated.resources.Res
 import com.asterixorobelix.remit.generated.resources.cd_payment_row
+import com.asterixorobelix.remit.generated.resources.history_amount
 import com.asterixorobelix.remit.generated.resources.history_empty_description
 import com.asterixorobelix.remit.generated.resources.history_empty_title
 import com.asterixorobelix.remit.generated.resources.history_error_message
@@ -79,7 +81,7 @@ fun PaymentHistoryContent(
     PullToRefreshBox(
         isRefreshing = (state as? PaymentHistoryUiState.Content)?.isRefreshing == true,
         onRefresh = { onEvent(PaymentHistoryEvent.Refresh) },
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize().padding(contentPadding),
     ) {
         val inner = Modifier.fillMaxSize()
         when (state) {
@@ -104,10 +106,7 @@ fun PaymentHistoryContent(
                 onRetry = { onEvent(PaymentHistoryEvent.Refresh) },
             )
 
-            is PaymentHistoryUiState.Content -> LazyColumn(
-                modifier = inner.testTag(PaymentTestTags.HISTORY_LIST),
-                contentPadding = contentPadding,
-            ) {
+            is PaymentHistoryUiState.Content -> LazyColumn(modifier = inner.testTag(PaymentTestTags.HISTORY_LIST)) {
                 items(state.payments, key = Payment::id) { payment ->
                     PaymentRow(payment)
                     HorizontalDivider()
@@ -142,7 +141,7 @@ private fun PaymentRow(payment: Payment, modifier: Modifier = Modifier) {
                 verticalArrangement = Arrangement.spacedBy(Dimens.spacingExtraSmall),
             ) {
                 Text(
-                    text = "$amount ${payment.amount.currency.code}",
+                    text = stringResource(Res.string.history_amount, amount, payment.amount.currency.code),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )

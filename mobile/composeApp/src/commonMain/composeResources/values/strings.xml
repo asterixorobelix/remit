@@ -145,6 +145,7 @@
     <string name="history_empty_description">Payments you send appear here as soon as they are processed.</string>
     <string name="history_error_title">Couldn't load your history</string>
     <string name="history_error_message">Check your connection and try again.</string>
+    <string name="history_amount">%1$s %2$s</string>
     <string name="history_status_completed">Completed</string>
     <string name="history_status_pending">Pending</string>
     <string name="history_status_failed">Failed</string>
