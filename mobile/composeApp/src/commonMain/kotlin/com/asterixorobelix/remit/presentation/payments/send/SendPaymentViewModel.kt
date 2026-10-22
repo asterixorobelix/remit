@@ -67,11 +67,11 @@ class SendPaymentViewModel(
         }
     }
 
+    /** Clears the form at once, so a Send tapped while the key is being forgotten sends nothing. */
     private fun discardUnfinished() {
-        viewModelScope.launch {
-            sendPayment.startNewPayment()
-            mutableState.update { SendPaymentUiState.Content(currency = it.currency) }
-        }
+        if (mutableState.value.isSubmitting) return
+        mutableState.update { SendPaymentUiState.Content(currency = it.currency) }
+        viewModelScope.launch { sendPayment.startNewPayment() }
     }
 
     private fun edit(change: SendPaymentUiState.Content.() -> SendPaymentUiState.Content) {
@@ -98,7 +98,7 @@ class SendPaymentViewModel(
                 is SendPaymentResult.Success -> {
                     sendPayment.startNewPayment()
                     mutableState.value = SendPaymentUiState.Content(currency = current.currency)
-                    effectChannel.send(SendPaymentEffect.PaymentSent(result.payment))
+                    effectChannel.send(SendPaymentEffect.PaymentSent(result.payment, alreadySent = result.replayed))
                 }
 
                 is SendPaymentResult.Invalid -> mutableState.update {

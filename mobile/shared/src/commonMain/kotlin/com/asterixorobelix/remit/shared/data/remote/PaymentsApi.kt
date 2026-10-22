@@ -67,7 +67,7 @@ class KtorPaymentsApi(
 
     private suspend fun HttpResponse.toResult(): SendPaymentResult = when {
         status.isSuccess() -> decodeOrNull<PaymentResponseDto>(bodyAsText())?.toDomainOrNull()
-            ?.let(SendPaymentResult::Success)
+            ?.let { SendPaymentResult.Success(it, replayed = headers[IDEMPOTENT_REPLAYED_HEADER] == "true") }
             ?: SendPaymentResult.Failed(PaymentFailure.UNEXPECTED_RESPONSE)
 
         status == HttpStatusCode.BadRequest -> rejection(bodyAsText())
@@ -107,6 +107,7 @@ class KtorPaymentsApi(
     companion object {
         const val PAYMENTS_PATH = "/api/v1/payments"
         const val IDEMPOTENCY_KEY_HEADER = "Idempotency-Key"
+        const val IDEMPOTENT_REPLAYED_HEADER = "Idempotent-Replayed"
 
         /** Unknown fields are ignored so the server can add fields without breaking older apps. */
         internal val json = Json { ignoreUnknownKeys = true }

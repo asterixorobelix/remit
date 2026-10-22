@@ -130,6 +130,11 @@ class PaymentSteps {
         assertIs<SendPaymentResult.Success>(result)
     }
 
+    @Then("the app says it had already been sent")
+    fun alreadySent() {
+        assertEquals(true, assertIs<SendPaymentResult.Success>(result).replayed)
+    }
+
     @Then("the payment is rejected with {string}")
     fun rejected(code: String) {
         assertEquals(SendPaymentResult.Invalid(setOf(ValidationError.valueOf(code))), result)

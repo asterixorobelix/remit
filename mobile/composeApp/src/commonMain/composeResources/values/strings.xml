@@ -113,6 +113,7 @@
     <string name="send_currency_label">Currency</string>
     <string name="send_submit">Send payment</string>
     <string name="send_success">Sent %1$s to %2$s</string>
+    <string name="send_already_sent">Already sent: %1$s to %2$s went through earlier. No new payment was made.</string>
     <string name="send_view_history">View</string>
     <string name="send_retry">Retry</string>
     <string name="unfinished_title">Unfinished payment</string>

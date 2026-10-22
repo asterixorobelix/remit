@@ -51,6 +51,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.asterixorobelix.remit.generated.resources.Res
 import com.asterixorobelix.remit.generated.resources.currency_eur
 import com.asterixorobelix.remit.generated.resources.currency_usd
+import com.asterixorobelix.remit.generated.resources.send_already_sent
 import com.asterixorobelix.remit.generated.resources.send_amount_label
 import com.asterixorobelix.remit.generated.resources.send_currency_label
 import com.asterixorobelix.remit.generated.resources.send_description
@@ -101,7 +102,7 @@ fun SendPaymentScreen(
                     val payment = effect.payment
                     val result = snackbarHostState.showSnackbar(
                         message = getString(
-                            Res.string.send_success,
+                            if (effect.alreadySent) Res.string.send_already_sent else Res.string.send_success,
                             payment.amount.formatted(),
                             payment.recipient.value,
                         ),

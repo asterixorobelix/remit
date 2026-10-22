@@ -86,7 +86,13 @@ class FakePaymentsBackend(private val firestore: FakeFirestore) {
         val dto = json.decodeFromString<CreatePaymentRequestDto>(body)
         requests += key to dto
         val response = processed[uid to key]?.let { (originalBody, original) ->
-            if (originalBody == body) scope.json(HttpStatusCode.Created, json.encodeToString(original)) else null
+            if (originalBody ==
+                body
+            ) {
+                scope.json(HttpStatusCode.Created, json.encodeToString(original), replayed = true)
+            } else {
+                null
+            }
         } ?: process(scope, uid, key, body, dto)
         if (timeoutAfterProcessingOnce) {
             timeoutAfterProcessingOnce = false
@@ -126,8 +132,15 @@ class FakePaymentsBackend(private val firestore: FakeFirestore) {
         return scope.json(HttpStatusCode.Created, json.encodeToString(payment))
     }
 
-    private fun MockRequestHandleScope.json(status: HttpStatusCode, body: String) =
-        respond(body, status, headersOf(HttpHeaders.ContentType, "application/json"))
+    private fun MockRequestHandleScope.json(status: HttpStatusCode, body: String, replayed: Boolean = false) =
+        respond(
+            body,
+            status,
+            headersOf(
+                HttpHeaders.ContentType to listOf("application/json"),
+                KtorPaymentsApi.IDEMPOTENT_REPLAYED_HEADER to listOf(replayed.toString()),
+            ),
+        )
 
     private companion object {
         const val TIMEOUT_MILLIS = 15_000L

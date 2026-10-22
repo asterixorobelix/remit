@@ -17,7 +17,11 @@ interface PaymentRepository {
 }
 
 sealed interface SendPaymentResult {
-    data class Success(val payment: Payment) : SendPaymentResult
+    /**
+     * [replayed] means the server had already processed this payment (same idempotency key), for
+     * example before the app was killed, and returned the original instead of a new payment.
+     */
+    data class Success(val payment: Payment, val replayed: Boolean = false) : SendPaymentResult
 
     /** Rejected by validation, on the device or by the server. */
     data class Invalid(val errors: Set<ValidationError>) : SendPaymentResult

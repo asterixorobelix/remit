@@ -204,6 +204,33 @@ class SendPaymentViewModelTest {
     }
 
     @Test
+    fun aReplayedPaymentIsAnnouncedAsAlreadySent() = runTest {
+        val vm = viewModel(FakePaymentRepository(SendPaymentResult.Success(testPayment(), replayed = true)))
+        vm.fill()
+        vm.effects.test {
+            vm.onEvent(SendPaymentEvent.Submit)
+            assertEquals(SendPaymentEffect.PaymentSent(testPayment(), alreadySent = true), awaitItem())
+        }
+    }
+
+    @Test
+    fun sendRightAfterDiscardSendsNothing() = runTest {
+        val repository = FakePaymentRepository(SendPaymentResult.Failed(PaymentFailure.NETWORK))
+        viewModel(repository).apply {
+            fill()
+            onEvent(SendPaymentEvent.Submit)
+        }
+        val reopened = viewModel(repository)
+
+        reopened.onEvent(SendPaymentEvent.DiscardUnfinished)
+        reopened.onEvent(SendPaymentEvent.Submit)
+
+        assertEquals(1, repository.sends.size)
+        assertEquals("", reopened.form.recipientEmail)
+        assertEquals(false, reopened.form.unfinished)
+    }
+
+    @Test
     fun editingAnUnfinishedPaymentMakesItANewOne() = runTest {
         val repository = FakePaymentRepository(SendPaymentResult.Failed(PaymentFailure.NETWORK))
         viewModel(repository).apply {

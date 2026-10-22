@@ -44,6 +44,7 @@ Feature: Send a payment
     When the app is closed and reopened
     And I send the unfinished payment again
     Then the payment is accepted
+    And the app says it had already been sent
     And exactly 1 payment to "erin@example.com" is recorded
 
   Scenario: The same details sent as a new payment are a second payment

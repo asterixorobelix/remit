@@ -76,6 +76,25 @@ class KtorPaymentsApiTest {
     }
 
     @Test
+    fun aReplayIsReportedAsSuch() = runTest {
+        val replay = send(
+            api {
+                respond(
+                    created,
+                    HttpStatusCode.Created,
+                    headersOf(
+                        HttpHeaders.ContentType to listOf("application/json"),
+                        "Idempotent-Replayed" to listOf("true"),
+                    ),
+                )
+            },
+        )
+        val fresh = send(api { json(HttpStatusCode.Created, created) })
+        assertEquals(true, assertIs<SendPaymentResult.Success>(replay).replayed)
+        assertEquals(false, assertIs<SendPaymentResult.Success>(fresh).replayed)
+    }
+
+    @Test
     fun validationRejectionNamesTheFields() = runTest {
         val result = send(
             api {
