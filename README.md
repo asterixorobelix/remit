@@ -9,6 +9,21 @@ exactly once and records it in Firestore. Built as a take-home challenge on top 
 
 [Demo video (82 s)](docs/images/remit-demo.mp4) · [Demo script](docs/DEMO.md)
 
+## In brief
+
+- **The brief:** every requirement is met, including the optional Appium test. Five are met
+  differently on purpose; [Where this differs from the brief](#where-this-differs-from-the-brief)
+  says why.
+- **Reviewing:** the [reviewer's guide](docs/REVIEWING.md) maps each line of the brief to its code
+  and tests, lists the twelve files to read in order, and says which template parts to skip.
+- **Run it:** `make emulators`, `make backend-emulated`, and `make mobile` in three terminals. No
+  Firebase account is needed ([details](#run-it)).
+- **Test it:** `make check` runs every CI gate; `make test-bdd`, `make test-appium`, and
+  `make test-perf` run Cucumber, Appium, and JMeter ([details](#tests)).
+- **Worth discussing:** the server, not the app, writes payments to Firestore; amounts are exact
+  decimals, never `Double`; one idempotency key per payment survives retries and crashes
+  ([Design decisions](#design-decisions)).
+
 ## What it does
 
 - **Send a payment.** Recipient email, amount, and a USD/EUR picker. The amount field accepts only
@@ -127,9 +142,9 @@ Each of these is deliberate; the reasons are under [Design decisions](#design-de
 
 | Layer | Command | What it proves | Where |
 |---|---|---|---|
-| Unit (shared) | `make test-mobile` | Money parsing, validation, idempotency keys, API client status mapping, repository, use cases: 75 tests, 94% line coverage (90% floor) | `mobile/shared/src/commonTest` |
-| Unit (app) | `make test-mobile` | ViewModels (Turbine), the History listener stopping when the screen is hidden, the Send form surviving process death, DataStore settings on a real file, the SQLDelight pending-payment store, formatting, retry policy, crash-report redaction, navigation graph: 104 tests; 85% merged line coverage (80% floor). `commonTest` runs on the desktop JVM and as Android host tests | `mobile/composeApp/src/*Test` |
-| Unit and route (backend) | `make test-backend` | Validator, service, routes, token verification, config: 62 tests, 83% line coverage (80% floor) | `backend/src/test` |
+| Unit (shared) | `make test-mobile` | Money parsing, validation, idempotency keys, API client status mapping, repository, use cases: 80 tests, 95% line coverage (90% floor) | `mobile/shared/src/commonTest` |
+| Unit (app) | `make test-mobile` | ViewModels (Turbine), the History listener stopping when the screen is hidden, the Send form surviving process death, DataStore settings on a real file, the SQLDelight pending-payment store, formatting, retry policy, crash-report redaction, navigation graph: 105 tests; 84% merged line coverage (80% floor). `commonTest` runs on the desktop JVM and as Android host tests | `mobile/composeApp/src/*Test` |
+| Unit and route (backend) | `make test-backend` | Validator, service, routes, token verification, config: 68 tests (4 of them need the emulators), 87% line coverage (80% floor) | `backend/src/test` |
 | Shared validation cases | runs with both of the above | 65 cases in one JSON file that the app and the server must both satisfy | `testdata/payment-validation-cases.json` |
 | BDD (Cucumber) | `make test-bdd` | 13 scenarios: payment processed and saved to Firestore (an in-memory fake), invalid input never sent, retry after a timeout pays once, edited details after a failure are a new payment, a payment interrupted by the app closing finished safely after reopening, history newest first, live updates, per-user isolation | `mobile/shared/src/desktopTest/resources/features` |
 | Firebase integration | `make test-backend-emulated` | The real Admin SDK against the emulators: ID token verification, the Firestore transaction, ten concurrent requests with one key create one payment | `backend/.../FirebaseEmulatorTest.kt` |
@@ -360,8 +375,9 @@ instead of breaking the list.
 ## Beyond the brief
 
 - **A maintained template, not a one-off.** I keep a full-stack template for my own apps, and
-  Remit is a real instance of it: the first commit is the template (`git diff template-base..main`
-  shows only the challenge work), the next removes its demo features, and the rest builds the app.
+  Remit is a real instance of it: the first commit is the template (tagged `template-base`), the
+  next three rename it to Remit and remove its demo features, and the rest builds the app
+  (`git log 53b7cfa..main` lists only the challenge work).
   See [docs/TEMPLATE.md](docs/TEMPLATE.md).
 - **CI/CD from that template.** Path-filtered GitHub Actions for backend, Android, iOS, and
   Fastlane; Semgrep and gitleaks; coverage floors plus 80% coverage on changed lines in pull
@@ -400,7 +416,7 @@ instead of breaking the list.
 | `testdata` | Validation cases shared by the app and the backend |
 | `e2e` | Appium UI tests |
 | `perf` | JMeter plan |
-| `docs` | [Demo script](docs/DEMO.md), [template overview](docs/TEMPLATE.md), workflow and release guides |
+| `docs` | [Reviewer's guide](docs/REVIEWING.md), [demo script](docs/DEMO.md), [template overview](docs/TEMPLATE.md), workflow and release guides |
 
 `make help` lists every command. Kotlin 2.3, Compose Multiplatform 1.10, AGP 9.1, Ktor 3.3,
 Koin 4.1, DataStore 1.2, Firebase Admin SDK 9; versions live in
