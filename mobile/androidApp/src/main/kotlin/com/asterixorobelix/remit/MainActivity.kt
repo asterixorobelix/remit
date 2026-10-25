@@ -7,13 +7,13 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.asterixorobelix.remit.presentation.app.AppUiState
 import com.asterixorobelix.remit.presentation.app.AppViewModel
 import com.asterixorobelix.remit.ui.theme.isDarkTheme
@@ -32,7 +32,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContent {
-            val themeMode by appViewModel.themeMode.collectAsState()
+            val themeMode by appViewModel.themeMode.collectAsStateWithLifecycle()
             val darkTheme = isDarkTheme(themeMode)
             // enableEdgeToEdge picks the bar icon colours from the system setting, which the
             // Settings theme can override: keep the icons readable on the app's own background.

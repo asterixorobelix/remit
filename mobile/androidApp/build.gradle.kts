@@ -231,6 +231,7 @@ dependencies {
     // MainActivity uses Compose directly (semantics, effects), not only through :composeApp.
     implementation(libs.compose.runtime)
     implementation(libs.compose.ui)
+    implementation(libs.androidx.lifecycle.runtimeCompose)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.profileinstaller)
     baselineProfile(projects.baselineprofile)
