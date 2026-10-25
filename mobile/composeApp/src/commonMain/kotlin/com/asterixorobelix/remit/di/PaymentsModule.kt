@@ -7,6 +7,7 @@ import com.asterixorobelix.remit.platform.AppConfig
 import com.asterixorobelix.remit.presentation.payments.history.PaymentHistoryViewModel
 import com.asterixorobelix.remit.presentation.payments.send.SendPaymentViewModel
 import com.asterixorobelix.remit.shared.data.FirebaseSettings
+import com.asterixorobelix.remit.shared.data.firebaseBackendModule
 import com.asterixorobelix.remit.shared.data.remote.PaymentRequestConfigurer
 import com.asterixorobelix.remit.shared.di.paymentsModule
 import com.asterixorobelix.remit.shared.domain.repository.PendingPaymentStore
@@ -17,12 +18,15 @@ import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
 /**
- * The payments feature: the shared module's use cases, repository, and Firebase pieces, plus what
+ * The payments feature: the shared module's use cases and repository, the backend, plus what
  * this app supplies (durable pending payment, retry opt-in) and the screens' ViewModels. The API
  * base URL (`ApiEndpoint`) comes from the network module.
  */
 internal fun paymentsModules(config: AppConfig): List<Module> = listOf(
-    paymentsModule(config.firebaseSettings()),
+    paymentsModule(),
+    // The backend (sign-in and History). To replace Firebase, bind another AuthSession and
+    // PaymentHistorySource here; nothing else names the provider.
+    firebaseBackendModule(config.firebaseSettings()),
     module {
         single<PendingPaymentStore> { SqlDelightPendingPaymentStore(get(), get()) }
         single { PaymentRequestConfigurer { request -> request.paymentRequestOptions() } }

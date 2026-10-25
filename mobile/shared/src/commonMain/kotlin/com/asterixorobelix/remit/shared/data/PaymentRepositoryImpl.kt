@@ -59,7 +59,7 @@ class PaymentRepositoryImpl(
     }
 
     private fun Throwable.historyFailure(): HistoryFailure = when {
-        cause is FirebaseNotSetUpException -> HistoryFailure.NOT_SET_UP
+        cause is BackendNotSetUpException -> HistoryFailure.NOT_SET_UP
         this is AuthUnavailableException && isNetworkError -> HistoryFailure.NETWORK
         this is PaymentHistoryUnavailableException && isNetworkError -> HistoryFailure.NETWORK
         else -> HistoryFailure.UNAVAILABLE

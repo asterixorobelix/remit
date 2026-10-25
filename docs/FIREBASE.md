@@ -20,6 +20,9 @@ Firebase iOS SDK through Swift Package Manager if you need it there.
 
 At runtime, crash reports and analytics go to Firebase only when the `firebase` capability is
 enabled and the app was configured from `google-services.json` (never for the emulators).
+`androidObservabilityProviders` makes that choice; it is the only code that names Crashlytics or
+Firebase Analytics, and the rest of the app sees the `CrashLogger` and `Analytics` interfaces.
+To use another provider, such as Sentry, implement those interfaces and return them there.
 Collection is off in the manifest until the app turns it on, and a build without the file
 deactivates Analytics entirely. The code calls the Firebase SDKs directly, so R8 needs no
 keep rules for them.

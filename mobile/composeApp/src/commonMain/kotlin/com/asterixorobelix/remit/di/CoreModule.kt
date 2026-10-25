@@ -27,9 +27,8 @@ import com.asterixorobelix.remit.platform.CrashLogger
 import com.asterixorobelix.remit.platform.DefaultAppDispatchers
 import com.asterixorobelix.remit.platform.Logger
 import com.asterixorobelix.remit.platform.Observability
+import com.asterixorobelix.remit.platform.ObservabilityProviders
 import com.asterixorobelix.remit.platform.RedactingCrashLogger
-import com.asterixorobelix.remit.platform.createAnalytics
-import com.asterixorobelix.remit.platform.createCrashLogger
 import com.asterixorobelix.remit.platform.createLogger
 import com.asterixorobelix.remit.platform.has
 import com.asterixorobelix.remit.platform.minLogLevel
@@ -51,11 +50,10 @@ import org.koin.dsl.module
 internal fun observabilityModule(config: AppConfig): Module = module {
     single<AppConfig> { config }
     singleOf(::DefaultAppDispatchers) bind AppDispatchers::class
-    // Reports go to a real Firebase project only, never to the local emulators.
-    val reportToFirebase = config.has(Capability.FIREBASE) && config.firebaseEmulatorHost == null
-    // Crash reports leave the device: redact personal data and credentials on every platform.
-    single<CrashLogger> { RedactingCrashLogger(createCrashLogger(firebaseEnabled = reportToFirebase)) }
-    single<Analytics> { createAnalytics(firebaseEnabled = reportToFirebase) }
+    // The platform module chooses the providers (ObservabilityProviders). Crash reports leave the
+    // device: redact personal data and credentials whichever provider receives them.
+    single<CrashLogger> { RedactingCrashLogger(get<ObservabilityProviders>().crashLogger) }
+    single<Analytics> { get<ObservabilityProviders>().analytics }
     single<Logger> { createLogger().apply { minLogLevel = config.minLogLevel() } }
     singleOf(::Observability)
 }

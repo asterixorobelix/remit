@@ -5,8 +5,11 @@ import com.asterixorobelix.remit.data.db.IosSqlDriverFactory
 import com.asterixorobelix.remit.data.db.SqlDriverFactory
 import com.asterixorobelix.remit.data.preferences.iosPreferencesDataStore
 import com.asterixorobelix.remit.di.appModules
+import com.asterixorobelix.remit.platform.IOSAnalytics
 import com.asterixorobelix.remit.platform.IOSAppConfig
+import com.asterixorobelix.remit.platform.IOSCrashLogger
 import com.asterixorobelix.remit.platform.Observability
+import com.asterixorobelix.remit.platform.ObservabilityProviders
 import org.koin.core.context.startKoin
 import org.koin.dsl.module
 
@@ -16,6 +19,8 @@ fun startKoinIos() {
     val platformModule = module {
         single<SqlDriverFactory> { IosSqlDriverFactory() }
         single { iosPreferencesDataStore() }
+        // Crash reporting and analytics: the system log until an iOS provider is added.
+        single { ObservabilityProviders(IOSCrashLogger(), IOSAnalytics()) }
     }
     val koin = startKoin { modules(appModules(config, platformModule)) }.koin
     koin.get<Observability>().initialize()

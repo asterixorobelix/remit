@@ -21,7 +21,8 @@ private class ConsoleLogger : Logger {
 }
 actual fun createLogger(): Logger = ConsoleLogger()
 
-private class ConsoleAnalytics : Analytics {
+/** Prints events: the desktop gallery and JVM tests have no analytics provider. */
+internal class ConsoleAnalytics : Analytics {
     override fun initialize() = Unit
     override fun logEvent(name: String, params: Map<String, Any>?) = println("[analytics] $name $params")
     override fun logScreenView(screenName: String, screenClass: String?) =
@@ -31,9 +32,8 @@ private class ConsoleAnalytics : Analytics {
     override fun setAnalyticsCollectionEnabled(enabled: Boolean) = Unit
     override fun resetAnalyticsData() = Unit
 }
-actual fun createAnalytics(firebaseEnabled: Boolean): Analytics = ConsoleAnalytics()
 
-private class ConsoleCrashLogger : CrashLogger {
+internal class ConsoleCrashLogger : CrashLogger {
     override fun initialize() = Unit
     override fun logException(throwable: Throwable, message: String?) = throwable.printStackTrace()
     override fun setCustomKey(key: String, value: String) = Unit
@@ -41,7 +41,6 @@ private class ConsoleCrashLogger : CrashLogger {
     override fun log(message: String) = println("[crash] $message")
     override fun testCrash(): Unit = error("Desktop test crash")
 }
-actual fun createCrashLogger(firebaseEnabled: Boolean): CrashLogger = ConsoleCrashLogger()
 actual fun openUrl(url: String): Boolean {
     val uri = runCatching { URI(url) }.getOrNull()
     if (uri == null || !Desktop.isDesktopSupported()) return false

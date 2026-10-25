@@ -43,9 +43,3 @@ interface CrashLogger {
      */
     fun testCrash()
 }
-
-/**
- * Platform crash reporting. With [firebaseEnabled] (the `firebase` capability) Android reports to
- * Crashlytics when the SDK is linked; otherwise errors are only logged locally.
- */
-expect fun createCrashLogger(firebaseEnabled: Boolean): CrashLogger

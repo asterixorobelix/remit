@@ -11,7 +11,8 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 
-actual fun platformPaymentHistorySource(settings: FirebaseSettings): PaymentHistorySource {
+/** Firestore, or a source that fails clearly when this build never started Firebase. */
+internal fun firestorePaymentHistorySource(settings: FirebaseSettings): PaymentHistorySource {
     val app = defaultFirebaseApp() ?: return UnsupportedPlatformHistorySource
     val firestore = FirebaseFirestore.getInstance(app)
     settings.emulatorHost?.let { firestore.useEmulator(it, FirebaseSettings.FIRESTORE_EMULATOR_PORT) }

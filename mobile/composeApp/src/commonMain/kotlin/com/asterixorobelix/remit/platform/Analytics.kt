@@ -108,9 +108,3 @@ object AnalyticsParams {
     const val METHOD = "method"
     const val VALUE = "value"
 }
-
-/**
- * Platform analytics. With [firebaseEnabled] (the `firebase` capability) Android forwards events
- * to Firebase Analytics when the SDK is linked; otherwise events are only logged locally.
- */
-expect fun createAnalytics(firebaseEnabled: Boolean): Analytics

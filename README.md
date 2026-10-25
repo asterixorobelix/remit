@@ -169,11 +169,12 @@ desktop JVM, and CI links the iOS framework whenever iOS-relevant code changes.
 - **Shared:** models, money parsing, validation, idempotency handling, the HTTP client and its
   error mapping, the repository, use cases, and dependency injection. The Cucumber suite runs
   on the desktop JVM against exactly this code.
-- **expect/actual:** `platformAuthSession()` and `platformPaymentHistorySource()`. Android uses
-  the Firebase SDK. iOS and desktop return implementations that fail with a clear "Firebase is
-  not set up" error instead of pretending to have data.
-- **To ship iOS:** add the Firebase iOS SDK (Swift Package Manager) and write the two `iosMain`
-  actuals against it, or switch both actuals to a KMP Firebase wrapper such as GitLive's.
+- **expect/actual:** `firebaseBackendModule()` binds the `AuthSession` and `PaymentHistorySource`
+  interfaces. Android uses the Firebase SDK; iOS and desktop bind implementations that fail with
+  a clear "not set up" error instead of pretending to have data.
+- **To ship iOS:** add the Firebase iOS SDK (Swift Package Manager) and write the `iosMain`
+  `firebaseBackendModule` with adapters for `AuthSession` and `PaymentHistorySource`, or use a
+  KMP Firebase wrapper such as GitLive's.
   Because `shared` has no Compose dependency, an iOS team could also build the screens in
   SwiftUI and call the same use cases.
 - **UI:** the Compose screens are already multiplatform and render in the desktop gallery; the
@@ -218,6 +219,24 @@ Deliberate departures:
 - **The activity handles configuration changes itself** (`configChanges`, the Compose
   Multiplatform default). Compose redraws for rotation and theme changes without recreating the
   activity, and process death is handled through `SavedStateHandle` as above.
+
+## Third-party services behind interfaces
+
+No screen, ViewModel, use case, or repository calls a vendor SDK. Each service is an interface in
+the app's own terms, a thin adapter implements it, and one place chooses the adapter, so a
+provider can be swapped without touching the rest of the app. `scripts/check-architecture.sh`
+fails the build if a vendor SDK (Firebase, Sentry, PostHog, and others) is imported anywhere else.
+
+| Service | Interface | Firebase adapter today | Chosen in |
+|---|---|---|---|
+| Crash reports | `CrashLogger` | `CrashlyticsCrashLogger` (logcat without Firebase) | `androidObservabilityProviders` |
+| Analytics | `Analytics` | `FirebaseAnalyticsTracker` (logcat without Firebase) | `androidObservabilityProviders` |
+| Sign-in and ID token | `AuthSession` | `FirebaseAuthSession` | `firebaseBackendModule` |
+| Payment history | `PaymentHistorySource` | `FirestorePaymentHistorySource` | `firebaseBackendModule` |
+
+Moving crash reports to Sentry, for example, means adding a `SentryCrashLogger : CrashLogger`,
+returning it from `androidObservabilityProviders`, and swapping the Gradle dependency. Report
+redaction (`RedactingCrashLogger`) wraps whichever provider is chosen.
 
 ## Design decisions
 

@@ -74,7 +74,7 @@ class PaymentRepositoryImplTest {
     @Test
     fun aBuildWithoutFirebaseIsNotBlamedOnTheConnection() = runTest {
         val api = FakePaymentsApi(success)
-        auth.failure = AuthUnavailableException(isNetworkError = false, cause = FirebaseNotSetUpException())
+        auth.failure = AuthUnavailableException(isNetworkError = false, cause = BackendNotSetUpException())
         assertEquals(SendPaymentResult.Failed(PaymentFailure.NOT_SET_UP), repository(api).send(paymentRequest(), "k"))
         assertTrue(api.calls.isEmpty())
     }
@@ -102,7 +102,7 @@ class PaymentRepositoryImplTest {
         assertEquals(HistoryFailure.NETWORK, historyFailure())
         auth.failure = AuthUnavailableException(isNetworkError = false)
         assertEquals(HistoryFailure.UNAVAILABLE, historyFailure())
-        auth.failure = AuthUnavailableException(isNetworkError = false, cause = FirebaseNotSetUpException())
+        auth.failure = AuthUnavailableException(isNetworkError = false, cause = BackendNotSetUpException())
         assertEquals(HistoryFailure.NOT_SET_UP, historyFailure())
     }
 
@@ -112,7 +112,7 @@ class PaymentRepositoryImplTest {
         assertEquals(HistoryFailure.UNAVAILABLE, historyFailure(PaymentHistoryUnavailableException()))
         assertEquals(
             HistoryFailure.NOT_SET_UP,
-            historyFailure(PaymentHistoryUnavailableException(cause = FirebaseNotSetUpException())),
+            historyFailure(PaymentHistoryUnavailableException(cause = BackendNotSetUpException())),
         )
         assertEquals(HistoryFailure.UNAVAILABLE, historyFailure(IllegalStateException("unexpected")))
     }

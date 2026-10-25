@@ -9,6 +9,7 @@ import com.asterixorobelix.remit.di.appModules
 import com.asterixorobelix.remit.di.firebaseSettings
 import com.asterixorobelix.remit.platform.AppConfig
 import com.asterixorobelix.remit.platform.Observability
+import com.asterixorobelix.remit.platform.androidObservabilityProviders
 import com.asterixorobelix.remit.shared.data.startFirebaseForEmulators
 import org.koin.core.context.startKoin
 import org.koin.dsl.module
@@ -24,6 +25,7 @@ fun Application.startRemit(config: AppConfig) {
         single<Context> { this@startRemit }
         single<SqlDriverFactory> { AndroidSqlDriverFactory(get()) }
         single { androidPreferencesDataStore(this@startRemit) }
+        single { androidObservabilityProviders(config) }
     }
     val koin = startKoin { modules(appModules(config, androidPlatformModule)) }.koin
     koin.get<Observability>().initialize()

@@ -1,14 +1,13 @@
 package com.asterixorobelix.remit.shared.data.history
 
-import com.asterixorobelix.remit.shared.data.FirebaseNotSetUpException
-import com.asterixorobelix.remit.shared.data.FirebaseSettings
+import com.asterixorobelix.remit.shared.data.BackendNotSetUpException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
 /**
- * Live payment records for one user, newest first. The Android source listens to Firestore with
- * a snapshot listener; each platform converts its SDK types to plain [PaymentRecord]s, so mapping
- * and validation stay in common code.
+ * Live payment records for one user, newest first. On Android a Firestore snapshot listener
+ * implements it (`firebaseBackendModule`); an implementation converts its SDK types to plain
+ * [PaymentRecord]s, so mapping and validation stay in common code.
  */
 interface PaymentHistorySource {
     fun observe(userId: String): Flow<List<PaymentRecord>>
@@ -38,15 +37,12 @@ object PaymentFields {
     const val HISTORY_LIMIT = 100L
 }
 
-/** [isNetworkError]: Firestore could not be reached, so retrying later can help. */
+/** [isNetworkError]: the history store could not be reached, so retrying later can help. */
 class PaymentHistoryUnavailableException(val isNetworkError: Boolean = false, cause: Throwable? = null) :
     Exception("Payment history is unavailable", cause)
 
-/** Firestore on Android; a source that always fails where Firebase is not wired. */
-expect fun platformPaymentHistorySource(settings: FirebaseSettings): PaymentHistorySource
-
 internal object UnsupportedPlatformHistorySource : PaymentHistorySource {
     override fun observe(userId: String): Flow<List<PaymentRecord>> = flow {
-        throw PaymentHistoryUnavailableException(cause = FirebaseNotSetUpException())
+        throw PaymentHistoryUnavailableException(cause = BackendNotSetUpException())
     }
 }

@@ -278,6 +278,9 @@ kover {
                 // if you add Robolectric tests for them.
                 inheritedFrom("android.app.Application", "android.app.Application\$ActivityLifecycleCallbacks")
                 classes("*_androidKt", "*.Android*")
+                // Vendor adapters and their logcat fallbacks (ObservabilityProviders.android.kt): thin
+                // wrappers around SDK calls that need a device.
+                classes("*.Crashlytics*", "*.FirebaseAnalytics*", "*.Logcat*")
                 // The UI kit (components, custom Modifier.Node modifiers, theme tokens) draws and
                 // animates like composables do; the screenshot tests cover it. Coverage targets
                 // logic: domain, data, ViewModels, navigation. Desktop platform stubs are glue

@@ -44,14 +44,14 @@ Kotlin, the new DSL, R8 strict full mode); do not add the opt-out flags back.
   or discard. A server rejection or an idempotency conflict clears it.
 - `KtorPaymentsApi` maps every outcome to `SendPaymentResult`; `PaymentRepositoryImpl` refreshes
   an expired Firebase ID token once under the same key. The app never writes to Firestore; the
-  backend does, and History listens (`platformPaymentHistorySource`, a snapshot listener on
-  Android; iOS and desktop fail clearly).
+  backend does, and History listens (`FirestorePaymentHistorySource`, a snapshot listener on
+  Android, bound by `firebaseBackendModule`; iOS and desktop fail clearly).
 - Firebase: anonymous auth. Debug builds use the Firebase emulators when `FIREBASE_EMULATOR_HOST`
   is set in `local.properties` (`10.0.2.2` from the Android emulator; `make emulators` and
   `make backend-emulated` at the root). Without `google-services.json`, `startRemit` calls
   `startFirebaseForEmulators` (project `FirebaseSettings.EMULATOR_PROJECT_ID`, which must match the
-  Makefile's `FIREBASE_PROJECT`); with neither, the Android actuals fall back to the "not set up"
-  implementations instead of crashing. Their errors carry `FirebaseNotSetUpException`, which
+  Makefile's `FIREBASE_PROJECT`); with neither, `firebaseBackendModule` binds the "not set up"
+  implementations instead of crashing. Their errors carry `BackendNotSetUpException`, which
   `PaymentRepositoryImpl` maps to `PaymentFailure.NOT_SET_UP` and `HistoryFailure.NOT_SET_UP`, so
   neither screen blames the connection; only `NETWORK` failures say "check your connection".
   History shows debug builds the setup fix (`showSetupHelp`), and `androidApp/build.gradle.kts` and
@@ -79,11 +79,12 @@ Kotlin, the new DSL, R8 strict full mode); do not add the opt-out flags back.
   then Home), owns theme, review prompt, and the force-update gate
   (`GET /api/v1/config`, `backend` only; failures never block the app).
 - Logging and crash reports: release builds log WARN and above (`AppConfig.minLogLevel`), and R8
-  strips `Log.v`/`Log.d`/`Log.i` (`androidApp/proguard-rules.pro`). `AndroidCrashLogger` and
-  `AndroidAnalytics` call Crashlytics and Analytics directly, only for a real Firebase project
-  (never the emulators); collection is off in the manifest until they turn it on, and a build
-  without `google-services.json` deactivates Analytics. `observabilityModule` wraps the
-  platform crash logger in `RedactingCrashLogger`, which removes emails, bearer tokens, JWTs, API
+  strips `Log.v`/`Log.d`/`Log.i` (`androidApp/proguard-rules.pro`).
+  `androidObservabilityProviders` picks Crashlytics and Firebase Analytics
+  (`CrashlyticsCrashLogger`, `FirebaseAnalyticsTracker`) only for a real Firebase project (never
+  the emulators), and logcat otherwise; collection is off in the manifest until they turn it on,
+  and a build without `google-services.json` deactivates Analytics. `observabilityModule` wraps
+  the chosen crash logger in `RedactingCrashLogger`, which removes emails, bearer tokens, JWTs, API
   keys, and `name=value` secrets from messages, custom keys, and exception messages (causes
   included, stack trace kept). Always inject `CrashLogger`; never call Crashlytics directly.
 - `data/network/ApiHttpClient.kt` builds the only API client: per-request
@@ -112,6 +113,31 @@ Kotlin, the new DSL, R8 strict full mode); do not add the opt-out flags back.
 App-specific extension points (honest defaults, not fake data): Feedback opens the mail
 app to `support_email`, and `app_store_id`, `settings_privacy_url`, `settings_terms_url`
 are placeholder string resources to replace per app.
+
+## Third-party services
+
+Every vendor SDK sits behind an app interface, so a provider can be replaced (Crashlytics by
+Sentry, Firestore by another store) by writing one adapter and changing one binding. Shared code,
+screens, ViewModels, use cases, and repositories see only the interfaces.
+
+| Concern | Interface (common) | Current adapter | Chosen in |
+|---|---|---|---|
+| Crash reports | `CrashLogger` | `CrashlyticsCrashLogger`, `LogcatCrashLogger` | `androidObservabilityProviders` (Android), `startKoinIos` (iOS) |
+| Analytics | `Analytics` | `FirebaseAnalyticsTracker`, `LogcatAnalytics` | same |
+| Sign-in and ID token | `AuthSession` | `FirebaseAuthSession` | `firebaseBackendModule`, bound in `paymentsModules` |
+| Payment history | `PaymentHistorySource` | `FirestorePaymentHistorySource` | same |
+
+Rules for adding or changing a provider:
+
+- Define or reuse an interface in common code, written in the app's terms (no SDK types in its
+  signatures). Put the adapter in a `data/` or `platform/` package of the platform source set.
+- Bind it in the one place that chooses providers; nothing else may name the vendor.
+  `scripts/check-architecture.sh` fails on an SDK import anywhere else.
+- Example: to report crashes to Sentry, add `SentryCrashLogger : CrashLogger` in
+  `composeApp/src/androidMain/.../platform`, return it from `androidObservabilityProviders`, and
+  swap the Gradle dependency. `RedactingCrashLogger` still wraps it.
+- A provider without a device-free test (an SDK wrapper) is excluded from Kover by class name;
+  keep the adapter thin so the logic around it stays covered.
 
 ## Android practices
 

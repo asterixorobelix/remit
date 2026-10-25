@@ -1,30 +1,27 @@
 package com.asterixorobelix.remit.shared.data.auth
 
-import com.asterixorobelix.remit.shared.data.FirebaseNotSetUpException
-import com.asterixorobelix.remit.shared.data.FirebaseSettings
+import com.asterixorobelix.remit.shared.data.BackendNotSetUpException
 
 /**
- * The signed-in Firebase user. The app signs in anonymously, so every install has a stable user
- * id: the backend stamps it on each payment, and Firestore rules show users only their own.
+ * The signed-in user. The app signs in anonymously, so every install has a stable user id: the
+ * backend stamps it on each payment, and the history store shows users only their own. Firebase
+ * Auth implements it on Android (`firebaseBackendModule`).
  */
 interface AuthSession {
     /** Signs in anonymously first if nobody is signed in. */
     suspend fun userId(): String
 
-    /** A Firebase ID token for the API's `Authorization: Bearer` header. */
+    /** An ID token for the API's `Authorization: Bearer` header. */
     suspend fun idToken(forceRefresh: Boolean): String
 }
 
 class AuthUnavailableException(val isNetworkError: Boolean, cause: Throwable? = null) :
-    Exception("Could not sign in to Firebase", cause) {
+    Exception("Could not sign in", cause) {
     /** Sign-in can never work in this build, so the user should not be told to check their connection. */
-    val isNotSetUp: Boolean get() = cause is FirebaseNotSetUpException
+    val isNotSetUp: Boolean get() = cause is BackendNotSetUpException
 }
 
-/** Firebase Auth on Android; an [AuthSession] that always fails where Firebase is not wired. */
-expect fun platformAuthSession(settings: FirebaseSettings): AuthSession
-
-/** Where Firebase is not wired (iOS and desktop) or not started (Android without its config). */
+/** Where no backend is wired (iOS and desktop) or started (Android without its config). */
 internal object UnsupportedPlatformAuthSession : AuthSession {
     override suspend fun userId(): String = throw unsupported()
 
@@ -32,6 +29,6 @@ internal object UnsupportedPlatformAuthSession : AuthSession {
 
     private fun unsupported() = AuthUnavailableException(
         isNetworkError = false,
-        cause = FirebaseNotSetUpException(),
+        cause = BackendNotSetUpException(),
     )
 }

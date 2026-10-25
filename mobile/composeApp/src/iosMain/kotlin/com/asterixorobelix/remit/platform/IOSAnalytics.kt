@@ -56,9 +56,3 @@ class IOSAnalytics : Analytics {
         NSLog("Analytics: Data reset")
     }
 }
-
-/**
- * Create iOS-specific analytics
- */
-@Suppress("UnusedParameter") // Firebase iOS is not bundled; see FIREBASE_SETUP.md.
-actual fun createAnalytics(firebaseEnabled: Boolean): Analytics = IOSAnalytics()

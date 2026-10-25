@@ -43,6 +43,16 @@ check 'Forbidden library dependency' \
   '(com\.google\.dagger|cafe\.adriel\.voyager|com\.squareup\.retrofit2|com\.google\.code\.gson|com\.squareup\.moshi|io\.reactivex|com\.github\.bumptech\.glide|com\.squareup\.picasso|androidx\.room)' \
   'gradle/libs.versions.toml' ':(glob)**/*.gradle.kts'
 
+# Third-party services (Firebase, Sentry, analytics vendors) are reached only through app
+# interfaces: an adapter in a data/ or platform/ package implements CrashLogger, Analytics,
+# AuthSession, PaymentHistorySource, ..., and one place binds it (androidObservabilityProviders,
+# firebaseBackendModule). Screens, ViewModels, use cases, DI modules, and entry points never
+# import an SDK, so switching provider touches the adapter and its binding only.
+check 'Third-party SDK used outside an adapter' \
+  'call it from an adapter in data/ or platform/ that implements an app interface, and bind it where providers are chosen (mobile/AGENTS.md, "Third-party services")' \
+  '^import (com\.google\.firebase\.|dev\.gitlive\.firebase\.|io\.sentry\.|com\.posthog\.|com\.mixpanel\.|com\.amplitude\.|com\.bugsnag\.|com\.datadog\.|com\.segment\.)' \
+  ':(glob)mobile/**/src/*Main/**/*.kt' ':(exclude,glob)mobile/**/data/**' ':(exclude,glob)mobile/**/platform/**'
+
 check 'Domain layer depends on a framework or an outer layer' \
   'keep domain/ pure Kotlin: depend on repository interfaces, never data/, presentation/, ui/, Android, Ktor, SQLDelight, or Koin' \
   "^import (androidx\\.|android\\.|io\\.ktor\\.|app\\.cash\\.sqldelight|org\\.koin\\.|${PKG_RE}\\.(data|presentation|ui|di)\\.)" \

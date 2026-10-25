@@ -45,9 +45,3 @@ class IOSCrashLogger : CrashLogger {
         error("Test crash for iOS")
     }
 }
-
-/**
- * Create iOS-specific crash logger
- */
-@Suppress("UnusedParameter") // Firebase iOS is not bundled; see FIREBASE_SETUP.md.
-actual fun createCrashLogger(firebaseEnabled: Boolean): CrashLogger = IOSCrashLogger()

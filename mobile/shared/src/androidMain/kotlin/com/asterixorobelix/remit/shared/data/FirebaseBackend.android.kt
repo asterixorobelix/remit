@@ -1,8 +1,19 @@
 package com.asterixorobelix.remit.shared.data
 
 import android.content.Context
+import com.asterixorobelix.remit.shared.data.auth.AuthSession
+import com.asterixorobelix.remit.shared.data.auth.firebaseAuthSession
+import com.asterixorobelix.remit.shared.data.history.PaymentHistorySource
+import com.asterixorobelix.remit.shared.data.history.firestorePaymentHistorySource
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
+import org.koin.core.module.Module
+import org.koin.dsl.module
+
+actual fun firebaseBackendModule(settings: FirebaseSettings): Module = module {
+    single<AuthSession> { firebaseAuthSession(settings) }
+    single<PaymentHistorySource> { firestorePaymentHistorySource(settings) }
+}
 
 /**
  * Starts Firebase for the local Emulator Suite when the build has no google-services.json (a fresh

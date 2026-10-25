@@ -10,7 +10,8 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.tasks.await
 
-actual fun platformAuthSession(settings: FirebaseSettings): AuthSession {
+/** Firebase Auth, or a session that fails clearly when this build never started Firebase. */
+internal fun firebaseAuthSession(settings: FirebaseSettings): AuthSession {
     val app = defaultFirebaseApp() ?: return UnsupportedPlatformAuthSession
     val auth = FirebaseAuth.getInstance(app)
     settings.emulatorHost?.let { auth.useEmulator(it, FirebaseSettings.AUTH_EMULATOR_PORT) }

@@ -11,6 +11,9 @@ import com.asterixorobelix.remit.data.preferences.createPreferencesDataStore
 import com.asterixorobelix.remit.di.appModules
 import com.asterixorobelix.remit.domain.update.CheckForceUpdateUseCase
 import com.asterixorobelix.remit.platform.Capability
+import com.asterixorobelix.remit.platform.ConsoleAnalytics
+import com.asterixorobelix.remit.platform.ConsoleCrashLogger
+import com.asterixorobelix.remit.platform.ObservabilityProviders
 import com.asterixorobelix.remit.presentation.app.AppViewModel
 import com.asterixorobelix.remit.presentation.developer.DeveloperViewModel
 import com.asterixorobelix.remit.presentation.feedback.FeedbackViewModel
@@ -132,6 +135,7 @@ class NavigationGraphTest {
                     JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY).also { AppDatabase.Schema.create(it) }
             }
         }
+        single { ObservabilityProviders(ConsoleCrashLogger(), ConsoleAnalytics()) }
         // A fresh file per graph: DataStore allows one active store per file in a process.
         single {
             createPreferencesDataStore(

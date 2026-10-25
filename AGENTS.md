@@ -144,8 +144,15 @@ Static analysis and coverage, per build:
   Material 3, Compose resources, and accessible content descriptions.
 - Mobile database changes require migrations: SQLDelight `.sqm` plus an updated schema
   baseline after the database has shipped. Never edit an applied migration.
+- Third-party services sit behind app interfaces. Crash reporting (`CrashLogger`), analytics
+  (`Analytics`), sign-in (`AuthSession`), and stored data (`PaymentHistorySource`, repositories) are
+  interfaces; each vendor SDK (Firebase, Sentry, PostHog, ...) is called only from an adapter
+  class in a `data/` or `platform/` package, and one function or Koin module binds the provider.
+  Switching provider means a new adapter and a changed binding, nothing else. See "Third-party
+  services" in `mobile/AGENTS.md`.
 - Never add Hilt/Dagger, Voyager, LiveData, Retrofit, Gson, or a public MutableStateFlow.
-  `scripts/check-architecture.sh` enforces these and the layer, Koin, UI-literal, and preview rules.
+  `scripts/check-architecture.sh` enforces these and the layer, Koin, UI-literal, preview, and
+  third-party SDK rules.
 - Change identity only through `setup.sh`. Change versions through `bump-version.sh`,
   and endpoints in `app.properties` followed by `scripts/sync-app-config.sh`.
 - Never let version scripts or failed release uploads create commits or tags.
