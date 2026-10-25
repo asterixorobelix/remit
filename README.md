@@ -49,10 +49,57 @@ The debug app reaches the emulators and the API at `10.0.2.2`, your machine as s
 Android emulator (a physical device needs `adb reverse`: see [TROUBLESHOOTING.md](TROUBLESHOOTING.md)).
 If History says the emulators aren't answering, start them with `make emulators` and retry.
 
-To use the real Firebase project instead: enable Anonymous sign-in in the Firebase console,
-remove any `FIREBASE_EMULATOR_HOST` setting, place `google-services.json` in `mobile/androidApp/`, and start
-the backend with `FIREBASE_PROJECT_ID` and `GOOGLE_APPLICATION_CREDENTIALS` (a service account
-key) exported, using `make backend`.
+To use a hosted Firebase project instead, see [Hosted Firebase project](#hosted-firebase-project).
+
+## Firebase
+
+The brief asks for Firestore to store and retrieve the payments, with the Firebase logic in the
+shared KMP module behind expect/actual and the Firebase setup in `androidApp`. Both sides use the
+real Firebase SDKs: the Firebase Android SDK in the app and the Firebase Admin SDK in the backend.
+`make emulators` runs Firebase's own Auth and Firestore emulators, so a fresh clone works without
+a Firebase account; a hosted project is a configuration change, not a code change.
+
+![A payment in Firestore (Emulator Suite UI) and the same payment in the app's History](docs/images/firestore-and-history.png)
+
+| The brief asks for | Where it is |
+|---|---|
+| Firestore stores the payments | The backend writes each payment to `payments/{id}` in one Firestore transaction with its idempotency record: [`FirestorePaymentStore.kt`](backend/src/main/kotlin/com/asterixorobelix/remit/service/FirestorePaymentStore.kt) |
+| History comes from Firestore, in real time | A snapshot listener on the signed-in user's payments, newest first: [`FirestorePaymentHistorySource.kt`](mobile/shared/src/androidMain/kotlin/com/asterixorobelix/remit/shared/data/history/FirestorePaymentHistorySource.kt) |
+| Firebase logic in `shared`, expect/actual for the SDK | `expect fun firebaseBackendModule` in [`FirebaseBackend.kt`](mobile/shared/src/commonMain/kotlin/com/asterixorobelix/remit/shared/data/FirebaseBackend.kt); the Android actual binds the Firebase SDK, and iOS and desktop bind "not set up" implementations |
+| Firebase setup in `androidApp` | `google-services.json` and the emulator host, in [`build.gradle.kts`](mobile/androidApp/build.gradle.kts) |
+
+Firebase Auth identifies the user as well: the app signs in anonymously
+([`FirebaseAuthSession.kt`](mobile/shared/src/androidMain/kotlin/com/asterixorobelix/remit/shared/data/auth/FirebaseAuthSession.kt)),
+the backend verifies the ID token on every payment
+([`TokenVerifier.kt`](backend/src/main/kotlin/com/asterixorobelix/remit/service/TokenVerifier.kt)),
+and [`firestore.rules`](firebase/firestore.rules) let each user read only their own payments and
+no client write any (`make test-rules`).
+
+To watch it, keep the Emulator Suite UI open at <http://localhost:4000/firestore> while you send a
+payment: a document appears in `payments` (and one in `idempotencyKeys`), and History shows the
+payment without a refresh. `make test-backend-emulated` runs the Admin SDK against the same
+emulators.
+
+### Hosted Firebase project
+
+The same build runs against a hosted project; `.firebaserc` names it (`remit-payments`). Reviewers
+don't need one.
+
+1. In the Firebase console, turn on **Anonymous** under Authentication → Sign-in method.
+2. Deploy the security rules and the index History needs:
+   `firebase deploy --only firestore:rules,firestore:indexes`.
+3. Register the Android apps `com.asterixorobelix.remit` and `com.asterixorobelix.remit.debug`,
+   and save their `google-services.json` in `mobile/androidApp/` (gitignored). Debug builds then
+   use the project instead of the emulators; remove any `FIREBASE_EMULATOR_HOST` setting.
+4. Create a service account key (Project settings → Service accounts), keep it outside the
+   repository, and start the backend with it:
+
+   ```bash
+   FIREBASE_PROJECT_ID=remit-payments GOOGLE_APPLICATION_CREDENTIALS=/path/to/key.json make backend
+   make mobile
+   ```
+
+Payments then appear on the Firestore page of the Firebase console.
 
 ## Where this differs from the brief
 
