@@ -95,8 +95,32 @@ no client write any (`make test-rules`).
 
 To watch it, keep the Emulator Suite UI open at <http://localhost:4000/firestore> while you send a
 payment: a document appears in `payments` (and one in `idempotencyKeys`), and History shows the
-payment without a refresh. `make test-backend-emulated` runs the Admin SDK against the same
-emulators.
+payment without a refresh. `make test-backend-emulated` runs the Admin SDK against emulators of
+its own (see the table below).
+
+### Which backend writes to which Firebase
+
+Only the backend writes to Firestore: the Admin SDK, which security rules do not restrict, writes
+each payment and its idempotency record. The app never writes. It signs in to Firebase Auth, sends
+the ID token with each payment, and reads the signed-in user's payments. So the app and the
+backend must use the same Firebase: History shows only what the backend wrote there.
+
+| Setup | Start it with | The app signs in to and reads from | The backend verifies tokens from and writes to |
+|---|---|---|---|
+| Local (the default) | `make emulators`, `make backend-emulated`, `make mobile`, with no `google-services.json` | The Auth and Firestore emulators on your machine (`10.0.2.2:9099` and `10.0.2.2:8080` from the Android emulator), project `remit-payments` | The same emulators (`localhost:9099`, `localhost:8080`) |
+| Hosted | `FIREBASE_PROJECT_ID=remit-payments GOOGLE_APPLICATION_CREDENTIALS=… make backend`, then `make mobile` with `google-services.json` in `mobile/androidApp/` | The hosted project `remit-payments` | The hosted project, signed in with the service account key |
+| No Firebase | `make backend` without `FIREBASE_PROJECT_ID`, or `docker compose up` | Nothing | Nothing: payments answer 503, and health, status, remote config, and Swagger still work |
+| Tests | `make test-backend-emulated`, `make test-rules` | Nothing | Throwaway emulators for emulator-only projects (`demo-remit-test`, `demo-remit-rules`) that start and stop with the run, so they never touch your data. They use the same ports, so stop `make emulators` first |
+
+The Cucumber scenarios use an in-memory Firestore, and Appium and JMeter run against the local
+setup. The emulators keep everything in memory: stopping `make emulators` deletes its payments
+and anonymous users.
+
+If the app and the backend use different Firebases, Send fails or the payment lands where History
+isn't looking. The usual cause is a `google-services.json` left in `mobile/androidApp/` while
+`make backend-emulated` runs, which points the app at the hosted project and the backend at the
+emulators; `make backend-emulated` warns about it, and `make doctor` says which one the debug app
+uses.
 
 ### Hosted Firebase project
 
