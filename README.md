@@ -43,6 +43,11 @@ make mobile               # build, install, and launch the Android debug app
 
 Then send a payment and open History. Swagger UI is at <http://localhost:8085/swagger>.
 
+The emulator host is compiled into the debug build, so rebuild after changing it. If the app says
+"History isn't available" or "This version of the app isn't connected to the payments service", the
+build has neither `FIREBASE_EMULATOR_HOST` nor `google-services.json`; the Gradle build and
+`make doctor` warn about the same thing. Debug builds also show this fix on the History screen.
+
 To use the real Firebase project instead: enable Anonymous sign-in in the Firebase console,
 remove `FIREBASE_EMULATOR_HOST`, place `google-services.json` in `mobile/androidApp/`, and start
 the backend with `FIREBASE_PROJECT_ID` and `GOOGLE_APPLICATION_CREDENTIALS` (a service account

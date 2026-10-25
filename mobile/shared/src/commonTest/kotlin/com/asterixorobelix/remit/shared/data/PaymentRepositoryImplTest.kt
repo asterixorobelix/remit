@@ -2,18 +2,25 @@ package com.asterixorobelix.remit.shared.data
 
 import app.cash.turbine.test
 import com.asterixorobelix.remit.shared.data.auth.AuthUnavailableException
+import com.asterixorobelix.remit.shared.data.history.PaymentHistorySource
+import com.asterixorobelix.remit.shared.data.history.PaymentHistoryUnavailableException
 import com.asterixorobelix.remit.shared.data.history.PaymentRecord
+import com.asterixorobelix.remit.shared.domain.repository.HistoryFailure
 import com.asterixorobelix.remit.shared.domain.repository.PaymentFailure
+import com.asterixorobelix.remit.shared.domain.repository.PaymentHistoryException
 import com.asterixorobelix.remit.shared.domain.repository.SendPaymentResult
 import com.asterixorobelix.remit.shared.testing.FakeAuthSession
 import com.asterixorobelix.remit.shared.testing.FakeHistorySource
 import com.asterixorobelix.remit.shared.testing.FakePaymentsApi
 import com.asterixorobelix.remit.shared.testing.payment
 import com.asterixorobelix.remit.shared.testing.paymentRequest
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertIs
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class PaymentRepositoryImplTest {
@@ -65,6 +72,14 @@ class PaymentRepositoryImplTest {
     }
 
     @Test
+    fun aBuildWithoutFirebaseIsNotBlamedOnTheConnection() = runTest {
+        val api = FakePaymentsApi(success)
+        auth.failure = AuthUnavailableException(isNetworkError = false, cause = FirebaseNotSetUpException())
+        assertEquals(SendPaymentResult.Failed(PaymentFailure.NOT_SET_UP), repository(api).send(paymentRequest(), "k"))
+        assertTrue(api.calls.isEmpty())
+    }
+
+    @Test
     fun historyIsTheSignedInUsersNewestFirstWithBadRecordsSkipped() = runTest {
         repository(FakePaymentsApi(success)).observeHistory().test {
             history.records.emit(
@@ -82,11 +97,35 @@ class PaymentRepositoryImplTest {
     }
 
     @Test
-    fun historyFailsWhenSignInFails() = runTest {
+    fun historySignInFailuresKeepTheirReason() = runTest {
         auth.failure = AuthUnavailableException(isNetworkError = true)
-        repository(FakePaymentsApi(success)).observeHistory().test {
-            assertIs<AuthUnavailableException>(awaitError())
-        }
+        assertEquals(HistoryFailure.NETWORK, historyFailure())
+        auth.failure = AuthUnavailableException(isNetworkError = false)
+        assertEquals(HistoryFailure.UNAVAILABLE, historyFailure())
+        auth.failure = AuthUnavailableException(isNetworkError = false, cause = FirebaseNotSetUpException())
+        assertEquals(HistoryFailure.NOT_SET_UP, historyFailure())
+    }
+
+    @Test
+    fun historyListenerFailuresKeepTheirReason() = runTest {
+        assertEquals(HistoryFailure.NETWORK, historyFailure(PaymentHistoryUnavailableException(isNetworkError = true)))
+        assertEquals(HistoryFailure.UNAVAILABLE, historyFailure(PaymentHistoryUnavailableException()))
+        assertEquals(
+            HistoryFailure.NOT_SET_UP,
+            historyFailure(PaymentHistoryUnavailableException(cause = FirebaseNotSetUpException())),
+        )
+        assertEquals(HistoryFailure.UNAVAILABLE, historyFailure(IllegalStateException("unexpected")))
+    }
+
+    private suspend fun historyFailure(listenerError: Throwable? = null): HistoryFailure {
+        val source = listenerError?.let(::FailingHistorySource) ?: history
+        return assertFailsWith<PaymentHistoryException> {
+            PaymentRepositoryImpl(FakePaymentsApi(success), source, auth).observeHistory().first()
+        }.reason
+    }
+
+    private class FailingHistorySource(private val error: Throwable) : PaymentHistorySource {
+        override fun observe(userId: String): Flow<List<PaymentRecord>> = flow { throw error }
     }
 
     private fun record(id: String, createdAt: Long) = PaymentRecord(

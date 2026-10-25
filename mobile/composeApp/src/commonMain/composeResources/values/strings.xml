@@ -135,7 +135,8 @@
     <string name="payment_failed_timeout">The payment timed out. Retrying is safe: it can't be sent twice.</string>
     <string name="payment_failed_server">The server had a problem. Retrying is safe: it can't be sent twice.</string>
     <string name="payment_failed_rate_limited">Too many attempts. Wait a moment, then retry.</string>
-    <string name="payment_failed_unauthorized">We couldn't sign you in. Check your connection and try again.</string>
+    <string name="payment_failed_unauthorized">We couldn't sign you in, so the payment wasn't sent. Try again later.</string>
+    <string name="payment_failed_not_set_up">This version of the app isn't connected to the payments service, so the payment wasn't sent.</string>
     <string name="payment_failed_conflict">The payment changed while it was being sent. Check the details and send again.</string>
     <string name="payment_failed_unexpected">Unexpected response. Check your history before sending again.</string>
 
@@ -144,7 +145,12 @@
     <string name="history_empty_title">No payments yet</string>
     <string name="history_empty_description">Payments you send appear here as soon as they are processed.</string>
     <string name="history_error_title">Couldn't load your history</string>
-    <string name="history_error_message">Check your connection and try again.</string>
+    <string name="history_error_network">Check your connection and try again.</string>
+    <string name="history_error_unavailable">Something went wrong on our side. Try again in a moment.</string>
+    <string name="history_not_set_up_title">History isn't available</string>
+    <string name="history_not_set_up_message">This version of the app isn't connected to the payments service.</string>
+    <!-- Debug builds only: tells a developer how to connect a fresh clone to Firebase. -->
+    <string name="history_not_set_up_developer">Debug build without Firebase. On Android, add FIREBASE_EMULATOR_HOST=10.0.2.2 to mobile/local.properties (or add androidApp/google-services.json) and rebuild. See "Run it" in README.md.</string>
     <string name="history_amount">%1$s %2$s</string>
     <string name="history_status_completed">Completed</string>
     <string name="history_status_pending">Pending</string>

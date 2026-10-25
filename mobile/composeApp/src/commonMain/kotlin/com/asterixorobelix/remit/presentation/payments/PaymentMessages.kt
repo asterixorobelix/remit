@@ -11,18 +11,25 @@ import com.asterixorobelix.remit.generated.resources.error_currency_unsupported
 import com.asterixorobelix.remit.generated.resources.error_email_blank
 import com.asterixorobelix.remit.generated.resources.error_email_invalid
 import com.asterixorobelix.remit.generated.resources.error_email_too_long
+import com.asterixorobelix.remit.generated.resources.history_error_network
+import com.asterixorobelix.remit.generated.resources.history_error_title
+import com.asterixorobelix.remit.generated.resources.history_error_unavailable
+import com.asterixorobelix.remit.generated.resources.history_not_set_up_message
+import com.asterixorobelix.remit.generated.resources.history_not_set_up_title
 import com.asterixorobelix.remit.generated.resources.history_status_completed
 import com.asterixorobelix.remit.generated.resources.history_status_failed
 import com.asterixorobelix.remit.generated.resources.history_status_pending
 import com.asterixorobelix.remit.generated.resources.history_status_unknown
 import com.asterixorobelix.remit.generated.resources.payment_failed_conflict
 import com.asterixorobelix.remit.generated.resources.payment_failed_network
+import com.asterixorobelix.remit.generated.resources.payment_failed_not_set_up
 import com.asterixorobelix.remit.generated.resources.payment_failed_rate_limited
 import com.asterixorobelix.remit.generated.resources.payment_failed_server
 import com.asterixorobelix.remit.generated.resources.payment_failed_timeout
 import com.asterixorobelix.remit.generated.resources.payment_failed_unauthorized
 import com.asterixorobelix.remit.generated.resources.payment_failed_unexpected
 import com.asterixorobelix.remit.shared.domain.model.PaymentStatus
+import com.asterixorobelix.remit.shared.domain.repository.HistoryFailure
 import com.asterixorobelix.remit.shared.domain.repository.PaymentFailure
 import com.asterixorobelix.remit.shared.domain.validation.ValidationError
 import org.jetbrains.compose.resources.StringResource
@@ -49,8 +56,23 @@ val PaymentFailure.message: StringResource
         PaymentFailure.SERVER -> Res.string.payment_failed_server
         PaymentFailure.RATE_LIMITED -> Res.string.payment_failed_rate_limited
         PaymentFailure.UNAUTHORIZED -> Res.string.payment_failed_unauthorized
+        PaymentFailure.NOT_SET_UP -> Res.string.payment_failed_not_set_up
         PaymentFailure.IDEMPOTENCY_CONFLICT -> Res.string.payment_failed_conflict
         PaymentFailure.UNEXPECTED_RESPONSE -> Res.string.payment_failed_unexpected
+    }
+
+/** Only a network failure mentions the connection; a build without Firebase is not the user's to fix. */
+val HistoryFailure.title: StringResource
+    get() = when (this) {
+        HistoryFailure.NETWORK, HistoryFailure.UNAVAILABLE -> Res.string.history_error_title
+        HistoryFailure.NOT_SET_UP -> Res.string.history_not_set_up_title
+    }
+
+val HistoryFailure.message: StringResource
+    get() = when (this) {
+        HistoryFailure.NETWORK -> Res.string.history_error_network
+        HistoryFailure.UNAVAILABLE -> Res.string.history_error_unavailable
+        HistoryFailure.NOT_SET_UP -> Res.string.history_not_set_up_message
     }
 
 val PaymentStatus.label: StringResource

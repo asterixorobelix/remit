@@ -5,6 +5,7 @@ import com.asterixorobelix.remit.shared.data.defaultFirebaseApp
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.Query
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -29,7 +30,8 @@ internal class FirestorePaymentHistorySource(private val firestore: FirebaseFire
             .limit(PaymentFields.HISTORY_LIMIT)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    close(PaymentHistoryUnavailableException(error))
+                    val offline = error.code == FirebaseFirestoreException.Code.UNAVAILABLE
+                    close(PaymentHistoryUnavailableException(isNetworkError = offline, cause = error))
                 } else if (snapshot != null) {
                     trySend(snapshot.documents.map { it.toRecord() })
                 }

@@ -34,18 +34,20 @@ import com.asterixorobelix.remit.generated.resources.cd_payment_row
 import com.asterixorobelix.remit.generated.resources.history_amount
 import com.asterixorobelix.remit.generated.resources.history_empty_description
 import com.asterixorobelix.remit.generated.resources.history_empty_title
-import com.asterixorobelix.remit.generated.resources.history_error_message
-import com.asterixorobelix.remit.generated.resources.history_error_title
+import com.asterixorobelix.remit.generated.resources.history_not_set_up_developer
 import com.asterixorobelix.remit.generated.resources.history_title
 import com.asterixorobelix.remit.presentation.payments.PaymentTestTags
 import com.asterixorobelix.remit.presentation.payments.formatted
 import com.asterixorobelix.remit.presentation.payments.formattedLocal
 import com.asterixorobelix.remit.presentation.payments.label
+import com.asterixorobelix.remit.presentation.payments.message
+import com.asterixorobelix.remit.presentation.payments.title
 import com.asterixorobelix.remit.shared.domain.model.Currency
 import com.asterixorobelix.remit.shared.domain.model.EmailAddress
 import com.asterixorobelix.remit.shared.domain.model.Money
 import com.asterixorobelix.remit.shared.domain.model.Payment
 import com.asterixorobelix.remit.shared.domain.model.PaymentStatus
+import com.asterixorobelix.remit.shared.domain.repository.HistoryFailure
 import com.asterixorobelix.remit.ui.components.BadgeStatus
 import com.asterixorobelix.remit.ui.components.EmptyState
 import com.asterixorobelix.remit.ui.components.FullScreenError
@@ -105,11 +107,18 @@ fun PaymentHistoryContent(
                 )
             }
 
-            PaymentHistoryUiState.Error -> FullScreenError(
+            is PaymentHistoryUiState.Error -> FullScreenError(
                 modifier = inner,
-                title = stringResource(Res.string.history_error_title),
-                message = stringResource(Res.string.history_error_message),
-                onRetry = { onEvent(PaymentHistoryEvent.Refresh) },
+                title = stringResource(state.reason.title),
+                message = stringResource(
+                    if (state.showSetupHelp) Res.string.history_not_set_up_developer else state.reason.message,
+                ),
+                // Retrying cannot fix a build without Firebase, so it gets no button.
+                onRetry = if (state.reason.retryable) {
+                    { onEvent(PaymentHistoryEvent.Refresh) }
+                } else {
+                    null
+                },
             )
 
             is PaymentHistoryUiState.Content -> LazyColumn(modifier = inner.testTag(PaymentTestTags.HISTORY_LIST)) {
@@ -171,7 +180,9 @@ private fun PaymentHistoryContentPreview() {
     val states = listOf(
         PaymentHistoryUiState.Loading,
         PaymentHistoryUiState.Empty,
-        PaymentHistoryUiState.Error,
+        PaymentHistoryUiState.Error(HistoryFailure.NETWORK),
+        PaymentHistoryUiState.Error(HistoryFailure.NOT_SET_UP),
+        PaymentHistoryUiState.Error(HistoryFailure.NOT_SET_UP, showSetupHelp = true),
         PaymentHistoryUiState.Content(previewPayments),
     )
     ScreenStates(states) { state -> PaymentHistoryContent(state = state, onEvent = {}) }

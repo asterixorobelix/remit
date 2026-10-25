@@ -1,5 +1,6 @@
 package com.asterixorobelix.remit.shared.data.auth
 
+import com.asterixorobelix.remit.shared.data.FirebaseNotSetUpException
 import com.asterixorobelix.remit.shared.data.FirebaseSettings
 
 /**
@@ -15,7 +16,10 @@ interface AuthSession {
 }
 
 class AuthUnavailableException(val isNetworkError: Boolean, cause: Throwable? = null) :
-    Exception("Could not sign in to Firebase", cause)
+    Exception("Could not sign in to Firebase", cause) {
+    /** Sign-in can never work in this build, so the user should not be told to check their connection. */
+    val isNotSetUp: Boolean get() = cause is FirebaseNotSetUpException
+}
 
 /** Firebase Auth on Android; an [AuthSession] that always fails where Firebase is not wired. */
 expect fun platformAuthSession(settings: FirebaseSettings): AuthSession
@@ -28,6 +32,6 @@ internal object UnsupportedPlatformAuthSession : AuthSession {
 
     private fun unsupported() = AuthUnavailableException(
         isNetworkError = false,
-        cause = UnsupportedOperationException("Firebase is not set up in this build"),
+        cause = FirebaseNotSetUpException(),
     )
 }

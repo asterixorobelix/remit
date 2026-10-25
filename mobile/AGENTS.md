@@ -43,7 +43,11 @@ no Compose dependency, so a SwiftUI or desktop app could use it as is.
   `make backend-emulated` at the root). Without `google-services.json`, `RemitApplication` calls
   `startFirebaseForEmulators` (project `FirebaseSettings.EMULATOR_PROJECT_ID`, which must match the
   Makefile's `FIREBASE_PROJECT`); with neither, the Android actuals fall back to the "not set up"
-  implementations instead of crashing.
+  implementations instead of crashing. Their errors carry `FirebaseNotSetUpException`, which
+  `PaymentRepositoryImpl` maps to `PaymentFailure.NOT_SET_UP` and `HistoryFailure.NOT_SET_UP`, so
+  neither screen blames the connection; only `NETWORK` failures say "check your connection".
+  History shows debug builds the setup fix (`showSetupHelp`), and `androidApp/build.gradle.kts` and
+  `make doctor` warn when neither is configured.
 - The Send screen shows "Already sent" only for a restored unfinished payment the server replays;
   a replay answering this tap's own automatic retry is a plain success.
 - Test tags in `PaymentTestTags` are exposed as Android resource ids (`MainActivity`) for Appium;

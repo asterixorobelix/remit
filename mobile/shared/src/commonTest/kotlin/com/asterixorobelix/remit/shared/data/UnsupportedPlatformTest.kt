@@ -9,20 +9,23 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
+import kotlin.test.assertTrue
 
 /** Platforms without Firebase fail clearly instead of pretending to have data. */
 class UnsupportedPlatformTest {
     @Test
     fun authFailsWithAClearReason() = runTest {
         val error = assertFailsWith<AuthUnavailableException> { UnsupportedPlatformAuthSession.userId() }
-        assertIs<UnsupportedOperationException>(error.cause)
+        assertIs<FirebaseNotSetUpException>(error.cause)
+        assertTrue(error.isNotSetUp)
         assertFailsWith<AuthUnavailableException> { UnsupportedPlatformAuthSession.idToken(forceRefresh = false) }
     }
 
     @Test
     fun historyFailsWithAClearReason() = runTest {
         UnsupportedPlatformHistorySource.observe("user").test {
-            assertIs<PaymentHistoryUnavailableException>(awaitError())
+            val error = assertIs<PaymentHistoryUnavailableException>(awaitError())
+            assertIs<FirebaseNotSetUpException>(error.cause)
         }
     }
 }

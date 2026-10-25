@@ -38,6 +38,7 @@ fi
 
 if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then ok docker 'docker compose available'
 else optional docker 'backend container (docker compose up); make backend works without it'; fi
+tool firebase optional 'Firebase emulators for the debug app (make emulators); npm install -g firebase-tools'
 tool bundle optional 'Fastlane store releases (cd mobile && bundle install)'
 tool gh optional 'GitHub automation (scripts/protect-main.sh)'
 # Lint and hook tools (make bootstrap installs them from the Brewfile).
@@ -67,6 +68,20 @@ if [[ -f "$ROOT/app.properties" ]]; then
     printf '[warn]     %-12s %s\n' endpoints 'set API_BASE_URL_STAGING/RELEASE in app.properties before release'
   fi
   "$ROOT/scripts/sync-app-config.sh" --check >/dev/null 2>&1 || missing xcconfig 'out of sync with app.properties: run scripts/sync-app-config.sh'
+  # The Android app needs Firebase for Send and History: a real google-services.json, or (debug
+  # builds) the local emulators through FIREBASE_EMULATOR_HOST, read like mobile/composeApp does.
+  if grep -Eiq '^FEATURES=(.*,)?[[:space:]]*firebase[[:space:]]*(,|$)' "$ROOT/app.properties"; then
+    services="$ROOT/mobile/androidApp/google-services.json"
+    emulator_host="$(sed -n 's/^FIREBASE_EMULATOR_HOST=//p' "$ROOT/mobile/local.properties" 2>/dev/null | tail -1)"
+    emulator_host="${emulator_host:-${FIREBASE_EMULATOR_HOST:-}}"
+    if [[ -f "$services" ]] && ! grep -Eq 'DEFAULT TEMPLATE|your-project-id-here' "$services"; then
+      ok firebase-app 'mobile/androidApp/google-services.json'
+    elif [[ -n "$emulator_host" ]]; then
+      ok firebase-app "debug app uses the emulators at $emulator_host (make emulators, make backend-emulated)"
+    else
+      printf '[warn]     %-12s %s\n' firebase-app "not set up, so Send and History fail in the app: echo 'FIREBASE_EMULATOR_HOST=10.0.2.2' >> mobile/local.properties, then rebuild (README \"Run it\")"
+    fi
+  fi
 else
   missing app.properties 'missing'
 fi

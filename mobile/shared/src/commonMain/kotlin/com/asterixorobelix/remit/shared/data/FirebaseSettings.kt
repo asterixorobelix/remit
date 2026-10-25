@@ -17,3 +17,9 @@ data class FirebaseSettings(val emulatorHost: String? = null) {
         const val EMULATOR_PROJECT_ID = "remit-payments"
     }
 }
+
+/**
+ * This build has no Firebase: iOS and desktop do not wire it, and an Android build needs
+ * `google-services.json` or, for debug builds, `FIREBASE_EMULATOR_HOST`. Retrying cannot help.
+ */
+class FirebaseNotSetUpException : Exception("Firebase is not set up in this build")

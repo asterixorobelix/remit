@@ -33,11 +33,29 @@ val hasRealGoogleServices = googleServicesFile.exists() &&
         firebasePlaceholderMarkers.none { marker -> json.contains(marker) }
     }
 val firebaseEnabled = firebaseCapability && hasRealGoogleServices
+
+// Without google-services.json, debug builds can use the local Firebase Emulator Suite instead
+// (composeApp turns the same key into BuildConfig.FIREBASE_EMULATOR_HOST).
+val firebaseEmulatorHost = Properties().apply {
+    rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use(::load)
+}.getProperty("FIREBASE_EMULATOR_HOST") ?: System.getenv("FIREBASE_EMULATOR_HOST").orEmpty()
 if (firebaseCapability && !hasRealGoogleServices) {
-    logger.warn(
-        "FEATURES includes firebase but androidApp/google-services.json is missing or the " +
-            "placeholder; building without Firebase.",
-    )
+    if (firebaseEmulatorHost.isBlank()) {
+        logger.warn(
+            """
+            |WARNING: Firebase is not set up, so Send and History will fail in the app.
+            |  Local development: run `make emulators` and `make backend-emulated`, then
+            |    echo 'FIREBASE_EMULATOR_HOST=10.0.2.2' >> mobile/local.properties
+            |  and rebuild (the host is compiled into debug builds).
+            |  Real project: add androidApp/google-services.json (see "Run it" in README.md).
+            """.trimMargin(),
+        )
+    } else {
+        logger.info(
+            "No androidApp/google-services.json: debug builds use the Firebase emulators at " +
+                "$firebaseEmulatorHost; release builds have no Firebase.",
+        )
+    }
 }
 if (firebaseEnabled) {
     apply(plugin = "com.google.gms.google-services")

@@ -1,5 +1,6 @@
 package com.asterixorobelix.remit.shared.data.history
 
+import com.asterixorobelix.remit.shared.data.FirebaseNotSetUpException
 import com.asterixorobelix.remit.shared.data.FirebaseSettings
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -37,7 +38,8 @@ object PaymentFields {
     const val HISTORY_LIMIT = 100L
 }
 
-class PaymentHistoryUnavailableException(cause: Throwable? = null) :
+/** [isNetworkError]: Firestore could not be reached, so retrying later can help. */
+class PaymentHistoryUnavailableException(val isNetworkError: Boolean = false, cause: Throwable? = null) :
     Exception("Payment history is unavailable", cause)
 
 /** Firestore on Android; a source that always fails where Firebase is not wired. */
@@ -45,8 +47,6 @@ expect fun platformPaymentHistorySource(settings: FirebaseSettings): PaymentHist
 
 internal object UnsupportedPlatformHistorySource : PaymentHistorySource {
     override fun observe(userId: String): Flow<List<PaymentRecord>> = flow {
-        throw PaymentHistoryUnavailableException(
-            UnsupportedOperationException("Firebase is not set up in this build"),
-        )
+        throw PaymentHistoryUnavailableException(cause = FirebaseNotSetUpException())
     }
 }

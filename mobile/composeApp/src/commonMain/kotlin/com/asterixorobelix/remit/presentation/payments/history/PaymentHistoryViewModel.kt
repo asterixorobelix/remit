@@ -2,7 +2,10 @@ package com.asterixorobelix.remit.presentation.payments.history
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.asterixorobelix.remit.platform.AppConfig
 import com.asterixorobelix.remit.platform.CrashLogger
+import com.asterixorobelix.remit.shared.domain.repository.HistoryFailure
+import com.asterixorobelix.remit.shared.domain.repository.PaymentHistoryException
 import com.asterixorobelix.remit.shared.domain.usecase.ObservePaymentHistoryUseCase
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,6 +19,7 @@ import kotlinx.coroutines.launch
 class PaymentHistoryViewModel(
     private val observeHistory: ObservePaymentHistoryUseCase,
     private val crashLogger: CrashLogger,
+    private val appConfig: AppConfig,
 ) : ViewModel() {
     private val mutableState = MutableStateFlow<PaymentHistoryUiState>(PaymentHistoryUiState.Loading)
     val uiState: StateFlow<PaymentHistoryUiState> = mutableState.asStateFlow()
@@ -49,7 +53,11 @@ class PaymentHistoryViewModel(
             observeHistory()
                 .catch { error ->
                     crashLogger.logException(error, "Payment history listener failed")
-                    mutableState.value = PaymentHistoryUiState.Error
+                    val reason = (error as? PaymentHistoryException)?.reason ?: HistoryFailure.UNAVAILABLE
+                    mutableState.value = PaymentHistoryUiState.Error(
+                        reason = reason,
+                        showSetupHelp = reason == HistoryFailure.NOT_SET_UP && appConfig.isDebug,
+                    )
                 }
                 .collect { payments ->
                     mutableState.value = if (payments.isEmpty()) {

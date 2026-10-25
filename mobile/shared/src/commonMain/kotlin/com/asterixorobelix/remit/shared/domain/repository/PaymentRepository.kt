@@ -12,7 +12,10 @@ interface PaymentRepository {
      */
     suspend fun send(request: PaymentRequest, idempotencyKey: String): SendPaymentResult
 
-    /** The signed-in user's payments, newest first, updated live as the server records them. */
+    /**
+     * The signed-in user's payments, newest first, updated live as the server records them.
+     * Fails with [PaymentHistoryException].
+     */
     fun observeHistory(): Flow<List<Payment>>
 }
 
@@ -40,7 +43,26 @@ enum class PaymentFailure(val retryable: Boolean) {
     RATE_LIMITED(retryable = true),
     UNAUTHORIZED(retryable = false),
 
+    /** This build cannot reach the payments service at all (Firebase is not set up in it). */
+    NOT_SET_UP(retryable = false),
+
     /** The key was already used for a different payment; the next attempt gets a new key. */
     IDEMPOTENCY_CONFLICT(retryable = false),
     UNEXPECTED_RESPONSE(retryable = false),
+}
+
+/** History stopped; [reason] says why, so the screen blames the connection only when it is at fault. */
+class PaymentHistoryException(val reason: HistoryFailure, cause: Throwable? = null) :
+    Exception("Payment history failed: $reason", cause)
+
+/** Why history could not be loaded; [retryable] says whether trying again can help. */
+enum class HistoryFailure(val retryable: Boolean) {
+    /** Offline, or Firebase could not be reached. */
+    NETWORK(retryable = true),
+
+    /** Firebase refused the sign-in or the query. */
+    UNAVAILABLE(retryable = true),
+
+    /** This build cannot reach the payments service at all (Firebase is not set up in it). */
+    NOT_SET_UP(retryable = false),
 }
