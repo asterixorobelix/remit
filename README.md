@@ -74,7 +74,10 @@ real Firebase SDKs: the Firebase Android SDK in the app and the Firebase Admin S
 `make emulators` runs Firebase's own Auth and Firestore emulators, so a fresh clone works without
 a Firebase account; a hosted project is a configuration change, not a code change.
 
-![A payment in Firestore (Emulator Suite UI) and the same payment in the app's History](docs/images/firestore-and-history.png)
+![The hosted project in the Firebase console: carol's payment in payments and erin's record in idempotencyKeys, beside the same payments in the app's History](docs/images/firestore-and-history.png)
+
+The hosted `remit-payments` project in the Firebase console: carol's €42.00 payment in
+`payments`, and the idempotency record for erin's $25.00 payment, beside the app's History.
 
 | The brief asks for | Where it is |
 |---|---|
