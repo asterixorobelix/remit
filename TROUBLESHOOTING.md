@@ -30,6 +30,10 @@ whether the iOS xcconfig matches `app.properties`.
   `10.0.2.2:8085` (`API_BASE_URL_DEBUG`). Debug builds allow cleartext only to `10.0.2.2`
   and `localhost`. On a physical device run `adb reverse tcp:8085 tcp:8085` and set
   `http://localhost:8085` in Settings → Developer tools.
+- **Debug app can't reach the Firebase emulators** (History says they aren't answering): start
+  them with `make emulators`. Debug builds without `google-services.json` use them at `10.0.2.2`;
+  on a physical device run `adb reverse tcp:9099 tcp:9099` and `adb reverse tcp:8080 tcp:8080`,
+  add `FIREBASE_EMULATOR_HOST=localhost` to `mobile/local.properties`, and rebuild.
 - **`INSTALL_FAILED_UPDATE_INCOMPATIBLE`:** a build signed with another key is installed:
   `adb uninstall <package>.debug`.
 - **Release build crashes on JSON or reflection:** check `androidApp/proguard-rules.pro`.

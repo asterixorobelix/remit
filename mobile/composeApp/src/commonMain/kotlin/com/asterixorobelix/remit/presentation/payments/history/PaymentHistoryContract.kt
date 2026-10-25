@@ -11,11 +11,17 @@ sealed interface PaymentHistoryUiState {
     /** Newest first; Firestore pushes changes, so the list updates without a refresh. */
     data class Content(val payments: List<Payment>, val isRefreshing: Boolean = false) : PaymentHistoryUiState
 
-    /**
-     * [showSetupHelp]: a debug build without Firebase, so the screen tells the developer how to
-     * connect it instead of showing the user-facing message.
-     */
-    data class Error(val reason: HistoryFailure, val showSetupHelp: Boolean = false) : PaymentHistoryUiState
+    /** [setupHelp]: debug builds only, shown to the developer instead of the user-facing message. */
+    data class Error(val reason: HistoryFailure, val setupHelp: SetupHelp? = null) : PaymentHistoryUiState
+}
+
+/** What a developer has to do locally for History to work in a debug build. */
+sealed interface SetupHelp {
+    /** The build has no Firebase: no google-services.json and a blank emulator host. */
+    data object ConnectFirebase : SetupHelp
+
+    /** The build uses the Firebase emulators at [host], and they did not answer. */
+    data class StartEmulators(val host: String) : SetupHelp
 }
 
 sealed interface PaymentHistoryEvent {

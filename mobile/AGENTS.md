@@ -46,16 +46,18 @@ Kotlin, the new DSL, R8 strict full mode); do not add the opt-out flags back.
   an expired Firebase ID token once under the same key. The app never writes to Firestore; the
   backend does, and History listens (`FirestorePaymentHistorySource`, a snapshot listener on
   Android, bound by `firebaseBackendModule`; iOS and desktop fail clearly).
-- Firebase: anonymous auth. Debug builds use the Firebase emulators when `FIREBASE_EMULATOR_HOST`
-  is set in `local.properties` (`10.0.2.2` from the Android emulator; `make emulators` and
-  `make backend-emulated` at the root). Without `google-services.json`, `startRemit` calls
+- Firebase: anonymous auth. Without `google-services.json`, debug builds use the Firebase emulators
+  at `10.0.2.2` (the host from the Android emulator; `make emulators` and `make backend-emulated` at
+  the root); `FIREBASE_EMULATOR_HOST` in `local.properties` or the environment overrides the host
+  (`localhost` on a device with `adb reverse`; blank for no Firebase). `startRemit` then calls
   `startFirebaseForEmulators` (project `FirebaseSettings.EMULATOR_PROJECT_ID`, which must match the
-  Makefile's `FIREBASE_PROJECT`); with neither, `firebaseBackendModule` binds the "not set up"
+  Makefile's `FIREBASE_PROJECT`); with no Firebase at all, `firebaseBackendModule` binds the "not set up"
   implementations instead of crashing. Their errors carry `BackendNotSetUpException`, which
   `PaymentRepositoryImpl` maps to `PaymentFailure.NOT_SET_UP` and `HistoryFailure.NOT_SET_UP`, so
   neither screen blames the connection; only `NETWORK` failures say "check your connection".
-  History shows debug builds the setup fix (`showSetupHelp`), and `androidApp/build.gradle.kts` and
-  `make doctor` warn when neither is configured.
+  History shows debug builds what to run instead (`SetupHelp`: connect Firebase, or start the
+  emulators when they don't answer), and `androidApp/build.gradle.kts` and `make doctor` warn when
+  the emulator host is set blank without `google-services.json`.
 - The Send screen shows "Already sent" only for a restored unfinished payment the server replays;
   a replay answering this tap's own automatic retry is a plain success.
 - Test tags in `PaymentTestTags` are exposed as Android resource ids (`MainActivity`) for Appium;

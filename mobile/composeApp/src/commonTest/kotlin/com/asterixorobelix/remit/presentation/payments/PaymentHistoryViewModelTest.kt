@@ -4,6 +4,7 @@ import com.asterixorobelix.remit.presentation.payments.history.HISTORY_STOP_TIME
 import com.asterixorobelix.remit.presentation.payments.history.PaymentHistoryEvent
 import com.asterixorobelix.remit.presentation.payments.history.PaymentHistoryUiState
 import com.asterixorobelix.remit.presentation.payments.history.PaymentHistoryViewModel
+import com.asterixorobelix.remit.presentation.payments.history.SetupHelp
 import com.asterixorobelix.remit.shared.domain.model.Payment
 import com.asterixorobelix.remit.shared.domain.model.PaymentRequest
 import com.asterixorobelix.remit.shared.domain.repository.HistoryFailure
@@ -49,15 +50,15 @@ class PaymentHistoryViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun viewModel(repository: PaymentRepository, isDebug: Boolean = false) =
-        PaymentHistoryViewModel(ObservePaymentHistoryUseCase(repository), crashLogger, FakeAppConfig(isDebug = isDebug))
+    private fun viewModel(repository: PaymentRepository, config: FakeAppConfig = FakeAppConfig(isDebug = false)) =
+        PaymentHistoryViewModel(ObservePaymentHistoryUseCase(repository), crashLogger, config)
 
     /** The screen on display: collects the state until [cancel][Job.cancel] or the end of the test. */
     private fun TestScope.show(vm: PaymentHistoryViewModel): Job =
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
 
-    private fun TestScope.shown(repository: PaymentRepository, isDebug: Boolean = false) =
-        viewModel(repository, isDebug).also { show(it) }
+    private fun TestScope.shown(repository: PaymentRepository, config: FakeAppConfig = FakeAppConfig(isDebug = false)) =
+        viewModel(repository, config).also { show(it) }
 
     @Test
     fun loadsThenShowsLiveUpdates() = runTest {
@@ -101,16 +102,31 @@ class PaymentHistoryViewModelTest {
     fun aBuildWithoutFirebaseShowsSetupHelpOnlyInDebugBuilds() = runTest {
         val notSetUp = FailingHistory(reason = HistoryFailure.NOT_SET_UP)
         assertEquals(
-            PaymentHistoryUiState.Error(HistoryFailure.NOT_SET_UP, showSetupHelp = true),
-            shown(notSetUp, isDebug = true).uiState.value,
+            PaymentHistoryUiState.Error(HistoryFailure.NOT_SET_UP, SetupHelp.ConnectFirebase),
+            shown(notSetUp, FakeAppConfig(isDebug = true)).uiState.value,
         )
         assertEquals(
-            PaymentHistoryUiState.Error(HistoryFailure.NOT_SET_UP, showSetupHelp = false),
-            shown(notSetUp, isDebug = false).uiState.value,
+            PaymentHistoryUiState.Error(HistoryFailure.NOT_SET_UP),
+            shown(notSetUp, FakeAppConfig(isDebug = false)).uiState.value,
         )
+    }
+
+    @Test
+    fun unreachableEmulatorsTellTheDeveloperToStartThem() = runTest {
+        val offline = FailingHistory(reason = HistoryFailure.NETWORK)
         assertEquals(
-            PaymentHistoryUiState.Error(HistoryFailure.NETWORK, showSetupHelp = false),
-            shown(FailingHistory(reason = HistoryFailure.NETWORK), isDebug = true).uiState.value,
+            PaymentHistoryUiState.Error(HistoryFailure.NETWORK, SetupHelp.StartEmulators("10.0.2.2")),
+            shown(offline, FakeAppConfig(isDebug = true, firebaseEmulatorHost = "10.0.2.2")).uiState.value,
+        )
+        // Against the real project a network failure is the user's connection.
+        assertEquals(
+            PaymentHistoryUiState.Error(HistoryFailure.NETWORK),
+            shown(offline, FakeAppConfig(isDebug = true)).uiState.value,
+        )
+        // Other failures keep the user-facing message, emulators or not.
+        assertEquals(
+            PaymentHistoryUiState.Error(HistoryFailure.UNAVAILABLE),
+            shown(FailingHistory(), FakeAppConfig(isDebug = true, firebaseEmulatorHost = "10.0.2.2")).uiState.value,
         )
     }
 

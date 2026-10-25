@@ -48,20 +48,20 @@ val hasRealGoogleServices = googleServicesFile.exists() &&
     }
 val firebaseEnabled = firebaseCapability && hasRealGoogleServices
 
-// Without google-services.json, debug builds can use the local Firebase Emulator Suite instead
-// (BuildConfig.FIREBASE_EMULATOR_HOST below; 10.0.2.2 from the Android emulator).
+// Without google-services.json, debug builds use the local Firebase Emulator Suite (`make emulators`)
+// at 10.0.2.2, the host as seen from the Android emulator (BuildConfig.FIREBASE_EMULATOR_HOST below).
+// FIREBASE_EMULATOR_HOST in local.properties or the environment overrides it: localhost on a device
+// with `adb reverse`, or blank for a debug build without Firebase.
 val firebaseEmulatorHost =
-    localProperties.getProperty("FIREBASE_EMULATOR_HOST") ?: System.getenv("FIREBASE_EMULATOR_HOST").orEmpty()
+    localProperties.getProperty("FIREBASE_EMULATOR_HOST")
+        ?: System.getenv("FIREBASE_EMULATOR_HOST")
+        ?: if (firebaseCapability && !hasRealGoogleServices) "10.0.2.2" else ""
 if (firebaseCapability && !hasRealGoogleServices) {
     if (firebaseEmulatorHost.isBlank()) {
         logger.warn(
-            """
-            |WARNING: Firebase is not set up, so Send and History will fail in the app.
-            |  Local development: run `make emulators` and `make backend-emulated`, then
-            |    echo 'FIREBASE_EMULATOR_HOST=10.0.2.2' >> mobile/local.properties
-            |  and rebuild (the host is compiled into debug builds).
-            |  Real project: add androidApp/google-services.json (see "Run it" in README.md).
-            """.trimMargin(),
+            "WARNING: FIREBASE_EMULATOR_HOST is blank and there is no androidApp/google-services.json, " +
+                "so Send and History fail in the debug app. Remove the blank setting to use the emulators " +
+                "(see \"Run it\" in README.md).",
         )
     } else {
         logger.info(

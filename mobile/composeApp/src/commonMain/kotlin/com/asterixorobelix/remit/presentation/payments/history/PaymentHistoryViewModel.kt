@@ -62,13 +62,15 @@ class PaymentHistoryViewModel(
         .catch { error ->
             crashLogger.logException(error, "Payment history listener failed")
             val reason = (error as? PaymentHistoryException)?.reason ?: HistoryFailure.UNAVAILABLE
-            emit(
-                PaymentHistoryUiState.Error(
-                    reason = reason,
-                    showSetupHelp = reason == HistoryFailure.NOT_SET_UP && appConfig.isDebug,
-                ),
-            )
+            emit(PaymentHistoryUiState.Error(reason = reason, setupHelp = setupHelp(reason)))
         }
+
+    private fun setupHelp(reason: HistoryFailure): SetupHelp? = when {
+        !appConfig.isDebug -> null
+        reason == HistoryFailure.NOT_SET_UP -> SetupHelp.ConnectFirebase
+        reason == HistoryFailure.NETWORK -> appConfig.firebaseEmulatorHost?.let(SetupHelp::StartEmulators)
+        else -> null
+    }
 
     /** A refresh keeps the list on screen with the indicator showing; after an error it shows Loading. */
     private fun refreshing(): PaymentHistoryUiState =

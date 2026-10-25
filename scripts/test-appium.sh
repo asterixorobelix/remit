@@ -4,7 +4,7 @@
 # tests never run against a stale build. The app must talk to the local stack:
 #   make emulators            # terminal 1: Firebase Auth + Firestore emulators
 #   make backend-emulated     # terminal 2: the API against them
-#   make test-appium          # with FIREBASE_EMULATOR_HOST=10.0.2.2 in mobile/local.properties
+#   make test-appium          # debug builds use the emulators unless they have google-services.json
 # Extra arguments go to Gradle, for example --tests '*sentPayment*'.
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -23,11 +23,14 @@ fi
 [[ -n "$ANDROID_HOME" ]] || die 'Set ANDROID_HOME or sdk.dir in mobile/local.properties'
 export ANDROID_HOME
 
-# Without the emulator host the debug app signs in to the real Firebase project, and the tests fail.
-if [[ -z "${FIREBASE_EMULATOR_HOST:-}" ]]; then
-  FIREBASE_EMULATOR_HOST="$(awk -F= '$1=="FIREBASE_EMULATOR_HOST" { print $2 }' "$ROOT/mobile/local.properties" 2>/dev/null)"
+# Debug builds use the emulators unless they have google-services.json (then the real Firebase
+# project, and the tests fail) or the host is set blank; local.properties wins over the environment.
+if grep -q '^FIREBASE_EMULATOR_HOST=' "$ROOT/mobile/local.properties" 2>/dev/null; then
+  FIREBASE_EMULATOR_HOST="$(awk -F= '$1=="FIREBASE_EMULATOR_HOST" { print $2 }' "$ROOT/mobile/local.properties" | tail -1)"
+elif [[ -z "${FIREBASE_EMULATOR_HOST+set}" && ! -f "$ROOT/mobile/androidApp/google-services.json" ]]; then
+  FIREBASE_EMULATOR_HOST=10.0.2.2
 fi
-[[ -n "$FIREBASE_EMULATOR_HOST" ]] ||
+[[ -n "${FIREBASE_EMULATOR_HOST:-}" ]] ||
   die 'Set FIREBASE_EMULATOR_HOST=10.0.2.2 in mobile/local.properties so the app uses the emulators'
 
 # Gradle's installDebug replaces whatever build is on the device (adb install -r).

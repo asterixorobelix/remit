@@ -34,6 +34,7 @@ import com.asterixorobelix.remit.generated.resources.cd_payment_row
 import com.asterixorobelix.remit.generated.resources.history_amount
 import com.asterixorobelix.remit.generated.resources.history_empty_description
 import com.asterixorobelix.remit.generated.resources.history_empty_title
+import com.asterixorobelix.remit.generated.resources.history_emulators_unreachable
 import com.asterixorobelix.remit.generated.resources.history_not_set_up_developer
 import com.asterixorobelix.remit.generated.resources.history_title
 import com.asterixorobelix.remit.presentation.payments.PaymentTestTags
@@ -110,9 +111,11 @@ fun PaymentHistoryContent(
             is PaymentHistoryUiState.Error -> FullScreenError(
                 modifier = inner,
                 title = stringResource(state.reason.title),
-                message = stringResource(
-                    if (state.showSetupHelp) Res.string.history_not_set_up_developer else state.reason.message,
-                ),
+                message = when (val help = state.setupHelp) {
+                    SetupHelp.ConnectFirebase -> stringResource(Res.string.history_not_set_up_developer)
+                    is SetupHelp.StartEmulators -> stringResource(Res.string.history_emulators_unreachable, help.host)
+                    null -> stringResource(state.reason.message)
+                },
                 // Retrying cannot fix a build without Firebase, so it gets no button.
                 onRetry = if (state.reason.retryable) {
                     { onEvent(PaymentHistoryEvent.Refresh) }
@@ -182,7 +185,8 @@ private fun PaymentHistoryContentPreview() {
         PaymentHistoryUiState.Empty,
         PaymentHistoryUiState.Error(HistoryFailure.NETWORK),
         PaymentHistoryUiState.Error(HistoryFailure.NOT_SET_UP),
-        PaymentHistoryUiState.Error(HistoryFailure.NOT_SET_UP, showSetupHelp = true),
+        PaymentHistoryUiState.Error(HistoryFailure.NETWORK, SetupHelp.StartEmulators("10.0.2.2")),
+        PaymentHistoryUiState.Error(HistoryFailure.NOT_SET_UP, SetupHelp.ConnectFirebase),
         PaymentHistoryUiState.Content(previewPayments),
     )
     ScreenStates(states) { state -> PaymentHistoryContent(state = state, onEvent = {}) }

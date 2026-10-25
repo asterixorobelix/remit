@@ -57,14 +57,9 @@ payments() {
   else echo 'disabled (no FIREBASE_PROJECT_ID), so they answer 503'; fi
 }
 
-# The steps after this one in README "Run it": the debug app reaches the emulators only when
-# FIREBASE_EMULATOR_HOST is compiled in (mobile/local.properties or the environment).
+# The step after this one in README "Run it" (debug builds use the emulators).
 app_steps() {
   printf '\nNext, in another terminal, build and launch the debug app (README "Run it"):\n'
-  if ! grep -Eq '^FIREBASE_EMULATOR_HOST=.+' mobile/local.properties 2>/dev/null &&
-    [[ -z "${FIREBASE_EMULATOR_HOST:-}" ]]; then
-    command_line "echo 'FIREBASE_EMULATOR_HOST=10.0.2.2' >> mobile/local.properties"
-  fi
   command_line make mobile
 }
 

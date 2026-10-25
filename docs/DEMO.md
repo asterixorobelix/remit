@@ -6,10 +6,9 @@ The recording of this script is [images/remit-demo.mp4](images/remit-demo.mp4).
 ## Setup (once)
 
 ```bash
-make emulators                                                     # terminal 1
-make backend-emulated                                              # terminal 2
-echo 'FIREBASE_EMULATOR_HOST=10.0.2.2' >> mobile/local.properties
-make mobile                                                        # installs and launches the app
+make emulators            # terminal 1
+make backend-emulated     # terminal 2
+make mobile               # installs and launches the app (debug builds use the emulators)
 ```
 
 Keep the Emulator Suite UI open at <http://localhost:4000/firestore> to watch documents appear.

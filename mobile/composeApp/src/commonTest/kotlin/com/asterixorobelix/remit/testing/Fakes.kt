@@ -17,6 +17,7 @@ data class FakeAppConfig(
     override val versionName: String = "1.2.0",
     override val versionCode: Int = 10200,
     override val applicationId: String = "com.asterixorobelix.remit",
+    override val firebaseEmulatorHost: String? = null,
 ) : AppConfig
 
 class FakeAppSettingsRepository(

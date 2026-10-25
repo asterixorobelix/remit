@@ -149,8 +149,9 @@
     <string name="history_error_unavailable">Something went wrong on our side. Try again in a moment.</string>
     <string name="history_not_set_up_title">History isn't available</string>
     <string name="history_not_set_up_message">This version of the app isn't connected to the payments service.</string>
-    <!-- Debug builds only: tells a developer how to connect a fresh clone to Firebase. -->
-    <string name="history_not_set_up_developer">Debug build without Firebase. On Android, add FIREBASE_EMULATOR_HOST=10.0.2.2 to mobile/local.properties (or add androidApp/google-services.json) and rebuild. See "Run it" in README.md.</string>
+    <!-- Debug builds only: tell a developer what to run locally. -->
+    <string name="history_not_set_up_developer">Debug build without Firebase. Android debug builds use the Firebase emulators unless FIREBASE_EMULATOR_HOST is set blank in mobile/local.properties: remove that line (or add androidApp/google-services.json) and rebuild. See "Run it" in README.md.</string>
+    <string name="history_emulators_unreachable">Debug build: the Firebase emulators at %1$s aren't answering. Start them with make emulators (see "Run it" in README.md), then retry.</string>
     <string name="history_amount">%1$s %2$s</string>
     <string name="history_status_completed">Completed</string>
     <string name="history_status_pending">Pending</string>

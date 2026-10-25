@@ -34,26 +34,23 @@ exactly once and records it in Firestore. Built as a take-home challenge on top 
 
 Requirements: JDK 21+, Android SDK with an emulator, Node 22+, and the Firebase CLI
 (`npm install -g firebase-tools`). Everything runs locally against the Firebase Emulator Suite;
-no Firebase account, credentials, or `google-services.json` are needed (with
-`FIREBASE_EMULATOR_HOST` set and no `google-services.json`, the debug app starts Firebase for the
-emulators itself).
+no Firebase account, credentials, or `google-services.json` are needed: without
+`google-services.json`, the debug app starts Firebase for the emulators itself.
 
 ```bash
 make emulators            # terminal 1: Firebase Auth + Firestore emulators (UI on http://localhost:4000)
 make backend-emulated     # terminal 2: the API on http://localhost:8085 against the emulators
-echo 'FIREBASE_EMULATOR_HOST=10.0.2.2' >> mobile/local.properties   # debug app -> emulators
-make mobile               # build, install, and launch the Android debug app
+make mobile               # terminal 3: build, install, and launch the Android debug app
 ```
 
 Then send a payment and open History. Swagger UI is at <http://localhost:8085/swagger>.
 
-The emulator host is compiled into the debug build, so rebuild after changing it. If the app says
-"History isn't available" or "This version of the app isn't connected to the payments service", the
-build has neither `FIREBASE_EMULATOR_HOST` nor `google-services.json`; the Gradle build and
-`make doctor` warn about the same thing. Debug builds also show this fix on the History screen.
+The debug app reaches the emulators and the API at `10.0.2.2`, your machine as seen from the
+Android emulator (a physical device needs `adb reverse`: see [TROUBLESHOOTING.md](TROUBLESHOOTING.md)).
+If History says the emulators aren't answering, start them with `make emulators` and retry.
 
 To use the real Firebase project instead: enable Anonymous sign-in in the Firebase console,
-remove `FIREBASE_EMULATOR_HOST`, place `google-services.json` in `mobile/androidApp/`, and start
+remove any `FIREBASE_EMULATOR_HOST` setting, place `google-services.json` in `mobile/androidApp/`, and start
 the backend with `FIREBASE_PROJECT_ID` and `GOOGLE_APPLICATION_CREDENTIALS` (a service account
 key) exported, using `make backend`.
 
@@ -102,8 +99,9 @@ make test-appium          # installs the current debug build, starts Appium (pin
 make test-perf            # HTML dashboard in build/perf/report/index.html
 ```
 
-`make test-appium` needs `FIREBASE_EMULATOR_HOST=10.0.2.2` in `mobile/local.properties`; without
-it the app signs in to the real Firebase project. Prefer an emulator with a window and hardware
+`make test-appium` needs the debug app on the emulators: with `google-services.json` present, also
+set `FIREBASE_EMULATOR_HOST=10.0.2.2` in `mobile/local.properties`, or the app signs in to the real
+Firebase project. Prefer an emulator with a window and hardware
 GPU. Under host load (emulators, backend, and Gradle daemons together), a headless `-no-window`
 `swiftshader` emulator can raise a system "not responding" dialog. That dialog takes focus, so
 a test reports that **Skip** was not found. If that happens, dismiss the dialog or restart the

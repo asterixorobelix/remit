@@ -69,17 +69,21 @@ if [[ -f "$ROOT/app.properties" ]]; then
   fi
   "$ROOT/scripts/sync-app-config.sh" --check >/dev/null 2>&1 || missing xcconfig 'out of sync with app.properties: run scripts/sync-app-config.sh'
   # The Android app needs Firebase for Send and History: a real google-services.json, or (debug
-  # builds) the local emulators through FIREBASE_EMULATOR_HOST, read like mobile/composeApp does.
+  # builds) the local emulators, at 10.0.2.2 unless FIREBASE_EMULATOR_HOST in local.properties or
+  # the environment says otherwise (as mobile/androidApp/build.gradle.kts reads it).
   if grep -Eiq '^FEATURES=(.*,)?[[:space:]]*firebase[[:space:]]*(,|$)' "$ROOT/app.properties"; then
     services="$ROOT/mobile/androidApp/google-services.json"
-    emulator_host="$(sed -n 's/^FIREBASE_EMULATOR_HOST=//p' "$ROOT/mobile/local.properties" 2>/dev/null | tail -1)"
-    emulator_host="${emulator_host:-${FIREBASE_EMULATOR_HOST:-}}"
+    if grep -q '^FIREBASE_EMULATOR_HOST=' "$ROOT/mobile/local.properties" 2>/dev/null; then
+      emulator_host="$(sed -n 's/^FIREBASE_EMULATOR_HOST=//p' "$ROOT/mobile/local.properties" | tail -1)"
+    else
+      emulator_host="${FIREBASE_EMULATOR_HOST-10.0.2.2}"
+    fi
     if [[ -f "$services" ]] && ! grep -Eq 'DEFAULT TEMPLATE|your-project-id-here' "$services"; then
       ok firebase-app 'mobile/androidApp/google-services.json'
     elif [[ -n "$emulator_host" ]]; then
       ok firebase-app "debug app uses the emulators at $emulator_host (make emulators, make backend-emulated)"
     else
-      printf '[warn]     %-12s %s\n' firebase-app "not set up, so Send and History fail in the app: echo 'FIREBASE_EMULATOR_HOST=10.0.2.2' >> mobile/local.properties, then rebuild (README \"Run it\")"
+      printf '[warn]     %-12s %s\n' firebase-app "FIREBASE_EMULATOR_HOST is blank, so Send and History fail in the debug app: remove it (mobile/local.properties or the environment), then rebuild (README \"Run it\")"
     fi
   fi
 else
