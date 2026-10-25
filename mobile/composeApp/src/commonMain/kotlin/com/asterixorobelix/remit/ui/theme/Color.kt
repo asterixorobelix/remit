@@ -179,6 +179,12 @@ val DarkColorScheme = darkColorScheme(
     surfaceTint = SurfaceTintDark,
 )
 
+/** Success colors for status UI (Material 3 has no success role, and tertiary is not green). */
+internal val SuccessLight = Color(0xFF1B6C3A)
+internal val SuccessContainerLight = Color(0xFFA6F4B5)
+internal val SuccessDark = Color(0xFF8BD89B)
+internal val SuccessContainerDark = Color(0xFF00522A)
+
 /** Warning accent for status UI (Material 3 has no warning color role). */
 internal val WarningLight = Color(0xFFF59E0B)
 internal val WarningDark = Color(0xFFFBBF24)

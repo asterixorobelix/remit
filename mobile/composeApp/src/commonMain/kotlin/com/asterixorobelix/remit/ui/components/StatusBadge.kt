@@ -23,12 +23,16 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import com.asterixorobelix.remit.ui.theme.AppTheme
 import com.asterixorobelix.remit.ui.theme.Dimens
+import com.asterixorobelix.remit.ui.theme.SuccessContainerDark
+import com.asterixorobelix.remit.ui.theme.SuccessContainerLight
+import com.asterixorobelix.remit.ui.theme.SuccessDark
+import com.asterixorobelix.remit.ui.theme.SuccessLight
 import com.asterixorobelix.remit.ui.theme.WarningDark
 import com.asterixorobelix.remit.ui.theme.WarningLight
 
 /** Status level for a [StatusBadge]. */
 enum class BadgeStatus {
-    /** Positive outcome — uses tertiary (green) color. */
+    /** Positive outcome — uses the success (green) color. */
     Success,
 
     /** Cautionary outcome — uses amber/warning color. */
@@ -75,8 +79,8 @@ fun StatusBadge(
     val (icon, foreground, background) = when (status) {
         BadgeStatus.Success -> Triple(
             Icons.Filled.CheckCircle,
-            MaterialTheme.colorScheme.tertiary,
-            MaterialTheme.colorScheme.tertiaryContainer,
+            if (isDark) SuccessDark else SuccessLight,
+            if (isDark) SuccessContainerDark else SuccessContainerLight,
         )
 
         BadgeStatus.Warning -> Triple(
