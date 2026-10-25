@@ -99,7 +99,8 @@ don't need one.
    make mobile
    ```
 
-Payments then appear on the Firestore page of the Firebase console.
+Payments then appear on the Firestore page of the Firebase console. To go back to the emulators,
+move `google-services.json` out of `mobile/androidApp/` and rebuild.
 
 ## Where this differs from the brief
 
@@ -295,7 +296,21 @@ literal text, so no floating-point value is ever involved, and the server conver
 `BigDecimal`. A JavaScript client sending `0.30000000000000004` gets "too many decimals",
 not a silently rounded payment.
 
-**Idempotency, end to end.** Every payment carries an `Idempotency-Key`.
+**Idempotency: every payment is made exactly once.** A payment request can succeed on the server
+while its response never reaches the app: the connection drops, the request times out, or the app
+is killed mid-send. The app then cannot tell whether the money moved. Retrying blindly can pay
+twice; not retrying can tell the user a payment failed when it went through. An idempotency key
+removes the guess. The app generates one random key per payment and sends it with every attempt,
+and the server stores the key with the payment, so a repeat of that payment returns the one
+already made instead of making another. That makes retrying safe, for the app and for the user.
+
+For example: you send $50.00 to bob@example.com, the server records it, and the connection drops
+before the response arrives. The app reports the failure and offers Retry. Without the key, Retry
+would make a second $50.00 payment. With it, the server answers with the first payment
+(`Idempotent-Replayed: true`), the app shows "Sent $50.00 to bob@example.com", and History has one
+payment.
+
+How it works:
 - *On the device:* `SendPaymentUseCase` keeps one key per payment. A retry after a timeout, or
   a double tap (sends are serialized), reuses it; editing the details or starting a new payment
   after a success gets a new one. Because of the key, the POST can safely be retried
@@ -307,9 +322,12 @@ not a silently rounded payment.
   processed it. This replaced the template's demo table, so the template's database tooling
   serves a real purpose.
 - *On the server:* the payment and an `idempotencyKeys/{uid}_{key}` record are written in one
-  Firestore transaction. The same key with the same payment returns the original
-  (`Idempotent-Replayed: true`); with a different payment it is a 409. Concurrent retries are
-  safe because Firestore serializes the two transactions, so the second one sees the record.
+  Firestore transaction. Written separately, a crash between the two could leave a payment
+  without its key (a retry would pay again) or a key without its payment. The same key with the
+  same payment returns the original (`Idempotent-Replayed: true`); with a different payment it is
+  a 409, because a key reused for other details is a client bug that replaying would hide. Keys
+  are scoped to the user, so one user's key never matches another's payment. Concurrent retries
+  are safe because Firestore serializes the two transactions, so the second one sees the record.
 - *Tested:* the Cucumber scenarios for a retry after a timeout and for a payment interrupted by the
   app closing, the emulator test with ten concurrent requests, the JMeter replay sampler, and
   manual runs on the emulator: a send with the backend stopped and retried after a restart, and

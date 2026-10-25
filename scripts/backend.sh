@@ -40,7 +40,7 @@ stop_then_start() {
     printf '  1. Stop the program on port %s.\n' "$port"
   fi
   printf '  2. Start the backend:\n'
-  command_line "$target"
+  command_line "$restart"
 }
 
 # env_value COMMAND NAME: NAME's value in a "ps eww" line (a process's arguments, then its environment).
@@ -57,11 +57,35 @@ payments() {
   else echo 'disabled (no FIREBASE_PROJECT_ID), so they answer 503'; fi
 }
 
-# The step after this one in README "Run it" (debug builds use the emulators).
+# The step after this one in README "Run it". Debug builds use the emulators unless the app has
+# google-services.json and no FIREBASE_EMULATOR_HOST (then the hosted project).
 app_steps() {
   printf '\nNext, in another terminal, build and launch the debug app (README "Run it"):\n'
   command_line make mobile
+  if [[ -f mobile/androidApp/google-services.json && -z "${FIREBASE_EMULATOR_HOST:-}" ]] &&
+    ! grep -Eq '^FIREBASE_EMULATOR_HOST=.+' mobile/local.properties 2>/dev/null; then
+    printf 'Note: mobile/androidApp/google-services.json points the debug app at the hosted project, not\n'
+    printf 'these emulators. Move it out of mobile/androidApp/ and rebuild to use the emulators.\n'
+  fi
 }
+
+# What this run's payments use, in payments' words; empty when any running backend will do
+# (make backend without FIREBASE_PROJECT_ID).
+if [[ -n "$project" ]]; then
+  wanted="Firebase emulators, project $project"
+elif [[ -n "${FIREBASE_PROJECT_ID:-}" && -n "${FIRESTORE_EMULATOR_HOST:-}" ]]; then
+  wanted="Firebase emulators, project $FIREBASE_PROJECT_ID"
+elif [[ -n "${FIREBASE_PROJECT_ID:-}" ]]; then
+  wanted="Firebase project $FIREBASE_PROJECT_ID"
+else
+  wanted=''
+fi
+# The command that starts this backend again, with the settings this run was given.
+restart="$target"
+if [[ "$wanted" == "Firebase project "* ]]; then
+  restart="FIREBASE_PROJECT_ID=$FIREBASE_PROJECT_ID"
+  restart+="${GOOGLE_APPLICATION_CREDENTIALS:+ GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS} $target"
+fi
 
 # Something on the port already? lsof exits non-zero when nothing listens, which is the usual case.
 pid="$(lsof -nP -iTCP:"$port" -sTCP:LISTEN -t 2>/dev/null | head -1 || true)"
@@ -69,7 +93,7 @@ holder=''
 [[ -z "$pid" ]] || holder="$(ps eww -o command= -p "$pid" 2>/dev/null || true)"
 if status="$(curl -fsS -m 2 "$url/api/v1/status" 2>/dev/null)" && [[ "$status" == *'"api"'* ]]; then
   using="$(payments "$holder")"
-  if [[ -z "$project" || "$using" == "Firebase emulators, project $project" ]]; then
+  if [[ -z "$wanted" || "$using" == "$wanted" ]]; then
     printf 'The backend is already running (pid %s); nothing to start.\n' "${pid:-unknown}"
     addresses
     [[ -z "$using" ]] || printf '  Payments     %s\n' "$using"
@@ -80,14 +104,14 @@ if status="$(curl -fsS -m 2 "$url/api/v1/status" 2>/dev/null)" && [[ "$status" =
   fi
   {
     if [[ -n "$using" ]]; then
-      printf 'A backend is already running (pid %s), but not against the Firebase emulators for project %s.\n' \
-        "${pid:-unknown}" "$project"
+      printf 'A backend is already running (pid %s), but %s needs its payments on %s.\n' \
+        "${pid:-unknown}" "$target" "$wanted"
       addresses
       printf '  Payments     %s\n' "$using"
     else
       printf 'A backend is already running at %s (pid %s), but not from this checkout (Docker, say),\n' \
         "$url" "${pid:-unknown}"
-      printf 'so it may not use the Firebase emulators for project %s.\n' "$project"
+      printf 'so its payments may not use %s.\n' "$wanted"
     fi
     stop_then_start "$pid" "$holder"
   } >&2
@@ -121,10 +145,17 @@ if [[ -n "$project" ]]; then
   addresses
   app_steps
 else
+  # A hosted project needs credentials: a service account key, or gcloud's application default ones.
+  if [[ "$wanted" == "Firebase project "* && ! -f "${GOOGLE_APPLICATION_CREDENTIALS:-}" &&
+    ! -f "$HOME/.config/gcloud/application_default_credentials.json" ]]; then
+    {
+      printf 'No credentials for %s, so payments fail: set GOOGLE_APPLICATION_CREDENTIALS to a service\n' "$wanted"
+      printf 'account key (README "Hosted Firebase project").\n\n'
+    } >&2
+  fi
   printf 'Starting the backend in development mode. Keep this terminal open.\n'
   addresses
-  if [[ -n "${FIREBASE_PROJECT_ID:-}" ]]; then printf '  Payments     Firebase project %s\n' "$FIREBASE_PROJECT_ID"
-  else printf '  Payments     disabled (no FIREBASE_PROJECT_ID), so they answer 503\n'; fi
+  printf '  Payments     %s\n' "${wanted:-disabled (no FIREBASE_PROJECT_ID), so they answer 503}"
 fi
 printf '\n'
 cd backend
