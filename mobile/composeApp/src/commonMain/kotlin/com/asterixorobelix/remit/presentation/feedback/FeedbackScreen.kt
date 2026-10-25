@@ -21,7 +21,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -40,6 +39,7 @@ import com.asterixorobelix.remit.generated.resources.feedback_submit
 import com.asterixorobelix.remit.generated.resources.settings_feedback
 import com.asterixorobelix.remit.generated.resources.support_email
 import com.asterixorobelix.remit.platform.openUrl
+import com.asterixorobelix.remit.presentation.common.CollectEffects
 import com.asterixorobelix.remit.ui.components.PrimaryButton
 import com.asterixorobelix.remit.ui.preview.ScreenStates
 import com.asterixorobelix.remit.ui.theme.Dimens
@@ -61,14 +61,12 @@ fun FeedbackScreen(
     val supportEmail = stringResource(Res.string.support_email)
     val currentOnNavigateBack by rememberUpdatedState(onNavigateBack)
 
-    LaunchedEffect(viewModel) {
-        viewModel.effects.collect { effect ->
-            when (effect) {
-                is FeedbackEffect.ComposeEmail -> if (openUrl(effect.mailtoUrl)) {
-                    currentOnNavigateBack()
-                } else {
-                    snackbarHostState.showSnackbar(getString(Res.string.feedback_no_email_app, supportEmail))
-                }
+    CollectEffects(viewModel.effects) { effect ->
+        when (effect) {
+            is FeedbackEffect.ComposeEmail -> if (openUrl(effect.mailtoUrl)) {
+                currentOnNavigateBack()
+            } else {
+                snackbarHostState.showSnackbar(getString(Res.string.feedback_no_email_app, supportEmail))
             }
         }
     }

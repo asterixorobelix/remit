@@ -183,13 +183,17 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+
+/** How long observing outlives the screen: enough for a configuration change, not the background. */
+private const val STOP_TIMEOUT_MS = 5_000L
 
 class ${NAME}ViewModel(
     private val observe${NAME}: Observe${NAME}UseCase,
@@ -197,14 +201,12 @@ class ${NAME}ViewModel(
 ) : ViewModel() {
     private val refreshing = MutableStateFlow(false)
     private val reloadRequests = MutableStateFlow(0)
-    private val mutableState = MutableStateFlow<${NAME}UiState>(${NAME}UiState.Loading)
-    val state: StateFlow<${NAME}UiState> = mutableState.asStateFlow()
+
+    /** Observes the data only while the screen is shown, so a hidden screen does no work. */
+    val state: StateFlow<${NAME}UiState> = observeState()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), ${NAME}UiState.Loading)
     private val effectChannel = Channel<${NAME}Effect>(Channel.BUFFERED)
     val effects: Flow<${NAME}Effect> = effectChannel.receiveAsFlow()
-
-    init {
-        viewModelScope.launch { observeState().collect { mutableState.value = it } }
-    }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private fun observeState(): Flow<${NAME}UiState> = reloadRequests.flatMapLatest {
@@ -224,7 +226,7 @@ class ${NAME}ViewModel(
     }
 
     private fun refresh() {
-        if (mutableState.value is ${NAME}UiState.Error) reloadRequests.value += 1
+        if (state.value is ${NAME}UiState.Error) reloadRequests.value += 1
         viewModelScope.launch {
             refreshing.value = true
             refresh${NAME}().onFailure {
@@ -257,7 +259,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
@@ -269,6 +270,7 @@ import $PACKAGE.generated.resources.cd_navigate_back
 import $PACKAGE.generated.resources.${KEY}_empty
 import $PACKAGE.generated.resources.${KEY}_error_load
 import $PACKAGE.generated.resources.${KEY}_title
+import $PACKAGE.presentation.common.CollectEffects
 import $PACKAGE.ui.components.FullScreenError
 import $PACKAGE.ui.preview.ScreenStates
 import $PACKAGE.ui.theme.Dimens
@@ -285,11 +287,9 @@ fun ${NAME}Route(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val currentOnMessage by rememberUpdatedState(onMessage)
-    LaunchedEffect(viewModel) {
-        viewModel.effects.collect { effect ->
-            when (effect) {
-                is ${NAME}Effect.ShowMessage -> currentOnMessage(getString(effect.message))
-            }
+    CollectEffects(viewModel.effects) { effect ->
+        when (effect) {
+            is ${NAME}Effect.ShowMessage -> currentOnMessage(getString(effect.message))
         }
     }
     ${NAME}Screen(state = state, onEvent = viewModel::onEvent, onNavigateBack = onNavigateBack)

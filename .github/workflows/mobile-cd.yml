@@ -162,7 +162,7 @@ jobs:
       - name: Mobile gate
         working-directory: mobile
         run: >-
-          ./gradlew test detekt ktlintCheck :androidApp:lintDebug :composeApp:lintDebug :shared:lintDebug
+          ./gradlew test detekt ktlintCheck :androidApp:lintDebug :composeApp:lintAndroidMain :shared:lintAndroidMain
           :androidApp:assembleDebug :composeApp:compileKotlinDesktop :composeApp:verifySqlDelightMigration
           :composeApp:koverVerifyUnitTests :shared:koverVerifyUnitTests
 

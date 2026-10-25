@@ -39,9 +39,9 @@ class SettingsViewModel(
 
     fun onEvent(event: SettingsEvent) {
         when (event) {
-            is SettingsEvent.ThemeModeSelected -> setThemeMode(event.mode)
+            is SettingsEvent.ThemeModeSelected -> viewModelScope.launch { setThemeMode(event.mode) }
             SettingsEvent.RateAppClicked -> viewModelScope.launch { effectChannel.send(SettingsEffect.RequestReview) }
-            SettingsEvent.ReviewFlowFinished -> markReviewRequested()
+            SettingsEvent.ReviewFlowFinished -> viewModelScope.launch { markReviewRequested() }
         }
     }
 }

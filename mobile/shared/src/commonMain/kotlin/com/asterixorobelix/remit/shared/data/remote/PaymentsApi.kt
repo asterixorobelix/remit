@@ -21,10 +21,16 @@ import kotlinx.io.IOException
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 
-/** Base URL of the payments API, resolved per request so a debug override applies at once. */
+/**
+ * Base URL of the API, resolved per request so a debug override applies at once. It suspends
+ * because the host app may read it from storage.
+ */
 fun interface ApiEndpoint {
-    fun baseUrl(): String
+    suspend fun baseUrl(): String
 }
+
+/** [path] (starting with `/`) on the current base URL. */
+suspend fun ApiEndpoint.urlFor(path: String): String = "${baseUrl().trimEnd('/')}$path"
 
 /**
  * Lets the host app add its own request options, such as opting the payment POST in to automatic
@@ -53,7 +59,7 @@ class KtorPaymentsApi(
         idempotencyKey: String,
         idToken: String,
     ): SendPaymentResult = try {
-        client.post("${endpoint.baseUrl().trimEnd('/')}$PAYMENTS_PATH") {
+        client.post(endpoint.urlFor(PAYMENTS_PATH)) {
             header(IDEMPOTENCY_KEY_HEADER, idempotencyKey)
             bearerAuth(idToken)
             setBody(TextContent(json.encodeToString(request.toDto()), ContentType.Application.Json))

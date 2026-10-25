@@ -33,7 +33,6 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -65,6 +64,7 @@ import com.asterixorobelix.remit.generated.resources.send_view_history
 import com.asterixorobelix.remit.generated.resources.unfinished_body
 import com.asterixorobelix.remit.generated.resources.unfinished_discard
 import com.asterixorobelix.remit.generated.resources.unfinished_title
+import com.asterixorobelix.remit.presentation.common.CollectEffects
 import com.asterixorobelix.remit.presentation.payments.PaymentTestTags
 import com.asterixorobelix.remit.presentation.payments.formatted
 import com.asterixorobelix.remit.presentation.payments.groupThousands
@@ -97,31 +97,29 @@ fun SendPaymentScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val currentOnViewHistory by rememberUpdatedState(onViewHistory)
 
-    LaunchedEffect(viewModel) {
-        viewModel.effects.collect { effect ->
-            when (effect) {
-                is SendPaymentEffect.PaymentSent -> {
-                    val payment = effect.payment
-                    val result = snackbarHostState.showSnackbar(
-                        message = getString(
-                            if (effect.alreadySent) Res.string.send_already_sent else Res.string.send_success,
-                            payment.amount.formatted(),
-                            payment.recipient.value,
-                        ),
-                        actionLabel = getString(Res.string.send_view_history),
-                        duration = SnackbarDuration.Long,
-                    )
-                    if (result == SnackbarResult.ActionPerformed) currentOnViewHistory()
-                }
+    CollectEffects(viewModel.effects) { effect ->
+        when (effect) {
+            is SendPaymentEffect.PaymentSent -> {
+                val payment = effect.payment
+                val result = snackbarHostState.showSnackbar(
+                    message = getString(
+                        if (effect.alreadySent) Res.string.send_already_sent else Res.string.send_success,
+                        payment.amount.formatted(),
+                        payment.recipient.value,
+                    ),
+                    actionLabel = getString(Res.string.send_view_history),
+                    duration = SnackbarDuration.Long,
+                )
+                if (result == SnackbarResult.ActionPerformed) currentOnViewHistory()
+            }
 
-                is SendPaymentEffect.PaymentFailed -> {
-                    val result = snackbarHostState.showSnackbar(
-                        message = getString(effect.reason.message),
-                        actionLabel = if (effect.reason.retryable) getString(Res.string.send_retry) else null,
-                        duration = SnackbarDuration.Long,
-                    )
-                    if (result == SnackbarResult.ActionPerformed) viewModel.onEvent(SendPaymentEvent.Submit)
-                }
+            is SendPaymentEffect.PaymentFailed -> {
+                val result = snackbarHostState.showSnackbar(
+                    message = getString(effect.reason.message),
+                    actionLabel = if (effect.reason.retryable) getString(Res.string.send_retry) else null,
+                    duration = SnackbarDuration.Long,
+                )
+                if (result == SnackbarResult.ActionPerformed) viewModel.onEvent(SendPaymentEvent.Submit)
             }
         }
     }

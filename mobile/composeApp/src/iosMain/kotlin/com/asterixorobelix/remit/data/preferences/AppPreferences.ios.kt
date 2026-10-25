@@ -1,63 +1,22 @@
 package com.asterixorobelix.remit.data.preferences
 
-import com.asterixorobelix.remit.domain.settings.ThemeMode
-import platform.Foundation.NSUserDefaults
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import kotlinx.cinterop.ExperimentalForeignApi
+import platform.Foundation.NSDocumentDirectory
+import platform.Foundation.NSFileManager
+import platform.Foundation.NSUserDomainMask
 
-class IOSAppPreferences : AppPreferences {
-    private val defaults = NSUserDefaults.standardUserDefaults
-
-    override fun hasCompletedOnboarding(): Boolean =
-        defaults.boolForKey(KEY_ONBOARDING_COMPLETED)
-
-    override fun setOnboardingCompleted(completed: Boolean) {
-        defaults.setBool(completed, KEY_ONBOARDING_COMPLETED)
-    }
-
-    override fun getThemeMode(): ThemeMode {
-        val value = defaults.stringForKey(KEY_THEME_MODE)
-        return ThemeMode.entries.firstOrNull { it.name == value } ?: ThemeMode.SYSTEM
-    }
-
-    override fun setThemeMode(mode: ThemeMode) {
-        defaults.setObject(mode.name, KEY_THEME_MODE)
-    }
-
-    override fun getAppOpenCount(): Int =
-        defaults.integerForKey(KEY_APP_OPEN_COUNT).toInt()
-
-    override fun incrementAppOpenCount() {
-        val current = getAppOpenCount()
-        defaults.setInteger(current.toLong() + 1, KEY_APP_OPEN_COUNT)
-    }
-
-    override fun hasRequestedReview(): Boolean =
-        defaults.boolForKey(KEY_REVIEW_REQUESTED)
-
-    override fun setReviewRequested() {
-        defaults.setBool(true, KEY_REVIEW_REQUESTED)
-    }
-
-    override fun getApiBaseUrlOverride(): String? = defaults.stringForKey(KEY_API_OVERRIDE)
-    override fun setApiBaseUrlOverride(url: String?) {
-        if (url == null) defaults.removeObjectForKey(KEY_API_OVERRIDE) else defaults.setObject(url, KEY_API_OVERRIDE)
-    }
-    override fun resetForDevelopment() {
-        listOf(
-            KEY_ONBOARDING_COMPLETED,
-            KEY_THEME_MODE,
-            KEY_APP_OPEN_COUNT,
-            KEY_REVIEW_REQUESTED,
-            KEY_API_OVERRIDE,
-        ).forEach(defaults::removeObjectForKey)
-    }
-
-    companion object {
-        private const val KEY_ONBOARDING_COMPLETED = "onboarding_completed"
-        private const val KEY_THEME_MODE = "theme_mode"
-        private const val KEY_APP_OPEN_COUNT = "app_open_count"
-        private const val KEY_REVIEW_REQUESTED = "review_requested"
-        private const val KEY_API_OVERRIDE = "api_url_override"
-    }
+/** The settings store in the app's Documents directory. */
+@OptIn(ExperimentalForeignApi::class)
+fun iosPreferencesDataStore(): DataStore<Preferences> {
+    val documents = NSFileManager.defaultManager.URLForDirectory(
+        directory = NSDocumentDirectory,
+        inDomain = NSUserDomainMask,
+        appropriateForURL = null,
+        create = true,
+        error = null,
+    )
+    val directory = requireNotNull(documents?.path) { "No Documents directory" }
+    return createPreferencesDataStore("$directory/${DataStoreAppPreferences.FILE_NAME}")
 }
-
-actual fun createAppPreferences(): AppPreferences = IOSAppPreferences()

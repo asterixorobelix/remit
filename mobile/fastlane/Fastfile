@@ -169,7 +169,7 @@ platform :android do
 
   desc "Run unit tests"
   lane :test do
-    gradle(project_dir: mobile_root, task: ":composeApp:testDebugUnitTest")
+    gradle(project_dir: mobile_root, task: ":composeApp:testAndroidHostTest")
   end
 
   desc "Run detekt code analysis"

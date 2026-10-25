@@ -20,13 +20,11 @@ import kotlin.test.assertNotEquals
 
 class ApiHttpClientTest {
     private val requests = mutableListOf<HttpRequestData>()
-    private var baseUrl = "https://api.test"
 
     private fun client(
         handler: suspend MockRequestHandleScope.(HttpRequestData) -> HttpResponseData,
     ): HttpClient = createApiHttpClient(
         config = NetworkConfig(retryPolicy = RetryPolicy(maxRetries = 2, initialDelayMs = 1, maxDelayMs = 1)),
-        apiBaseUrl = { baseUrl },
         engine = MockEngine { request ->
             requests += request
             handler(request)
@@ -36,8 +34,8 @@ class ApiHttpClientTest {
     @Test
     fun everyRequestGetsItsOwnRequestId() = runTest {
         val client = client { respondOk() }
-        client.get(ApiPaths.APP_CONFIG)
-        client.get(ApiPaths.APP_CONFIG)
+        client.get(CONFIG_URL)
+        client.get(CONFIG_URL)
         val ids = requests.map { it.headers[HttpHeaders.XRequestId] }
         assertEquals(2, ids.filterNotNull().size)
         assertNotEquals(ids[0], ids[1])
@@ -47,10 +45,10 @@ class ApiHttpClientTest {
     fun onlyIdempotentRequestsAreRetried() = runTest {
         val client = client { respond("", HttpStatusCode.ServiceUnavailable) }
 
-        client.post("/api/v1/example") { setBody("{}") }
+        client.post(EXAMPLE_URL) { setBody("{}") }
         assertEquals(1, requests.size)
 
-        client.get(ApiPaths.APP_CONFIG)
+        client.get(CONFIG_URL)
         assertEquals(1 + 3, requests.size)
     }
 
@@ -58,7 +56,7 @@ class ApiHttpClientTest {
     fun allowRetryOptsAPostIntoRetries() = runTest {
         val client = client { respond("", HttpStatusCode.ServiceUnavailable) }
 
-        client.post("/api/v1/example") {
+        client.post(EXAMPLE_URL) {
             allowRetry()
             setBody("{}")
         }
@@ -71,7 +69,7 @@ class ApiHttpClientTest {
     fun aPolicyGivenToAllowRetryReplacesTheClientPolicy() = runTest {
         val client = client { respond("", HttpStatusCode.ServiceUnavailable) }
 
-        client.post("/api/v1/example") {
+        client.post(EXAMPLE_URL) {
             allowRetry(RetryPolicy(maxRetries = 1, initialDelayMs = 1, maxDelayMs = 1))
             setBody("{}")
         }
@@ -85,7 +83,7 @@ class ApiHttpClientTest {
             respond("", HttpStatusCode.TooManyRequests, headersOf(HttpHeaders.RetryAfter, "60"))
         }
 
-        val response = client.get(ApiPaths.APP_CONFIG)
+        val response = client.get(CONFIG_URL)
 
         assertEquals(HttpStatusCode.TooManyRequests, response.status)
         assertEquals(1, requests.size)
@@ -97,19 +95,13 @@ class ApiHttpClientTest {
             respond("", HttpStatusCode.TooManyRequests, headersOf(HttpHeaders.RetryAfter, "0"))
         }
 
-        client.get(ApiPaths.APP_CONFIG)
+        client.get(CONFIG_URL)
 
         assertEquals(1 + 2, requests.size)
     }
 
-    @Test
-    fun baseUrlOverrideAppliesToTheNextRequest() = runTest {
-        val client = client { respondOk() }
-        client.get(ApiPaths.APP_CONFIG)
-        baseUrl = "http://10.0.2.2:8085"
-        client.get(ApiPaths.APP_CONFIG)
-        assertEquals("api.test", requests[0].url.host)
-        assertEquals("10.0.2.2", requests[1].url.host)
-        assertEquals(8085, requests[1].url.port)
+    private companion object {
+        const val CONFIG_URL = "https://api.test/api/v1/config"
+        const val EXAMPLE_URL = "https://api.test/api/v1/example"
     }
 }

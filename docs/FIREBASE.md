@@ -13,12 +13,16 @@ Firebase iOS SDK through Swift Package Manager if you need it there.
 2. Download `google-services.json` to `mobile/androidApp/google-services.json`. It is
    gitignored; never commit it.
 3. Add `firebase` to `FEATURES` in `app.properties` and run `scripts/sync-app-config.sh`.
-4. Build: `make apk`. The build applies the Google Services and Crashlytics plugins only
-   when both conditions hold, and logs a warning if `firebase` is enabled without the
-   file.
+4. Build: `make apk`. The build applies the Google Services plugin only when both conditions
+   hold, and logs a warning if `firebase` is enabled without the file. The Crashlytics plugin
+   is always applied (the SDK is always linked and needs its build id) but uploads mapping
+   files only for a real project.
 
-At runtime, Firebase is used only when the `firebase` capability is enabled. R8 keep rules
-for the reflective calls are in `mobile/androidApp/proguard-rules.pro`.
+At runtime, crash reports and analytics go to Firebase only when the `firebase` capability is
+enabled and the app was configured from `google-services.json` (never for the emulators).
+Collection is off in the manifest until the app turns it on, and a build without the file
+deactivates Analytics entirely. The code calls the Firebase SDKs directly, so R8 needs no
+keep rules for them.
 
 ## CI
 

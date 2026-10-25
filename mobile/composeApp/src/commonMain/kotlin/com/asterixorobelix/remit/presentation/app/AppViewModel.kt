@@ -17,12 +17,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 sealed interface AppUiState {
-    /** Resolving the start destination. */
+    /** Reading the start destination and theme; the splash screen stays up meanwhile. */
     data object Loading : AppUiState
 
     data class Ready(
@@ -51,7 +52,12 @@ class AppViewModel(
     checkForceUpdate: CheckForceUpdateUseCase?,
 ) : ViewModel() {
 
-    val themeMode: StateFlow<ThemeMode> = observeThemeMode()
+    /** The saved theme, null until it has been read. */
+    private val savedTheme: StateFlow<ThemeMode?> =
+        observeThemeMode().stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    val themeMode: StateFlow<ThemeMode> =
+        savedTheme.map { it ?: ThemeMode.SYSTEM }.stateIn(viewModelScope, SharingStarted.Eagerly, ThemeMode.SYSTEM)
 
     /** Destinations available for this build's capabilities. */
     val navigationFeatures: NavigationFeatures = NavigationFeatures.from(appConfig)
@@ -62,9 +68,11 @@ class AppViewModel(
     private val startDestination = MutableStateFlow<StartDestination?>(null)
     private val updateRequired = MutableStateFlow(false)
 
-    val uiState: StateFlow<AppUiState> = combine(startDestination, updateRequired) { start, mustUpdate ->
-        if (start == null) AppUiState.Loading else AppUiState.Ready(start, mustUpdate)
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, AppUiState.Loading)
+    /** Ready once the start destination and the theme are known, so the first frame is final. */
+    val uiState: StateFlow<AppUiState> =
+        combine(startDestination, updateRequired, savedTheme) { start, mustUpdate, theme ->
+            if (start == null || theme == null) AppUiState.Loading else AppUiState.Ready(start, mustUpdate)
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, AppUiState.Loading)
 
     private val effectChannel = Channel<AppEffect>(Channel.BUFFERED)
     val effects: Flow<AppEffect> = effectChannel.receiveAsFlow()
@@ -79,5 +87,7 @@ class AppViewModel(
         }
     }
 
-    fun onReviewFlowFinished() = launch.markReviewRequested()
+    fun onReviewFlowFinished() {
+        viewModelScope.launch { launch.markReviewRequested() }
+    }
 }

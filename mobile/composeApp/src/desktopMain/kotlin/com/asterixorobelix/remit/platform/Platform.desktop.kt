@@ -7,20 +7,6 @@ import androidx.compose.runtime.rememberUpdatedState
 import java.awt.Desktop
 import java.net.URI
 
-// The desktop gallery is a development tool that is never released, so its version is fixed.
-private const val GALLERY_VERSION_CODE = 10000
-
-private class DesktopAppConfig : AppConfig {
-    override val capabilities = parseCapabilities(System.getProperty("app.capabilities", "backend"))
-    override val environment = Environment.DEVELOPMENT
-    override val apiBaseUrl = System.getProperty("app.apiUrl", "http://localhost:8085")
-    override val isDebug = true
-    override val versionName = "1.0.0"
-    override val versionCode = GALLERY_VERSION_CODE
-    override val applicationId = "com.asterixorobelix.remit.desktop"
-}
-actual fun createAppConfig(): AppConfig = DesktopAppConfig()
-
 private class ConsoleLogger : Logger {
     override var minLogLevel = LogLevel.DEBUG
     override fun d(tag: String, message: String, throwable: Throwable?) = log(LogLevel.DEBUG, tag, message, throwable)

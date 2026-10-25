@@ -292,7 +292,7 @@ jobs:
       # make check-mobile without the iOS link (the iOS job covers it), plus the coverage report.
       - name: Test, lint, Android, desktop, migrations, and coverage
         run: >-
-          ./gradlew test detekt ktlintCheck :androidApp:lintDebug :composeApp:lintDebug :shared:lintDebug
+          ./gradlew test detekt ktlintCheck :androidApp:lintDebug :composeApp:lintAndroidMain :shared:lintAndroidMain
           :androidApp:assembleDebug :composeApp:compileKotlinDesktop
           :composeApp:verifySqlDelightMigration :composeApp:koverVerifyUnitTests
           :shared:koverVerifyUnitTests :composeApp:koverXmlReportUnitTests

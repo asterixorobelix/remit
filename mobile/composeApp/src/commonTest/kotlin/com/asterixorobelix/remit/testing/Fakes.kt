@@ -26,16 +26,16 @@ class FakeAppSettingsRepository(
 ) : AppSettingsRepository {
     private val mutableTheme = MutableStateFlow(ThemeMode.SYSTEM)
     override val themeMode: StateFlow<ThemeMode> = mutableTheme.asStateFlow()
-    override fun setThemeMode(mode: ThemeMode) {
+    override suspend fun setThemeMode(mode: ThemeMode) {
         mutableTheme.value = mode
     }
-    override fun hasCompletedOnboarding(): Boolean = onboardingDone
-    override fun completeOnboarding() {
+    override suspend fun hasCompletedOnboarding(): Boolean = onboardingDone
+    override suspend fun completeOnboarding() {
         onboardingDone = true
     }
-    override fun recordAppOpen(): Int = ++opens
-    override fun hasRequestedReview(): Boolean = reviewRequested
-    override fun markReviewRequested() {
+    override suspend fun recordAppOpen(): Int = ++opens
+    override suspend fun hasRequestedReview(): Boolean = reviewRequested
+    override suspend fun markReviewRequested() {
         reviewRequested = true
     }
 }

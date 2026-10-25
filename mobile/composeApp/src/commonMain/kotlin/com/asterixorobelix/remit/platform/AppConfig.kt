@@ -58,7 +58,8 @@ enum class Capability { BACKEND, FIREBASE }
 
 fun AppConfig.has(capability: Capability): Boolean = capability in capabilities
 
-internal fun parseCapabilities(value: String?): Set<Capability> = value.orEmpty()
+/** Reads `FEATURES` from app.properties (`backend,firebase`); unknown names are ignored. */
+fun parseCapabilities(value: String?): Set<Capability> = value.orEmpty()
     .split(',')
     .mapNotNull { raw -> Capability.entries.firstOrNull { it.name.equals(raw.trim(), ignoreCase = true) } }
     .toSet()
@@ -92,9 +93,3 @@ enum class Environment {
         }
     }
 }
-
-/**
- * Factory function to create platform-specific AppConfig.
- * Implemented in androidMain and iosMain.
- */
-expect fun createAppConfig(): AppConfig

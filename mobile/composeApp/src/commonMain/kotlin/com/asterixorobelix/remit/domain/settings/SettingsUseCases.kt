@@ -5,16 +5,16 @@ class ObserveThemeModeUseCase(private val repository: AppSettingsRepository) {
 }
 
 class SetThemeModeUseCase(private val repository: AppSettingsRepository) {
-    operator fun invoke(mode: ThemeMode) = repository.setThemeMode(mode)
+    suspend operator fun invoke(mode: ThemeMode) = repository.setThemeMode(mode)
 }
 
 class CompleteOnboardingUseCase(private val repository: AppSettingsRepository) {
-    operator fun invoke() = repository.completeOnboarding()
+    suspend operator fun invoke() = repository.completeOnboarding()
 }
 
 /** Records a launch; returns true exactly once, on the launch that should ask for a store review. */
 class RecordAppOpenUseCase(private val repository: AppSettingsRepository) {
-    operator fun invoke(): Boolean {
+    suspend operator fun invoke(): Boolean {
         val opens = repository.recordAppOpen()
         return opens == REVIEW_PROMPT_OPEN_COUNT && !repository.hasRequestedReview()
     }
@@ -25,13 +25,13 @@ class RecordAppOpenUseCase(private val repository: AppSettingsRepository) {
 }
 
 class MarkReviewRequestedUseCase(private val repository: AppSettingsRepository) {
-    operator fun invoke() = repository.markReviewRequested()
+    suspend operator fun invoke() = repository.markReviewRequested()
 }
 
 enum class StartDestination { ONBOARDING, HOME }
 
 /** Onboarding on first launch, Home afterwards. */
 class ResolveStartDestinationUseCase(private val settings: AppSettingsRepository) {
-    operator fun invoke(): StartDestination =
+    suspend operator fun invoke(): StartDestination =
         if (settings.hasCompletedOnboarding()) StartDestination.HOME else StartDestination.ONBOARDING
 }

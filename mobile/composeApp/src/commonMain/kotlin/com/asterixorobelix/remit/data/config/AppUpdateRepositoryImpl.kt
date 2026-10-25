@@ -4,6 +4,8 @@ import com.asterixorobelix.remit.data.network.ApiPaths
 import com.asterixorobelix.remit.data.network.bodyOrThrow
 import com.asterixorobelix.remit.domain.update.AppUpdateRepository
 import com.asterixorobelix.remit.domain.update.VersionPolicy
+import com.asterixorobelix.remit.shared.data.remote.ApiEndpoint
+import com.asterixorobelix.remit.shared.data.remote.urlFor
 import com.asterixorobelix.remit.util.runSuspendCatching
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
@@ -17,9 +19,12 @@ internal data class AppConfigResponse(
     val maintenanceMode: Boolean = false,
 )
 
-internal class AppUpdateRepositoryImpl(private val client: HttpClient) : AppUpdateRepository {
+internal class AppUpdateRepositoryImpl(
+    private val client: HttpClient,
+    private val endpoint: ApiEndpoint,
+) : AppUpdateRepository {
     override suspend fun fetchVersionPolicy(): Result<VersionPolicy> = runSuspendCatching {
-        val response: AppConfigResponse = client.get(ApiPaths.APP_CONFIG).bodyOrThrow()
+        val response: AppConfigResponse = client.get(endpoint.urlFor(ApiPaths.APP_CONFIG)).bodyOrThrow()
         VersionPolicy(response.minVersion, response.latestVersion, response.forceUpdate)
     }
 }

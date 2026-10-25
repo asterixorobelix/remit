@@ -1,4 +1,3 @@
-import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 // The payments feature with no UI: models, validation, use cases, the API client, and Firebase
@@ -6,7 +5,8 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 // use it without Compose.
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
-    alias(libs.plugins.androidLibrary)
+    alias(libs.plugins.androidKotlinMultiplatformLibrary)
+    alias(libs.plugins.androidLint)
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.detekt)
     alias(libs.plugins.ktlint)
@@ -14,11 +14,32 @@ plugins {
 }
 
 kotlin {
-    @Suppress("DEPRECATION")
-    androidTarget {
-        @OptIn(ExperimentalKotlinGradlePluginApi::class)
+    android {
+        namespace = "com.asterixorobelix.remit.shared"
+        compileSdk =
+            libs.versions.android.compileSdk
+                .get()
+                .toInt()
+        minSdk =
+            libs.versions.android.minSdk
+                .get()
+                .toInt()
         compilerOptions {
             jvmTarget.set(JvmTarget.fromTarget(libs.versions.android.jvmTarget.get()))
+        }
+        // commonTest also runs on the Android JVM (the Firebase actuals stay out: android.jar is stubs).
+        withHostTest {}
+        lint {
+            abortOnError = true
+            warningsAsErrors = true
+            checkReleaseBuilds = true
+            disable +=
+                setOf(
+                    "AndroidGradlePluginVersion",
+                    "GradleDependency",
+                    "NewerVersionAvailable",
+                    "OldTargetApi",
+                )
         }
     }
     iosArm64()
@@ -58,37 +79,6 @@ kotlin {
             implementation(libs.firebase.firestore)
             implementation(libs.kotlinx.coroutines.play.services)
         }
-    }
-}
-
-android {
-    namespace = "com.asterixorobelix.remit.shared"
-    compileSdk =
-        libs.versions.android.compileSdk
-            .get()
-            .toInt()
-    defaultConfig {
-        minSdk =
-            libs.versions.android.minSdk
-                .get()
-                .toInt()
-    }
-    compileOptions {
-        val javaVersion = JavaVersion.toVersion(libs.versions.android.jvmTarget.get())
-        sourceCompatibility = javaVersion
-        targetCompatibility = javaVersion
-    }
-    lint {
-        abortOnError = true
-        warningsAsErrors = true
-        checkReleaseBuilds = true
-        disable +=
-            setOf(
-                "AndroidGradlePluginVersion",
-                "GradleDependency",
-                "NewerVersionAvailable",
-                "OldTargetApi",
-            )
     }
 }
 
@@ -135,7 +125,7 @@ ktlint {
 kover {
     currentProject {
         createVariant("unitTests") {
-            add("desktop", "debug")
+            add("desktop", "android")
         }
     }
     reports {

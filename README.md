@@ -17,8 +17,12 @@ exactly once and records it in Firestore. Built as a take-home challenge on top 
   Success shows "Sent $10.50 to bob@example.com" with a link to History; a failure explains
   what happened and offers Retry when retrying can help.
 - **Transaction history.** Your payments from Firestore, newest first, each with recipient,
-  amount, currency, time, and status. A Firestore snapshot listener keeps the list live:
-  a payment recorded anywhere appears without a refresh.
+  amount, currency, time, and status. A Firestore snapshot listener keeps the list live while
+  the screen is open: a payment recorded anywhere appears without a refresh.
+- **Light and dark themes.** Material 3 light and dark colour schemes. The app follows the
+  system setting by default, and Settings offers System, Light, or Dark (saved across launches).
+  The status and navigation bar icons follow the app's choice, and the screenshot tests render
+  every component in both themes.
 - **Payments API.** `POST /api/v1/payments` takes
   `{"recipientEmail": String, "amount": Number, "currency": String}`, validates it, processes it
   (a mock processor that approves every valid payment), writes it to Firestore, and returns the
@@ -79,7 +83,7 @@ Each of these is deliberate; the reasons are under [Design decisions](#design-de
 | Layer | Command | What it proves | Where |
 |---|---|---|---|
 | Unit (shared) | `make test-mobile` | Money parsing, validation, idempotency keys, API client status mapping, repository, use cases: 75 tests, 94% line coverage (90% floor) | `mobile/shared/src/commonTest` |
-| Unit (app) | `make test-mobile` | ViewModels (Turbine), the SQLDelight pending-payment store, formatting, retry policy, crash-report redaction, navigation graph: 90 tests; 84% merged line coverage (80% floor) | `mobile/composeApp/src/*Test` |
+| Unit (app) | `make test-mobile` | ViewModels (Turbine), the History listener stopping when the screen is hidden, the Send form surviving process death, DataStore settings on a real file, the SQLDelight pending-payment store, formatting, retry policy, crash-report redaction, navigation graph: 104 tests; 85% merged line coverage (80% floor). `commonTest` runs on the desktop JVM and as Android host tests | `mobile/composeApp/src/*Test` |
 | Unit and route (backend) | `make test-backend` | Validator, service, routes, token verification, config: 62 tests, 83% line coverage (80% floor) | `backend/src/test` |
 | Shared validation cases | runs with both of the above | 65 cases in one JSON file that the app and the server must both satisfy | `testdata/payment-validation-cases.json` |
 | BDD (Cucumber) | `make test-bdd` | 13 scenarios: payment processed and saved to Firestore (an in-memory fake), invalid input never sent, retry after a timeout pays once, edited details after a failure are a new payment, a payment interrupted by the app closing finished safely after reopening, history newest first, live updates, per-user isolation | `mobile/shared/src/desktopTest/resources/features` |
@@ -146,8 +150,9 @@ flowchart LR
 | Module | Holds | Depends on Compose? |
 |---|---|---|
 | `mobile/shared` | Payment models, `Money`, validation, use cases, Ktor API client, Firebase auth and history (expect/actual), Koin module | No |
-| `mobile/composeApp` | Compose Multiplatform UI (Send, History, Settings), ViewModels, app shell from the template | Yes |
-| `mobile/androidApp` | Android entry point, Firebase setup (`google-services.json`), test tags for Appium | Yes |
+| `mobile/composeApp` | Compose Multiplatform UI (Send, History, Settings) and ViewModels; every user-facing string; the app shell from the template with its own data and domain code (settings in DataStore, the HTTP client, the SQLDelight store for the payment in flight) | Yes |
+| `mobile/androidApp` | Android entry point (`MainActivity`, `RemitApplication`), build types and `BuildConfig` (`AndroidAppConfig`), R8 rules, the Baseline Profile, Firebase setup (`google-services.json`), test tags for Appium | Yes |
+| `mobile/baselineprofile` | Generates the Baseline Profile on an emulator (Macrobenchmark and UI Automator) | No |
 | `backend` | Ktor API, server-side validation, Firestore store, token verification, OpenAPI spec | n/a |
 | `firebase` | Firestore rules, indexes, rules tests | n/a |
 
@@ -174,8 +179,8 @@ desktop JVM, and CI links the iOS framework whenever iOS-relevant code changes.
 - **UI:** the Compose screens are already multiplatform and render in the desktop gallery; the
   iOS app shell from the template hosts them in a `UIViewController`.
 - **Strings:** every user-facing string is in one shared Compose Multiplatform resource file,
-  `mobile/composeApp/src/commonMain/composeResources/values/strings.xml`, read on Android, iOS,
-  and desktop through `stringResource(Res.string.…)`. English only for now; a translation is a
+  [`mobile/composeApp/src/commonMain/composeResources/values/strings.xml`](mobile/composeApp/src/commonMain/composeResources/values/strings.xml),
+  read on Android, iOS, and desktop through `stringResource(Res.string.…)`. English only for now; a translation is a
   `values-<locale>/strings.xml` beside it. The architecture check fails literal UI text outside
   previews. The only other string file is Android's `res/values/strings.xml`, holding `app_name`
   for the launcher; iOS takes its display name from `app.properties` through the xcconfig.
@@ -184,6 +189,35 @@ desktop JVM, and CI links the iOS framework whenever iOS-relevant code changes.
   `presentation/payments/PaymentMessages.kt`, so a SwiftUI app could word them its own way. The
   backend returns the same codes in `details`, so server-side rejections appear in the app's
   wording.
+
+## Android practices
+
+The Android app follows Google's current guidance. The table says where to find each practice,
+and the list after it covers the places where the app deliberately does something else.
+
+| Area | What the app does | Where |
+|---|---|---|
+| Architecture | Layers per the Guide to app architecture: screens send events to ViewModels, which call use cases over a repository interface. State flows down as a sealed `UiState` in a `StateFlow`. | `presentation/`, `shared/.../domain` |
+| Lifecycle | Screens collect with `collectAsStateWithLifecycle`. The History Firestore listener uses `WhileSubscribed(5 s)`, so it stops reading when the app is in the background or another tab is open. One-off effects use `CollectEffects`, a `LaunchedEffect` with `repeatOnLifecycle(STARTED)`: a plain `LaunchedEffect` keeps collecting in the background and would show a snackbar nobody sees. | `PaymentHistoryViewModel`, `CollectEffects` |
+| Process death | What the user types is kept in `SavedStateHandle`. A payment already sent is written to SQLDelight before the request, so either survives the system ending the app. | `SendPaymentViewModel` |
+| Storage | Settings are in Jetpack DataStore, and every read is asynchronous; the old `SharedPreferences` file is migrated. The payment in flight is in SQLDelight. | `data/preferences`, `PendingPayment.sq` |
+| Navigation | Compose Navigation with type-safe `@Serializable` routes and a back stack for each tab. | `navigation/` |
+| Startup and UI | The Splash Screen API keeps the splash up until the start screen and saved theme are known. The app draws edge to edge, and the bar icons follow the app's theme. Material 3, light and dark. | `MainActivity`, `ui/theme` |
+| Strings and accessibility | No literal UI text: every string is in [`strings.xml`](mobile/composeApp/src/commonMain/composeResources/values/strings.xml), shared by Android, iOS, and desktop. Icon buttons have spoken labels (decorative icons are hidden from TalkBack), and each History row reads as one sentence. | `composeResources/`, `PaymentHistoryScreen` |
+| Release build | R8 full mode with resource shrinking. The rules keep only code that is reached by reflection, and the release APK is 4.9 MB. A Baseline Profile generated by Macrobenchmark precompiles startup and the main screens. Cleartext traffic is allowed only to the emulator in debug, and no app data goes to cloud backup or device transfer. | `proguard-rules.pro`, `baselineprofile/`, `data_extraction_rules.xml` |
+| Build | AGP 9 defaults: the KMP Android library plugin, built-in Kotlin, and the new DSL, with no opt-out flags. Versions are in a version catalog. targetSdk 36, minSdk 24. | `gradle/libs.versions.toml` |
+| Checks | Android Lint (warnings are errors, and the baselines are empty), detekt with Compose rules, ktlint, coverage floors, screenshot tests, an instrumented launch test, and Appium. | `make check-mobile` |
+
+Deliberate departures:
+
+- **Koin, not Hilt.** Hilt runs only on Android; Koin works in common code, so iOS and desktop
+  share the same dependency graph. `koinViewModel()` still provides the `SavedStateHandle`.
+- **One-off effects in a `Channel`, not in UI state.** Google suggests modelling events as
+  state. Here, "show this snackbar once" stays out of the state, and the channel buffers effects
+  until the screen is visible again.
+- **The activity handles configuration changes itself** (`configChanges`, the Compose
+  Multiplatform default). Compose redraws for rotation and theme changes without recreating the
+  activity, and process death is handled through `SavedStateHandle` as above.
 
 ## Design decisions
 
@@ -277,6 +311,8 @@ instead of breaking the list.
 | Path | Contents |
 |---|---|
 | `mobile/shared`, `mobile/composeApp`, `mobile/androidApp`, `mobile/iosApp` | The app (see [mobile/AGENTS.md](mobile/AGENTS.md)) |
+| `mobile/composeApp/src/commonMain/composeResources/values/strings.xml` | Every user-facing string, for Android, iOS, and desktop |
+| `mobile/baselineprofile` | Baseline Profile generator (`make baseline-profile`) |
 | `backend` | The API (see [backend/README.md](backend/README.md)) |
 | `firebase`, `firebase.json` | Firestore rules, indexes, rules tests, emulator configuration |
 | `testdata` | Validation cases shared by the app and the backend |
@@ -284,5 +320,6 @@ instead of breaking the list.
 | `perf` | JMeter plan |
 | `docs` | [Demo script](docs/DEMO.md), [template overview](docs/TEMPLATE.md), workflow and release guides |
 
-`make help` lists every command. Kotlin 2.3, Compose Multiplatform 1.10, Ktor 3.3, Koin 4.1,
-Firebase Admin SDK 9; versions live in [`gradle/libs.versions.toml`](gradle/libs.versions.toml).
+`make help` lists every command. Kotlin 2.3, Compose Multiplatform 1.10, AGP 9.1, Ktor 3.3,
+Koin 4.1, DataStore 1.2, Firebase Admin SDK 9; versions live in
+[`gradle/libs.versions.toml`](gradle/libs.versions.toml).

@@ -31,7 +31,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -58,6 +57,7 @@ import com.asterixorobelix.remit.generated.resources.settings_theme_light
 import com.asterixorobelix.remit.generated.resources.settings_theme_system
 import com.asterixorobelix.remit.generated.resources.settings_version
 import com.asterixorobelix.remit.platform.RequestInAppReview
+import com.asterixorobelix.remit.presentation.common.CollectEffects
 import com.asterixorobelix.remit.ui.components.SectionHeader
 import com.asterixorobelix.remit.ui.preview.ScreenStates
 import com.asterixorobelix.remit.ui.theme.Dimens
@@ -81,11 +81,9 @@ fun SettingsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var requestReview by remember { mutableStateOf(false) }
 
-    LaunchedEffect(viewModel) {
-        viewModel.effects.collect { effect ->
-            when (effect) {
-                SettingsEffect.RequestReview -> requestReview = true
-            }
+    CollectEffects(viewModel.effects) { effect ->
+        when (effect) {
+            SettingsEffect.RequestReview -> requestReview = true
         }
     }
     RequestInAppReview(

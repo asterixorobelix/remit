@@ -7,7 +7,8 @@ import org.koin.core.module.Module
 /**
  * Koin modules for a capability set. Core modules are always loaded; each optional feature is
  * added only when its capability is enabled, and navigation hides the matching routes otherwise
- * (see `navigation/NavigationFeatures.kt`). [platformModule] supplies `SqlDriverFactory`.
+ * (see `navigation/NavigationFeatures.kt`). [platformModule] supplies `SqlDriverFactory` and the
+ * settings `DataStore<Preferences>`.
  */
 fun appModules(config: AppConfig, platformModule: Module): List<Module> = buildList {
     val capabilities = config.capabilities

@@ -2,41 +2,42 @@ package com.asterixorobelix.remit.platform
 
 import android.os.Bundle
 import android.util.Log
+import com.google.firebase.FirebaseApp
+import com.google.firebase.analytics.FirebaseAnalytics
 
 /**
- * Android analytics. When the `firebase` capability is on and the Firebase SDK is linked (a real
- * `androidApp/google-services.json` is present), events go to Firebase Analytics through
- * reflection, because this shared module has no compile-time Firebase dependency. R8 keep rules
- * for the reflective calls live in `androidApp/proguard-rules.pro`. Otherwise events are logged.
+ * Android analytics. When [firebaseEnabled] (the `firebase` capability, not the emulators) and
+ * Firebase was started from `google-services.json`, events go to Firebase Analytics; otherwise
+ * they are logged. Collection is off in the manifest until `setAnalyticsCollectionEnabled` turns
+ * it on, so an emulator or unconfigured build never reports.
  */
 class AndroidAnalytics(private val firebaseEnabled: Boolean) : Analytics {
     private val tag = "Analytics"
-    private var firebaseAnalytics: Any? = null
+    private var firebaseAnalytics: FirebaseAnalytics? = null
     private var isEnabled = true
 
     override fun initialize() {
         if (!firebaseEnabled) {
-            Log.i(tag, "Firebase capability disabled - logging analytics locally")
+            Log.i(tag, "Firebase analytics disabled - logging analytics locally")
             return
         }
-        firebaseAnalytics = runCatching {
-            val firebaseApp = Class.forName(FIREBASE_APP).getMethod("getInstance").invoke(null)
-            val context = firebaseApp.javaClass.getMethod("getApplicationContext").invoke(firebaseApp)
-            Class.forName(FIREBASE_ANALYTICS)
-                .getMethod("getInstance", Class.forName("android.content.Context"))
-                .invoke(null, context)
-        }.onFailure {
-            Log.w(tag, "Firebase Analytics unavailable (is google-services.json configured?)")
-        }.getOrNull()
+        firebaseAnalytics = try {
+            FirebaseAnalytics.getInstance(FirebaseApp.getInstance().applicationContext)
+        } catch (notStarted: IllegalStateException) {
+            Log.w(tag, "Firebase Analytics unavailable (is google-services.json configured?)", notStarted)
+            null
+        }
     }
 
     override fun logEvent(name: String, params: Map<String, Any>?) {
         if (!isEnabled) return
-        val bundle = params?.toBundle() ?: Bundle()
-        if (!invokeFirebase("logEvent", arrayOf(String::class.java, Bundle::class.java), name, bundle)) {
+        val analytics = firebaseAnalytics
+        if (analytics == null) {
             val paramsString = params?.entries?.joinToString(", ") { "${it.key}=${it.value}" }.orEmpty()
             Log.d(tag, "Event: $name $paramsString")
+            return
         }
+        analytics.logEvent(name, params?.toBundle() ?: Bundle())
     }
 
     override fun logScreenView(screenName: String, screenClass: String?) {
@@ -47,30 +48,21 @@ class AndroidAnalytics(private val firebaseEnabled: Boolean) : Analytics {
 
     override fun setUserProperty(name: String, value: String?) {
         if (!isEnabled) return
-        invokeFirebase("setUserProperty", arrayOf(String::class.java, String::class.java), name, value)
+        firebaseAnalytics?.setUserProperty(name, value)
     }
 
     override fun setUserId(userId: String?) {
         if (!isEnabled) return
-        invokeFirebase("setUserId", arrayOf(String::class.java), userId)
+        firebaseAnalytics?.setUserId(userId)
     }
 
     override fun setAnalyticsCollectionEnabled(enabled: Boolean) {
         isEnabled = enabled
-        invokeFirebase("setAnalyticsCollectionEnabled", arrayOf(java.lang.Boolean.TYPE), enabled)
+        firebaseAnalytics?.setAnalyticsCollectionEnabled(enabled)
     }
 
     override fun resetAnalyticsData() {
-        invokeFirebase("resetAnalyticsData", emptyArray())
-    }
-
-    /** Calls a FirebaseAnalytics method; returns false when Firebase is not active. */
-    @Suppress("SpreadOperator") // Java reflection takes varargs.
-    private fun invokeFirebase(method: String, types: Array<Class<*>>, vararg args: Any?): Boolean {
-        val instance = firebaseAnalytics ?: return false
-        return runCatching { instance.javaClass.getMethod(method, *types).invoke(instance, *args) }
-            .onFailure { Log.e(tag, "Firebase Analytics call failed: $method", it) }
-            .isSuccess
+        firebaseAnalytics?.resetAnalyticsData()
     }
 
     private fun Map<String, Any>.toBundle(): Bundle = Bundle().apply {
@@ -85,11 +77,6 @@ class AndroidAnalytics(private val firebaseEnabled: Boolean) : Analytics {
                 else -> putString(key, value.toString())
             }
         }
-    }
-
-    private companion object {
-        const val FIREBASE_APP = "com.google.firebase.FirebaseApp"
-        const val FIREBASE_ANALYTICS = "com.google.firebase.analytics.FirebaseAnalytics"
     }
 }
 

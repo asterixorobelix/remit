@@ -50,7 +50,8 @@ declaring work done, run the full gates:
 ```bash
 make check-backend   # cd backend && ./gradlew test detekt ktlintCheck koverVerify
 make check-mobile    # cd mobile && ./gradlew test detekt ktlintCheck :androidApp:lintDebug \
-                     #   :composeApp:lintDebug :androidApp:assembleDebug :composeApp:compileKotlinDesktop \
+                     #   :composeApp:lintAndroidMain :shared:lintAndroidMain :androidApp:assembleDebug \
+                     #   :composeApp:compileKotlinDesktop \
                      #   :composeApp:linkDebugFrameworkIosSimulatorArm64 :composeApp:verifySqlDelightMigration \
                      #   :composeApp:koverVerifyUnitTests
 make check-template  # initializer/generator contracts, xcconfig sync, resources, architecture

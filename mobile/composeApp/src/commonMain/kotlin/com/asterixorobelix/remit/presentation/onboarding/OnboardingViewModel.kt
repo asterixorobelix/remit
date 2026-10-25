@@ -16,8 +16,11 @@ class OnboardingViewModel(private val completeOnboarding: CompleteOnboardingUseC
     private val effectChannel = Channel<OnboardingEffect>(Channel.BUFFERED)
     val effects: Flow<OnboardingEffect> = effectChannel.receiveAsFlow()
 
+    /** Saves completion before leaving, so a restart right after never shows onboarding again. */
     fun onFinish() {
-        completeOnboarding()
-        viewModelScope.launch { effectChannel.send(OnboardingEffect.Completed) }
+        viewModelScope.launch {
+            completeOnboarding()
+            effectChannel.send(OnboardingEffect.Completed)
+        }
     }
 }

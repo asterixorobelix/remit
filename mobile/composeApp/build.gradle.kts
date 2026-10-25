@@ -1,36 +1,10 @@
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
-import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import java.util.Properties
-
-// Load local.properties for environment-specific configuration
-val localProperties =
-    Properties().apply {
-        val localPropertiesFile = rootProject.file("local.properties")
-        if (localPropertiesFile.exists()) {
-            load(localPropertiesFile.inputStream())
-        }
-    }
-
-val appProperties =
-    Properties().apply {
-        rootProject.file("../app.properties").inputStream().use(::load)
-    }
-
-// Helper function to get property with fallback
-fun getLocalProperty(
-    key: String,
-    defaultValue: String,
-): String = localProperties.getProperty(key) ?: System.getenv(key) ?: defaultValue
-
-fun getAppProperty(key: String): String =
-    localProperties.getProperty(key) ?: System.getenv(key) ?: requireNotNull(appProperties.getProperty(key)) {
-        "Missing $key in app.properties"
-    }
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
-    alias(libs.plugins.androidLibrary)
+    alias(libs.plugins.androidKotlinMultiplatformLibrary)
+    alias(libs.plugins.androidLint)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinSerialization)
@@ -42,11 +16,47 @@ plugins {
 }
 
 kotlin {
-    @Suppress("DEPRECATION")
-    androidTarget {
-        @OptIn(ExperimentalKotlinGradlePluginApi::class)
+    // The Android library has one variant: build types, BuildConfig, and per-build values
+    // (API URL, environment, emulator host) belong to :androidApp, which passes them in as AppConfig.
+    android {
+        namespace = "com.asterixorobelix.remit"
+        compileSdk =
+            libs.versions.android.compileSdk
+                .get()
+                .toInt()
+        minSdk =
+            libs.versions.android.minSdk
+                .get()
+                .toInt()
         compilerOptions {
             jvmTarget.set(JvmTarget.fromTarget(libs.versions.android.jvmTarget.get()))
+        }
+        // Launcher icons, the app and splash themes, and Compose resources.
+        androidResources {
+            enable = true
+        }
+        // commonTest also runs on the Android JVM: `testAndroidHostTest`.
+        withHostTest {
+            isIncludeAndroidResources = true
+        }
+
+        // Android Lint gate: `:composeApp:lintAndroidMain`. Pre-existing findings live in the committed
+        // lint-baseline.xml; anything new fails the task, warnings included. Refresh the baseline with
+        // `:composeApp:updateLintBaseline` only for findings you have decided to accept.
+        lint {
+            baseline = file("lint-baseline.xml")
+            abortOnError = true
+            warningsAsErrors = true
+            checkReleaseBuilds = true
+            disable +=
+                setOf(
+                    // Version-freshness checks depend on the day the build runs, not on the change;
+                    // dependency updates are handled separately (version catalog + `check deps`).
+                    "AndroidGradlePluginVersion",
+                    "GradleDependency",
+                    "NewerVersionAvailable",
+                    "OldTargetApi",
+                )
         }
     }
 
@@ -82,6 +92,10 @@ kotlin {
             implementation(libs.ktor.client.okhttp)
             implementation(libs.play.review.ktx)
             implementation(libs.sqlDelight.androidDriver)
+            implementation(libs.androidx.datastore.preferences)
+            implementation(project.dependencies.platform(libs.firebase.bom))
+            implementation(libs.firebase.crashlytics)
+            implementation(libs.firebase.analytics)
         }
         commonMain.dependencies {
             implementation(project(":shared"))
@@ -93,6 +107,7 @@ kotlin {
             implementation(libs.compose.ui.tooling.preview)
 
             implementation(libs.androidx.lifecycle.viewmodel)
+            implementation(libs.androidx.lifecycle.viewmodel.savedstate)
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(libs.androidx.navigation.compose)
 
@@ -112,6 +127,7 @@ kotlin {
             implementation(libs.coil.compose)
             implementation(libs.coil.network.ktor3)
 
+            implementation(libs.androidx.datastore.preferences.core)
             implementation(libs.sqlDelight.runtime)
             implementation(libs.sqlDelight.coroutinesExtensions)
         }
@@ -165,115 +181,9 @@ sqldelight {
     }
 }
 
-android {
-    namespace = "com.asterixorobelix.remit"
-    compileSdk =
-        libs.versions.android.compileSdk
-            .get()
-            .toInt()
-
-    defaultConfig {
-        minSdk =
-            libs.versions.android.minSdk
-                .get()
-                .toInt()
-
-        buildConfigField("String", "VERSION_NAME", "\"${getAppProperty("VERSION_NAME")}\"")
-        buildConfigField("int", "VERSION_CODE", getAppProperty("VERSION_CODE"))
-        buildConfigField("String", "APPLICATION_ID", "\"${getAppProperty("PACKAGE_NAME")}\"")
-        buildConfigField("String", "CAPABILITIES", "\"${getAppProperty("FEATURES")}\"")
-    }
-
-    // Enable BuildConfig generation
-    buildFeatures {
-        buildConfig = true
-    }
-
-    buildTypes {
-        getByName("debug") {
-            isMinifyEnabled = false
-            // Debug environment configuration
-            buildConfigField("String", "ENVIRONMENT", "\"development\"")
-            buildConfigField(
-                "String",
-                "API_BASE_URL",
-                "\"${getAppProperty("API_BASE_URL_DEBUG")}\"",
-            )
-            // Debug only: FIREBASE_EMULATOR_HOST in local.properties or the environment (10.0.2.2 from
-            // the Android emulator) points Auth and Firestore at the local Firebase Emulator Suite.
-            buildConfigField(
-                "String",
-                "FIREBASE_EMULATOR_HOST",
-                "\"${getLocalProperty("FIREBASE_EMULATOR_HOST", "")}\"",
-            )
-            buildConfigField("boolean", "ANALYTICS_ENABLED", "false")
-            buildConfigField("boolean", "CRASH_REPORTING_ENABLED", "false")
-        }
-        getByName("release") {
-            isMinifyEnabled = false
-            // Production environment configuration
-            buildConfigField("String", "ENVIRONMENT", "\"production\"")
-            buildConfigField(
-                "String",
-                "API_BASE_URL",
-                "\"${getAppProperty("API_BASE_URL_RELEASE")}\"",
-            )
-            buildConfigField("String", "FIREBASE_EMULATOR_HOST", "\"\"")
-            buildConfigField("boolean", "ANALYTICS_ENABLED", "true")
-            buildConfigField("boolean", "CRASH_REPORTING_ENABLED", "true")
-        }
-    }
-
-    // Staging build type (optional)
-    buildTypes.create("staging") {
-        initWith(buildTypes.getByName("debug"))
-        buildConfigField("String", "ENVIRONMENT", "\"staging\"")
-        buildConfigField("String", "FIREBASE_EMULATOR_HOST", "\"\"")
-        buildConfigField(
-            "String",
-            "API_BASE_URL",
-            "\"${getAppProperty("API_BASE_URL_STAGING")}\"",
-        )
-        buildConfigField("boolean", "ANALYTICS_ENABLED", "true")
-        buildConfigField("boolean", "CRASH_REPORTING_ENABLED", "true")
-    }
-
-    packaging {
-        jniLibs {
-            useLegacyPackaging = false
-            keepDebugSymbols += "**/*.so"
-        }
-    }
-
-    compileOptions {
-        val javaVersion = JavaVersion.toVersion(libs.versions.android.jvmTarget.get())
-        sourceCompatibility = javaVersion
-        targetCompatibility = javaVersion
-    }
-
-    // Android Lint gate: `:composeApp:lintDebug` (debug only; release builds still run lintVital).
-    // Pre-existing findings live in the committed lint-baseline.xml; anything new fails the task,
-    // warnings included. Refresh the baseline with `:composeApp:updateLintBaseline` only for
-    // findings you have decided to accept.
-    lint {
-        baseline = file("lint-baseline.xml")
-        abortOnError = true
-        warningsAsErrors = true
-        checkReleaseBuilds = true
-        disable +=
-            setOf(
-                // Version-freshness checks depend on the day the build runs, not on the change;
-                // dependency updates are handled separately (version catalog + `check deps`).
-                "AndroidGradlePluginVersion",
-                "GradleDependency",
-                "NewerVersionAvailable",
-                "OldTargetApi",
-            )
-    }
-}
-
 dependencies {
-    debugImplementation(libs.compose.ui.tooling)
+    // Android Studio previews; kept off the library's compile classpath.
+    "androidRuntimeClasspath"(libs.compose.ui.tooling)
     // One coverage report and floor for the app, including the shared payments module.
     kover(project(":shared"))
     // Compose-specific detekt rules (the "Compose" rule set in detekt-mobile.yml).
@@ -317,7 +227,7 @@ tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
 }
 
 // ktlint covers every hand-written source set (common, platform, and test) and this script.
-// SQLDelight, Compose resource accessors, and BuildConfig are generated under build/, which
+// SQLDelight and Compose resource accessors are generated under build/, which
 // the Kotlin source sets also include, so they are filtered out here.
 ktlint {
     filter {
@@ -328,15 +238,13 @@ ktlint {
 
 // Coverage: `./gradlew :composeApp:koverXmlReportUnitTests` writes a JaCoCo-format XML report to
 // build/reports/kover/reportUnitTests.xml from the JVM-run tests: desktopTest and the Android
-// testDebugUnitTest (AGP 9 creates unit tests for the debug build type only); both run commonTest.
-// The total `koverXmlReport` (build/reports/kover/report.xml) holds the same data but also compiles
-// the release and staging variants. CI holds the lines a pull request changes to 80% with diff-cover;
+// host tests (testAndroidHostTest); both run commonTest. CI holds the lines a pull request changes to 80% with diff-cover;
 // `koverVerifyUnitTests` (in `make check-mobile` and CI) is a total floor that stops coverage sliding,
 // for example when tests are deleted. Raise it as coverage grows; never lower it to make a change pass.
 kover {
     currentProject {
         createVariant("unitTests") {
-            add("desktop", "debug")
+            add("desktop", "android")
         }
     }
     reports {
@@ -362,7 +270,7 @@ kover {
                     "com.asterixorobelix.remit.generated.resources",
                     "com.asterixorobelix.remit.data.db",
                 )
-                // BuildConfig (plus the Activity/Fragment/databinding names the Android plugin generates).
+                // Names the Android plugin generates (R, BuildConfig, databinding).
                 androidGeneratedClasses()
                 // Android platform glue that plain JVM unit tests cannot run (android.jar is stubs):
                 // the Application, lifecycle callbacks, and the platform actuals, i.e. `*.android.kt`

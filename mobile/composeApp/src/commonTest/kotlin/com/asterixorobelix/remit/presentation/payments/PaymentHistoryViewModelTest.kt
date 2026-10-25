@@ -1,5 +1,6 @@
 package com.asterixorobelix.remit.presentation.payments
 
+import com.asterixorobelix.remit.presentation.payments.history.HISTORY_STOP_TIMEOUT_MS
 import com.asterixorobelix.remit.presentation.payments.history.PaymentHistoryEvent
 import com.asterixorobelix.remit.presentation.payments.history.PaymentHistoryUiState
 import com.asterixorobelix.remit.presentation.payments.history.PaymentHistoryViewModel
@@ -16,9 +17,14 @@ import com.asterixorobelix.remit.testing.RecordingCrashLogger
 import com.asterixorobelix.remit.testing.testPayment
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -27,6 +33,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class PaymentHistoryViewModelTest {
@@ -45,10 +52,17 @@ class PaymentHistoryViewModelTest {
     private fun viewModel(repository: PaymentRepository, isDebug: Boolean = false) =
         PaymentHistoryViewModel(ObservePaymentHistoryUseCase(repository), crashLogger, FakeAppConfig(isDebug = isDebug))
 
+    /** The screen on display: collects the state until [cancel][Job.cancel] or the end of the test. */
+    private fun TestScope.show(vm: PaymentHistoryViewModel): Job =
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
+
+    private fun TestScope.shown(repository: PaymentRepository, isDebug: Boolean = false) =
+        viewModel(repository, isDebug).also { show(it) }
+
     @Test
     fun loadsThenShowsLiveUpdates() = runTest {
         val repository = FakePaymentRepository(SendPaymentResult.Success(testPayment()))
-        val vm = viewModel(repository)
+        val vm = shown(repository)
         assertEquals(PaymentHistoryUiState.Loading, vm.uiState.value)
 
         repository.history.emit(listOf(testPayment("pay_1")))
@@ -65,21 +79,21 @@ class PaymentHistoryViewModelTest {
     @Test
     fun noPaymentsIsEmptyNotAnError() = runTest {
         val repository = FakePaymentRepository(SendPaymentResult.Success(testPayment()))
-        val vm = viewModel(repository)
+        val vm = shown(repository)
         repository.history.emit(emptyList())
         assertEquals(PaymentHistoryUiState.Empty, vm.uiState.value)
     }
 
     @Test
     fun listenerFailureIsAnErrorWithItsReasonAndIsReported() = runTest {
-        val vm = viewModel(FailingHistory(reason = HistoryFailure.NETWORK))
+        val vm = shown(FailingHistory(reason = HistoryFailure.NETWORK))
         assertEquals(PaymentHistoryUiState.Error(HistoryFailure.NETWORK), vm.uiState.value)
         assertIs<PaymentHistoryException>(crashLogger.exceptions.single())
     }
 
     @Test
     fun anUnexpectedFailureIsNotBlamedOnTheConnection() = runTest {
-        val vm = viewModel(FailingHistory(failure = IllegalStateException("boom")))
+        val vm = shown(FailingHistory(failure = IllegalStateException("boom")))
         assertEquals(PaymentHistoryUiState.Error(HistoryFailure.UNAVAILABLE), vm.uiState.value)
     }
 
@@ -88,22 +102,22 @@ class PaymentHistoryViewModelTest {
         val notSetUp = FailingHistory(reason = HistoryFailure.NOT_SET_UP)
         assertEquals(
             PaymentHistoryUiState.Error(HistoryFailure.NOT_SET_UP, showSetupHelp = true),
-            viewModel(notSetUp, isDebug = true).uiState.value,
+            shown(notSetUp, isDebug = true).uiState.value,
         )
         assertEquals(
             PaymentHistoryUiState.Error(HistoryFailure.NOT_SET_UP, showSetupHelp = false),
-            viewModel(notSetUp, isDebug = false).uiState.value,
+            shown(notSetUp, isDebug = false).uiState.value,
         )
         assertEquals(
             PaymentHistoryUiState.Error(HistoryFailure.NETWORK, showSetupHelp = false),
-            viewModel(FailingHistory(reason = HistoryFailure.NETWORK), isDebug = true).uiState.value,
+            shown(FailingHistory(reason = HistoryFailure.NETWORK), isDebug = true).uiState.value,
         )
     }
 
     @Test
     fun refreshReconnectsTheListener() = runTest {
         val repository = FakePaymentRepository(SendPaymentResult.Success(testPayment()))
-        val vm = viewModel(repository)
+        val vm = shown(repository)
         repository.history.emit(listOf(testPayment()))
 
         vm.onEvent(PaymentHistoryEvent.Refresh)
@@ -115,12 +129,68 @@ class PaymentHistoryViewModelTest {
     @Test
     fun refreshAfterAnErrorShowsLoadingThenRecovers() = runTest {
         val repository = FailingHistory(failures = 1)
-        val vm = viewModel(repository)
+        val vm = shown(repository)
         assertEquals(PaymentHistoryUiState.Error(HistoryFailure.UNAVAILABLE), vm.uiState.value)
 
         vm.onEvent(PaymentHistoryEvent.Refresh)
 
         assertEquals(PaymentHistoryUiState.Empty, vm.uiState.value)
+    }
+
+    @Test
+    fun nothingListensUntilTheScreenIsShown() = runTest {
+        val repository = FakePaymentRepository(SendPaymentResult.Success(testPayment()))
+        val vm = viewModel(repository)
+        assertEquals(0, repository.historyCollections)
+
+        show(vm)
+
+        assertEquals(1, repository.history.subscriptionCount.value)
+    }
+
+    @Test
+    fun theListenerStopsAfterTheScreenIsHiddenAndResumesWhenItReturns() = runTest {
+        val repository = FakePaymentRepository(SendPaymentResult.Success(testPayment()))
+        val vm = viewModel(repository)
+        val screen = show(vm)
+        repository.history.emit(listOf(testPayment()))
+
+        screen.cancel()
+        advanceTimeBy(HISTORY_STOP_TIMEOUT_MS - 1)
+        // A configuration change resubscribes within the timeout without reconnecting.
+        assertEquals(1, repository.history.subscriptionCount.value)
+        advanceTimeBy(2)
+        assertEquals(0, repository.history.subscriptionCount.value, "a hidden screen must not keep listening")
+        assertEquals(listOf(testPayment()), assertIs<PaymentHistoryUiState.Content>(vm.uiState.value).payments)
+
+        show(vm)
+
+        assertEquals(1, repository.history.subscriptionCount.value)
+        assertEquals(2, repository.historyCollections)
+        assertEquals(listOf(testPayment()), assertIs<PaymentHistoryUiState.Content>(vm.uiState.value).payments)
+    }
+
+    @Test
+    fun refreshKeepsTheListOnScreenWhileReconnecting() = runTest {
+        val history = MutableSharedFlow<List<Payment>>()
+        val repository = object : PaymentRepository {
+            override suspend fun send(request: PaymentRequest, idempotencyKey: String): SendPaymentResult =
+                error("Not used")
+
+            override fun observeHistory(): Flow<List<Payment>> = history
+        }
+        val vm = shown(repository)
+        history.emit(listOf(testPayment()))
+
+        vm.onEvent(PaymentHistoryEvent.Refresh)
+
+        val refreshing = assertIs<PaymentHistoryUiState.Content>(vm.uiState.value)
+        assertTrue(refreshing.isRefreshing)
+        history.emit(listOf(testPayment("pay_2")))
+        assertEquals(
+            PaymentHistoryUiState.Content(listOf(testPayment("pay_2"))),
+            vm.uiState.value,
+        )
     }
 
     private class FailingHistory(

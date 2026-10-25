@@ -1,5 +1,6 @@
 package com.asterixorobelix.remit.presentation.payments
 
+import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import com.asterixorobelix.remit.presentation.payments.send.SendPaymentEffect
 import com.asterixorobelix.remit.presentation.payments.send.SendPaymentEvent
@@ -25,6 +26,7 @@ import com.asterixorobelix.remit.testing.testPayment
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -51,7 +53,12 @@ class SendPaymentViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun viewModel(repository: FakePaymentRepository) = SendPaymentViewModel(
+    /** [savedState] outlives the process when the system reclaims it; [store] outlives any restart. */
+    private fun viewModel(
+        repository: PaymentRepository,
+        savedState: SavedStateHandle = SavedStateHandle(),
+    ) = SendPaymentViewModel(
+        savedState,
         SendPaymentUseCase(PaymentValidator(), repository, IdempotencyKeys(store) { "key-${++keys}" }),
         ValidatePaymentUseCase(PaymentValidator()),
         FilterAmountInputUseCase(),
@@ -295,6 +302,7 @@ class SendPaymentViewModelTest {
             }
         }
         val vm = SendPaymentViewModel(
+            SavedStateHandle(),
             SendPaymentUseCase(
                 PaymentValidator(),
                 repository,
@@ -317,5 +325,68 @@ class SendPaymentViewModelTest {
         release.complete(Unit)
         assertEquals(1, repository.sends)
         assertEquals(false, vm.form.isSubmitting)
+    }
+
+    @Test
+    fun whatWasTypedSurvivesTheSystemEndingTheProcess() = runTest {
+        val savedState = SavedStateHandle()
+        val repository = FakePaymentRepository(SendPaymentResult.Success(testPayment()))
+        viewModel(repository, savedState).apply {
+            onEvent(SendPaymentEvent.CurrencySelected(Currency.EUR))
+            fill(amount = "7,5")
+        }
+
+        val restored = viewModel(repository, savedState)
+
+        assertEquals(
+            SendPaymentUiState.Content(recipientEmail = "bob@example.com", amount = "7,5", currency = Currency.EUR),
+            restored.form,
+        )
+        assertTrue(repository.sends.isEmpty())
+    }
+
+    @Test
+    fun errorsOnScreenWhenTheProcessEndedAreShownAgain() = runTest {
+        val savedState = SavedStateHandle()
+        val repository = FakePaymentRepository(SendPaymentResult.Success(testPayment()))
+        viewModel(repository, savedState).apply {
+            fill(email = "bob@")
+            onEvent(SendPaymentEvent.Submit)
+        }
+
+        val restored = viewModel(repository, savedState)
+
+        assertEquals(mapOf(PaymentField.RECIPIENT_EMAIL to ValidationError.EMAIL_INVALID), restored.form.errors)
+        assertEquals(false, restored.form.isSubmitting)
+    }
+
+    @Test
+    fun aSendCutShortByTheProcessEndingComesBackAsUnfinishedWithItsKey() = runTest {
+        val savedState = SavedStateHandle()
+        val neverAnswers = object : PaymentRepository by FakePaymentRepository(
+            SendPaymentResult.Success(testPayment()),
+        ) {
+            override suspend fun send(request: PaymentRequest, idempotencyKey: String): SendPaymentResult =
+                awaitCancellation()
+        }
+        viewModel(neverAnswers, savedState).apply {
+            fill(amount = "7,5")
+            onEvent(SendPaymentEvent.Submit)
+        }
+
+        val repository = FakePaymentRepository(SendPaymentResult.Success(testPayment()))
+        val restored = viewModel(repository, savedState)
+
+        assertEquals(
+            SendPaymentUiState.Content(
+                recipientEmail = "bob@example.com",
+                amount = "7,5",
+                showErrors = true,
+                unfinished = true,
+            ),
+            restored.form,
+        )
+        restored.onEvent(SendPaymentEvent.Submit)
+        assertEquals(listOf("key-1"), repository.sends.map { it.second })
     }
 }

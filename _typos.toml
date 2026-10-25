@@ -6,3 +6,7 @@ Caf = "Caf"             # percent-encoded "Café" in FeedbackUseCasesTest
 udid = "udid"           # simulator device identifier (xcrun simctl)
 UDID = "UDID"
 Asserion = "Asserion"   # JMeter's own property name (Asserion.test_strings) in perf/payments.jmx
+
+[files]
+# Generated Baseline Profiles (`make baseline-profile`): JVM method signatures such as `([IZ)V`.
+extend-exclude = ["mobile/androidApp/src/*/generated/baselineProfiles/"]

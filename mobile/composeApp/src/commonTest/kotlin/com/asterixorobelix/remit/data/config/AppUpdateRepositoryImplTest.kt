@@ -6,6 +6,7 @@ import com.asterixorobelix.remit.data.network.NetworkConfig
 import com.asterixorobelix.remit.data.network.RetryPolicy
 import com.asterixorobelix.remit.data.network.createApiHttpClient
 import com.asterixorobelix.remit.domain.update.VersionPolicy
+import com.asterixorobelix.remit.shared.data.remote.ApiEndpoint
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.request.HttpRequestData
@@ -19,16 +20,17 @@ import kotlin.test.assertIs
 
 class AppUpdateRepositoryImplTest {
     private val requests = mutableListOf<HttpRequestData>()
+    private var baseUrl = "https://api.test"
 
     private fun repository(status: HttpStatusCode, body: String = "") = AppUpdateRepositoryImpl(
         createApiHttpClient(
             config = NetworkConfig(retryPolicy = RetryPolicy.NO_RETRY),
-            apiBaseUrl = { "https://api.test" },
             engine = MockEngine { request ->
                 requests += request
                 respond(body, status, headersOf(HttpHeaders.ContentType, "application/json"))
             },
         ),
+        endpoint = ApiEndpoint { baseUrl },
     )
 
     @Test
@@ -45,5 +47,16 @@ class AppUpdateRepositoryImplTest {
     fun serverErrorsAreFailures() = runTest {
         val result = repository(HttpStatusCode.InternalServerError).fetchVersionPolicy()
         assertIs<ApiException>(result.exceptionOrNull())
+    }
+
+    @Test
+    fun aChangedBaseUrlAppliesToTheNextRequest() = runTest {
+        val repository = repository(HttpStatusCode.ServiceUnavailable)
+        repository.fetchVersionPolicy()
+        baseUrl = "http://10.0.2.2:8085/"
+        repository.fetchVersionPolicy()
+
+        assertEquals("https://api.test/api/v1/config", requests[0].url.toString())
+        assertEquals("http://10.0.2.2:8085/api/v1/config", requests[1].url.toString())
     }
 }

@@ -45,7 +45,7 @@ sealed interface DeveloperEffect {
 
 class DeveloperViewModel(
     appConfig: AppConfig,
-    getApiBaseUrlOverride: GetApiBaseUrlOverrideUseCase,
+    private val getApiBaseUrlOverride: GetApiBaseUrlOverrideUseCase,
     private val setApiBaseUrlOverride: SetApiBaseUrlOverrideUseCase,
     private val resetDevelopmentState: ResetDevelopmentStateUseCase,
 ) : ViewModel() {
@@ -56,13 +56,23 @@ class DeveloperViewModel(
             versionName = appConfig.versionName,
             capabilities = appConfig.capabilities.joinToString { it.name.lowercase() },
             defaultApiUrl = appConfig.apiBaseUrl,
-            apiUrlDraft = getApiBaseUrlOverride() ?: appConfig.apiBaseUrl,
+            apiUrlDraft = appConfig.apiBaseUrl,
         ),
     )
     val uiState: StateFlow<DeveloperUiState> = mutableState.asStateFlow()
 
     private val effectChannel = Channel<DeveloperEffect>(Channel.BUFFERED)
     val effects: Flow<DeveloperEffect> = effectChannel.receiveAsFlow()
+
+    init {
+        viewModelScope.launch { showSavedOverride() }
+    }
+
+    /** Puts a saved override in the field, unless the user has started typing. */
+    private suspend fun showSavedOverride() {
+        val override = getApiBaseUrlOverride() ?: return
+        mutableState.update { if (it.apiUrlDraft == it.defaultApiUrl) it.copy(apiUrlDraft = override) else it }
+    }
 
     fun onEvent(event: DeveloperEvent) {
         when (event) {
@@ -83,10 +93,12 @@ class DeveloperViewModel(
         val current = mutableState.value
         // Saving the build's own URL removes the override instead of pinning it.
         val draft = current.apiUrlDraft.takeUnless { it.trim() == current.defaultApiUrl }.orEmpty()
-        if (setApiBaseUrlOverride(draft)) {
-            viewModelScope.launch { effectChannel.send(DeveloperEffect.ShowMessage(Res.string.developer_saved)) }
-        } else {
-            mutableState.value = current.copy(urlError = Res.string.developer_invalid_url)
+        viewModelScope.launch {
+            if (setApiBaseUrlOverride(draft)) {
+                effectChannel.send(DeveloperEffect.ShowMessage(Res.string.developer_saved))
+            } else {
+                mutableState.update { it.copy(urlError = Res.string.developer_invalid_url) }
+            }
         }
     }
 }

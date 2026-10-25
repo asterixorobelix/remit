@@ -1,3 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+        What this library's own code needs: the Ktor API client, and Firebase Analytics
+        (AndroidAnalytics). The Firebase SDKs merge the same permissions into the app.
+    -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
 </manifest>

@@ -1,10 +1,13 @@
 package com.asterixorobelix.remit.navigation
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import com.asterixorobelix.remit.data.db.AppDatabase
 import com.asterixorobelix.remit.data.db.SqlDriverFactory
+import com.asterixorobelix.remit.data.preferences.DataStoreAppPreferences
+import com.asterixorobelix.remit.data.preferences.createPreferencesDataStore
 import com.asterixorobelix.remit.di.appModules
 import com.asterixorobelix.remit.domain.update.CheckForceUpdateUseCase
 import com.asterixorobelix.remit.platform.Capability
@@ -24,7 +27,9 @@ import kotlinx.coroutines.test.setMain
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.core.module.Module
+import org.koin.core.parameter.parametersOf
 import org.koin.dsl.module
+import kotlin.io.path.createTempDirectory
 import kotlin.reflect.KClass
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -99,7 +104,8 @@ class NavigationGraphTest {
             assertNotNull(koin.get<AppViewModel>(), "$name: root ViewModel")
             allRoutes.filter { it.isAvailable(features) }.forEach { route ->
                 viewModelsFor(route).forEach { viewModelClass ->
-                    runCatching { koin.get<Any>(viewModelClass, null, null) }
+                    // koinViewModel() supplies the SavedStateHandle from the back stack entry.
+                    runCatching { koin.get<Any>(viewModelClass, null) { parametersOf(SavedStateHandle()) } }
                         .onFailure { fail("$name (debug=$debug): $route cannot resolve $viewModelClass: $it") }
                 }
             }
@@ -125,6 +131,12 @@ class NavigationGraphTest {
                 override fun create(): SqlDriver =
                     JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY).also { AppDatabase.Schema.create(it) }
             }
+        }
+        // A fresh file per graph: DataStore allows one active store per file in a process.
+        single {
+            createPreferencesDataStore(
+                createTempDirectory("remit-settings").resolve(DataStoreAppPreferences.FILE_NAME).toString(),
+            )
         }
     }
 }

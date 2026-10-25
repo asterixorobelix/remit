@@ -1,7 +1,7 @@
 # Common commands. Run `make` (or `make help`) to list them.
 
 PACKAGE := $(shell awk -F= '$$1=="PACKAGE_NAME" { print $$2 }' app.properties)
-MOBILE_GATES := test detekt ktlintCheck :androidApp:lintDebug :composeApp:lintDebug :shared:lintDebug \
+MOBILE_GATES := test detekt ktlintCheck :androidApp:lintDebug :composeApp:lintAndroidMain :shared:lintAndroidMain \
 	:androidApp:assembleDebug :composeApp:compileKotlinDesktop \
 	:composeApp:linkDebugFrameworkIosSimulatorArm64 :composeApp:verifySqlDelightMigration \
 	:composeApp:koverVerifyUnitTests :shared:koverVerifyUnitTests
@@ -9,7 +9,7 @@ BACKEND_GATES := test detekt ktlintCheck koverVerify
 
 .DEFAULT_GOAL := help
 .PHONY: help setup bootstrap doctor app-checklist setup-hooks ui ui-hot backend backend-emulated emulators \
-	mobile apk apk-install apk-release ios ios-app ios-run feature \
+	mobile apk apk-install apk-release baseline-profile ios ios-app ios-run feature \
 	test test-backend test-backend-emulated test-rules test-perf test-bdd test-appium test-mobile test-mobile-fast test-watch lint lint-repo lint-backend lint-mobile format \
 	quick quick-all check-template check check-backend check-mobile coverage \
 	build build-backend build-mobile jar clean loc \
@@ -75,6 +75,9 @@ apk-install:
 apk-release: ## Build the Android release APK (R8; signed if keystore.properties exists)
 	@cd mobile && ./gradlew :androidApp:assembleRelease
 
+baseline-profile: ## Regenerate the release Baseline Profile on the connected emulator (API 33+)
+	@cd mobile && ./gradlew :androidApp:generateReleaseBaselineProfile
+
 ios: ## Link the iOS simulator framework
 	@cd mobile && ./gradlew :composeApp:linkDebugFrameworkIosSimulatorArm64
 
@@ -135,7 +138,7 @@ lint-backend:
 	@cd backend && ./gradlew detekt ktlintCheck
 
 lint-mobile:
-	@cd mobile && ./gradlew detekt ktlintCheck :androidApp:lintDebug :composeApp:lintDebug :shared:lintDebug
+	@cd mobile && ./gradlew detekt ktlintCheck :androidApp:lintDebug :composeApp:lintAndroidMain :shared:lintAndroidMain
 	@./scripts/check-resources.sh
 
 quick: ## Fast checks for modules changed on this branch (inner loop)

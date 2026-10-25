@@ -67,8 +67,3 @@ class IOSAppConfig : AppConfig {
         }
     }
 }
-
-/**
- * Create iOS-specific AppConfig
- */
-actual fun createAppConfig(): AppConfig = IOSAppConfig()

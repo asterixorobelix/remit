@@ -27,7 +27,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
@@ -47,6 +46,7 @@ import com.asterixorobelix.remit.generated.resources.onboarding_skip
 import com.asterixorobelix.remit.generated.resources.onboarding_title_1
 import com.asterixorobelix.remit.generated.resources.onboarding_title_2
 import com.asterixorobelix.remit.generated.resources.onboarding_title_3
+import com.asterixorobelix.remit.presentation.common.CollectEffects
 import com.asterixorobelix.remit.ui.components.PrimaryButton
 import com.asterixorobelix.remit.ui.preview.ScreenStates
 import com.asterixorobelix.remit.ui.theme.Dimens
@@ -77,11 +77,9 @@ fun OnboardingScreen(
     viewModel: OnboardingViewModel = koinViewModel(),
 ) {
     val currentOnComplete by rememberUpdatedState(onComplete)
-    LaunchedEffect(viewModel) {
-        viewModel.effects.collect { effect ->
-            when (effect) {
-                OnboardingEffect.Completed -> currentOnComplete()
-            }
+    CollectEffects(viewModel.effects) { effect ->
+        when (effect) {
+            OnboardingEffect.Completed -> currentOnComplete()
         }
     }
     OnboardingContent(onFinish = viewModel::onFinish, modifier = modifier)

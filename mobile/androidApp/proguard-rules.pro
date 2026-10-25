@@ -1,119 +1,13 @@
-# ProGuard rules for Kotlin Multiplatform Mobile App
-# These rules are applied when minifyEnabled = true in release builds
+# R8 rules for the release build.
+#
+# Kotlin, kotlinx.serialization, Ktor, OkHttp, coroutines, Koin, Compose, Navigation, SQLDelight,
+# and Firebase ship their own consumer rules, so nothing here keeps a whole library or package:
+# a blanket -keep switches off shrinking and optimization for everything it matches. Add a rule
+# only for code that is reached by reflection, and say which code.
 
-# ============================================================================
-# KOTLIN & SERIALIZATION
-# ============================================================================
-
-# Keep Kotlin metadata
--keepattributes *Annotation*, InnerClasses
--dontnote kotlinx.serialization.AnnotationsKt
-
-# Kotlinx Serialization
--keepclassmembers class kotlinx.serialization.json.** {
-    *** Companion;
-}
--keepclasseswithmembers class kotlinx.serialization.json.** {
-    kotlinx.serialization.KSerializer serializer(...);
-}
-
-# Keep serializable classes in the app package (setup.sh renames the package).
--keep,includedescriptorclasses class com.asterixorobelix.remit.**$$serializer { *; }
--keepclassmembers class com.asterixorobelix.remit.** {
-    *** Companion;
-}
--keepclasseswithmembers class com.asterixorobelix.remit.** {
-    kotlinx.serialization.KSerializer serializer(...);
-}
-
-# Keep model classes used for serialization
--keep class com.asterixorobelix.remit.models.** { *; }
--keep class com.asterixorobelix.remit.network.** { *; }
--keep class com.asterixorobelix.remit.data.** { *; }
-
-# ============================================================================
-# KTOR CLIENT
-# ============================================================================
-
--keep class io.ktor.** { *; }
--keep class kotlinx.coroutines.** { *; }
--dontwarn kotlinx.atomicfu.**
--dontwarn io.netty.**
--dontwarn com.typesafe.**
--dontwarn org.slf4j.**
-
-# Ktor debugging classes (not available on Android)
--dontwarn java.lang.management.ManagementFactory
--dontwarn java.lang.management.RuntimeMXBean
-
-# ============================================================================
-# OKHTTP (used by Ktor on Android)
-# ============================================================================
-
--dontwarn okhttp3.**
--dontwarn okio.**
--keep class okhttp3.** { *; }
--keep interface okhttp3.** { *; }
-
-# ============================================================================
-# KOIN DEPENDENCY INJECTION
-# ============================================================================
-
--keep class org.koin.** { *; }
--keepclassmembers class * {
-    @org.koin.core.annotation.* <methods>;
-}
-
-# ============================================================================
-# FIREBASE CRASHLYTICS
-# ============================================================================
-
-# Keep source file names and line numbers for better crash reports
+# Readable stack traces: Crashlytics deobfuscates with the uploaded mapping file.
 -keepattributes SourceFile,LineNumberTable
-
-# Keep exception classes
--keep public class * extends java.lang.Exception
-
--keep class com.google.firebase.crashlytics.** { *; }
--dontwarn com.google.firebase.crashlytics.**
-
-# The shared module talks to Firebase through reflection (composeApp has no compile-time
-# Firebase dependency), so R8 must keep the reflectively-invoked entry points.
--keep class com.google.firebase.FirebaseApp {
-    public static com.google.firebase.FirebaseApp getInstance();
-    public android.content.Context getApplicationContext();
-}
--keep class com.google.firebase.analytics.FirebaseAnalytics {
-    public static com.google.firebase.analytics.FirebaseAnalytics getInstance(android.content.Context);
-    public void logEvent(java.lang.String, android.os.Bundle);
-    public void setUserProperty(java.lang.String, java.lang.String);
-    public void setUserId(java.lang.String);
-    public void setAnalyticsCollectionEnabled(boolean);
-    public void resetAnalyticsData();
-}
--dontwarn com.google.firebase.analytics.**
-
-# ============================================================================
-# COMPOSE
-# ============================================================================
-
--keep class androidx.compose.** { *; }
--dontwarn androidx.compose.**
-
-# ============================================================================
-# ANDROID COMMON
-# ============================================================================
-
-# Keep Parcelable implementations
--keep class * implements android.os.Parcelable {
-    public static final android.os.Parcelable$Creator *;
-}
-
-# Keep enums
--keepclassmembers enum * {
-    public static **[] values();
-    public static ** valueOf(java.lang.String);
-}
+-renamesourcefileattribute SourceFile
 
 # Release builds drop verbose, debug, and info logging, so a stray Log.d never reaches production
 # (AndroidLogger also stops at WARN there; see AppConfig.minLogLevel). Warnings and errors stay.
@@ -123,20 +17,8 @@
     public static int i(...);
 }
 
-# Keep native methods
--keepclasseswithmembernames class * {
-    native <methods>;
-}
-
-# ============================================================================
-# GOOGLE PLAY SERVICES
-# ============================================================================
-
--keep class com.google.android.gms.** { *; }
--dontwarn com.google.android.gms.**
-
-# ============================================================================
-# ADDITIONAL RULES
-# ============================================================================
-
-# Add project-specific rules below as needed
+# Firebase finds its components by reflection: ComponentDiscovery reads the registrar class names
+# from the manifest and calls their no-argument constructors. Some Firebase SDKs (Crashlytics,
+# Installations) keep the registrar classes but not those constructors, which R8 full mode then
+# removes, so Crashlytics would silently never start in release builds.
+-keep class * implements com.google.firebase.components.ComponentRegistrar { <init>(); }

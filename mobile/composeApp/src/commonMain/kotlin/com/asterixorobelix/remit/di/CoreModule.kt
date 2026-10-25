@@ -5,7 +5,7 @@ import com.asterixorobelix.remit.data.db.SqlDriverFactory
 import com.asterixorobelix.remit.data.developer.PreferencesDeveloperSettingsRepository
 import com.asterixorobelix.remit.data.preferences.AppPreferences
 import com.asterixorobelix.remit.data.preferences.AppSettingsRepositoryImpl
-import com.asterixorobelix.remit.data.preferences.createAppPreferences
+import com.asterixorobelix.remit.data.preferences.DataStoreAppPreferences
 import com.asterixorobelix.remit.domain.developer.DeveloperSettingsRepository
 import com.asterixorobelix.remit.domain.developer.GetApiBaseUrlOverrideUseCase
 import com.asterixorobelix.remit.domain.developer.ResetDevelopmentStateUseCase
@@ -51,16 +51,19 @@ import org.koin.dsl.module
 internal fun observabilityModule(config: AppConfig): Module = module {
     single<AppConfig> { config }
     singleOf(::DefaultAppDispatchers) bind AppDispatchers::class
+    // Reports go to a real Firebase project only, never to the local emulators.
+    val reportToFirebase = config.has(Capability.FIREBASE) && config.firebaseEmulatorHost == null
     // Crash reports leave the device: redact personal data and credentials on every platform.
-    single<CrashLogger> { RedactingCrashLogger(createCrashLogger(firebaseEnabled = config.has(Capability.FIREBASE))) }
-    single<Analytics> { createAnalytics(firebaseEnabled = config.has(Capability.FIREBASE)) }
+    single<CrashLogger> { RedactingCrashLogger(createCrashLogger(firebaseEnabled = reportToFirebase)) }
+    single<Analytics> { createAnalytics(firebaseEnabled = reportToFirebase) }
     single<Logger> { createLogger().apply { minLogLevel = config.minLogLevel() } }
     singleOf(::Observability)
 }
 
 /** Device-local storage and the repositories built on it. Always loaded. */
 internal val storageModule = module {
-    single<AppPreferences> { createAppPreferences() }
+    // The platform module supplies the DataStore (its file lives in platform storage).
+    singleOf(::DataStoreAppPreferences) bind AppPreferences::class
     // Opened lazily on first use; shared by generated features.
     single { AppDatabase(get<SqlDriverFactory>().create()) }
     singleOf(::AppSettingsRepositoryImpl) bind AppSettingsRepository::class

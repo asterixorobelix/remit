@@ -20,15 +20,14 @@ internal val ApiJson = Json {
  * Builds the HttpClient used for every call to this app's backend.
  *
  * - Every request gets its own `X-Request-ID` ([RequestIdPlugin]).
- * - The base URL is resolved per request, so the debug-only API override applies to the next
- *   request without restarting the app.
+ * - Callers pass absolute URLs from `ApiEndpoint.urlFor`, which resolves the base URL per request,
+ *   so the debug-only API override applies to the next request without restarting the app.
  * - Only idempotent methods are retried ([RetryPlugin]); `allowRetry()` opts a POST in.
  *
  * @param engine Test hook; production uses the platform default engine.
  */
 fun createApiHttpClient(
     config: NetworkConfig,
-    apiBaseUrl: () -> String,
     engine: HttpClientEngine? = null,
 ): HttpClient {
     val configure: HttpClientConfig<*>.() -> Unit = {
@@ -41,7 +40,6 @@ fun createApiHttpClient(
         install(RetryPlugin) { retryPolicy = config.retryPolicy }
         install(RequestIdPlugin)
         defaultRequest {
-            url(apiBaseUrl())
             contentType(ContentType.Application.Json)
         }
     }

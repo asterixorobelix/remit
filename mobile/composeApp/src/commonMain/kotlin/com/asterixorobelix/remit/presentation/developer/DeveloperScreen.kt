@@ -21,7 +21,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
@@ -37,6 +36,7 @@ import com.asterixorobelix.remit.generated.resources.developer_invalid_url
 import com.asterixorobelix.remit.generated.resources.developer_reset
 import com.asterixorobelix.remit.generated.resources.developer_save
 import com.asterixorobelix.remit.generated.resources.developer_title
+import com.asterixorobelix.remit.presentation.common.CollectEffects
 import com.asterixorobelix.remit.ui.preview.ScreenStates
 import com.asterixorobelix.remit.ui.theme.Dimens
 import org.jetbrains.compose.resources.getString
@@ -56,12 +56,10 @@ fun DeveloperScreen(
     val currentOnMessage by rememberUpdatedState(onMessage)
     val currentOnAppReset by rememberUpdatedState(onAppReset)
 
-    LaunchedEffect(viewModel) {
-        viewModel.effects.collect { effect ->
-            when (effect) {
-                is DeveloperEffect.ShowMessage -> currentOnMessage(getString(effect.message))
-                DeveloperEffect.AppReset -> currentOnAppReset()
-            }
+    CollectEffects(viewModel.effects) { effect ->
+        when (effect) {
+            is DeveloperEffect.ShowMessage -> currentOnMessage(getString(effect.message))
+            DeveloperEffect.AppReset -> currentOnAppReset()
         }
     }
 

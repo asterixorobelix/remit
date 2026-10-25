@@ -112,7 +112,7 @@ Module gates (what `make check` runs):
 
 ```bash
 cd backend && ./gradlew test detekt ktlintCheck koverVerify
-cd mobile && ./gradlew test detekt ktlintCheck :androidApp:lintDebug :composeApp:lintDebug \
+cd mobile && ./gradlew test detekt ktlintCheck :androidApp:lintDebug :composeApp:lintAndroidMain \
   :androidApp:assembleDebug :composeApp:compileKotlinDesktop \
   :composeApp:linkDebugFrameworkIosSimulatorArm64 \
   :composeApp:verifySqlDelightMigration :composeApp:koverVerifyUnitTests

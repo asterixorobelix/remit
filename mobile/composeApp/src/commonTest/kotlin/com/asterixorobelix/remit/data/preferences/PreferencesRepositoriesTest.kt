@@ -2,6 +2,8 @@ package com.asterixorobelix.remit.data.preferences
 
 import com.asterixorobelix.remit.data.developer.PreferencesDeveloperSettingsRepository
 import com.asterixorobelix.remit.domain.settings.ThemeMode
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -12,13 +14,12 @@ class PreferencesRepositoriesTest {
     private val preferences = FakeAppPreferences()
 
     @Test
-    fun settingsArePersistedAndThemeIsObservable() {
+    fun settingsArePersistedAndThemeIsObservable() = runTest {
         val repository = AppSettingsRepositoryImpl(preferences)
-        assertEquals(ThemeMode.SYSTEM, repository.themeMode.value)
+        assertEquals(ThemeMode.SYSTEM, repository.themeMode.first())
 
         repository.setThemeMode(ThemeMode.DARK)
-        assertEquals(ThemeMode.DARK, repository.themeMode.value)
-        assertEquals(ThemeMode.DARK, preferences.getThemeMode())
+        assertEquals(ThemeMode.DARK, repository.themeMode.first())
 
         assertFalse(repository.hasCompletedOnboarding())
         repository.completeOnboarding()
@@ -32,7 +33,7 @@ class PreferencesRepositoriesTest {
     }
 
     @Test
-    fun developerSettingsStoreTheOverrideAndResetEverything() {
+    fun developerSettingsStoreTheOverrideAndResetEverything() = runTest {
         val repository = PreferencesDeveloperSettingsRepository(preferences)
         repository.setApiBaseUrlOverride("http://localhost:8085")
         preferences.setOnboardingCompleted(true)

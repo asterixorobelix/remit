@@ -26,11 +26,11 @@ import kotlin.test.assertNull
 class DeveloperViewModelTest {
     private class FakeRepository(var override: String? = null) : DeveloperSettingsRepository {
         var resets = 0
-        override fun apiBaseUrlOverride() = override
-        override fun setApiBaseUrlOverride(url: String?) {
+        override suspend fun apiBaseUrlOverride() = override
+        override suspend fun setApiBaseUrlOverride(url: String?) {
             override = url
         }
-        override fun resetLocalState() {
+        override suspend fun resetLocalState() {
             resets++
         }
     }

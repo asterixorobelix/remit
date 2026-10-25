@@ -8,13 +8,21 @@ Scope: `mobile/**`. Read `../docs/AI_AGENT_GUIDE.md` for the cross-stack behavio
 |---|---|
 | Payments logic (KMP, no UI) | `shared/src/commonMain/kotlin/com/asterixorobelix/remit/shared` |
 | Shared UI/domain/data | `composeApp/src/commonMain/kotlin/com/asterixorobelix/remit` |
-| Android app | `androidApp`, `MainActivity`, `RemitApplication` |
+| Android app | `androidApp`: `MainActivity`, `RemitApplication`, `AndroidAppConfig` (BuildConfig) |
+| Baseline Profile | `baselineprofile` (`BaselineProfileGenerator`, `make baseline-profile`) |
 | iOS app | `iosApp/iosApp/iOSApp.swift`, shared `MainViewController.kt` |
 | Desktop gallery | `composeApp/src/desktopMain/.../ComponentGallery.kt` |
 
 Build Android with `:androidApp:*`; `composeApp` is the shared library, not the APK. `shared`
 holds the payments domain, validation, use cases, API client, and Firebase (expect/actual) with
 no Compose dependency, so a SwiftUI or desktop app could use it as is.
+
+Both KMP modules use AGP 9's `com.android.kotlin.multiplatform.library` plugin (plus
+`com.android.lint`): one Android variant, no build types or BuildConfig. Per-build values (API URL,
+environment, emulator host, analytics flags) are BuildConfig fields in `androidApp`, read by
+`AndroidAppConfig` and handed to shared code by `startRemit(config)` (`Startup.android.kt`). Add a
+per-build value there, not in `composeApp`. `gradle.properties` keeps AGP 9's defaults (built-in
+Kotlin, the new DSL, R8 strict full mode); do not add the opt-out flags back.
 
 ## Payments (`shared` + `composeApp/presentation/payments`)
 
@@ -40,7 +48,7 @@ no Compose dependency, so a SwiftUI or desktop app could use it as is.
   Android; iOS and desktop fail clearly).
 - Firebase: anonymous auth. Debug builds use the Firebase emulators when `FIREBASE_EMULATOR_HOST`
   is set in `local.properties` (`10.0.2.2` from the Android emulator; `make emulators` and
-  `make backend-emulated` at the root). Without `google-services.json`, `RemitApplication` calls
+  `make backend-emulated` at the root). Without `google-services.json`, `startRemit` calls
   `startFirebaseForEmulators` (project `FirebaseSettings.EMULATOR_PROJECT_ID`, which must match the
   Makefile's `FIREBASE_PROJECT`); with neither, the Android actuals fall back to the "not set up"
   implementations instead of crashing. Their errors carry `FirebaseNotSetUpException`, which
@@ -57,7 +65,8 @@ no Compose dependency, so a SwiftUI or desktop app could use it as is.
 ## Runtime composition
 
 - `platform/AppConfig.kt` models capabilities sourced from `app.properties` through
-  Android BuildConfig, iOS xcconfig/Info.plist, and desktop system properties.
+  `androidApp`'s BuildConfig (`AndroidAppConfig`) and the iOS xcconfig/Info.plist (`IOSAppConfig`);
+  tests use `FakeAppConfig`.
 - `di/AppModule.kt` `appModules(config, platformModule)` always loads observability,
   storage, network and core screens; it adds the `backend` module (force-update check)
   only for its capability. Capabilities are `backend` and `firebase`; unknown `FEATURES`
@@ -70,12 +79,16 @@ no Compose dependency, so a SwiftUI or desktop app could use it as is.
   then Home), owns theme, review prompt, and the force-update gate
   (`GET /api/v1/config`, `backend` only; failures never block the app).
 - Logging and crash reports: release builds log WARN and above (`AppConfig.minLogLevel`), and R8
-  strips `Log.v`/`Log.d`/`Log.i` (`androidApp/proguard-rules.pro`). `observabilityModule` wraps the
+  strips `Log.v`/`Log.d`/`Log.i` (`androidApp/proguard-rules.pro`). `AndroidCrashLogger` and
+  `AndroidAnalytics` call Crashlytics and Analytics directly, only for a real Firebase project
+  (never the emulators); collection is off in the manifest until they turn it on, and a build
+  without `google-services.json` deactivates Analytics. `observabilityModule` wraps the
   platform crash logger in `RedactingCrashLogger`, which removes emails, bearer tokens, JWTs, API
   keys, and `name=value` secrets from messages, custom keys, and exception messages (causes
   included, stack trace kept). Always inject `CrashLogger`; never call Crashlytics directly.
 - `data/network/ApiHttpClient.kt` builds the only API client: per-request
-  `X-Request-ID`, base URL resolved per request (debug override applies immediately),
+  `X-Request-ID`; callers pass absolute URLs from `ApiEndpoint.urlFor`, which resolves the base
+  URL per request (the debug override, read from DataStore, applies immediately);
   retries only for idempotent methods (`allowRetry()` opts a POST in, optionally with its own
   `RetryPolicy`); a `Retry-After` longer than the policy's maximum delay ends retries. It sends no
   credentials; add authentication there when a feature needs it.
@@ -88,15 +101,39 @@ no Compose dependency, so a SwiftUI or desktop app could use it as is.
   local settings).
 - Onboarding, force update, and the in-app review prompt.
 - Firebase: requires `firebase` in FEATURES and a real `androidApp/google-services.json`
-  (the checked-in placeholder is ignored). Shared code reaches Firebase by reflection;
-  keep rules are in `androidApp/proguard-rules.pro`.
-- SQLDelight: `AppDatabase` is wired in `storageModule`. `Tasks.sq` is the only schema left
-  from the template (no Kotlin code uses it) because SQLDelight generates no database
-  without at least one `.sq` file; replace it with the app's first table.
+  (the checked-in placeholder is ignored). The Crashlytics Gradle plugin is always applied
+  (the always-linked SDK needs its build id) and uploads mapping files only for a real project.
+- Settings: `DataStoreAppPreferences` (a Preferences DataStore; every read suspends). The platform
+  module supplies the store, one per file per process; Android's migrates the SharedPreferences
+  file it replaced.
+- SQLDelight: `AppDatabase` is wired in `storageModule`. `PendingPayment.sq` (the payment in
+  flight) is the only schema; it replaced the template's demo table.
 
 App-specific extension points (honest defaults, not fake data): Feedback opens the mail
 app to `support_email`, and `app_store_id`, `settings_privacy_url`, `settings_terms_url`
 are placeholder string resources to replace per app.
+
+## Android practices
+
+Keep these when changing screens or the build; the README's "Android practices" lists them for
+reviewers.
+
+- State: screens collect with `collectAsStateWithLifecycle`. A ViewModel exposing a live source
+  (a Firestore listener) uses `stateIn(viewModelScope, WhileSubscribed(5_000), ...)` so it stops
+  when the screen is hidden (`PaymentHistoryViewModel`).
+- Effects: one-off effects stay in a `Channel`, collected with `CollectEffects`
+  (`presentation/common`), never a bare `LaunchedEffect { effects.collect {} }`: the composition
+  outlives a stopped activity, so a bare collector handles (and loses) effects in the background.
+  `CollectEffects` adds `repeatOnLifecycle(STARTED)` and `Dispatchers.Main.immediate`.
+- Process death: what the user types goes in `SavedStateHandle` (`SendPaymentViewModel`);
+  `koinViewModel()` supplies it.
+- Startup: the splash screen stays until `AppUiState` is ready (start destination and saved
+  theme), and `MainActivity` sets the system bar icons from the app's theme, not the system's.
+- Release: R8 rules keep only code reached by reflection (no whole-library keeps).
+  `data_extraction_rules.xml` keeps every file out of cloud backup and device transfer.
+- Baseline Profile: regenerate with `make baseline-profile` (a connected API 33+ emulator) after
+  changing startup or the main screens, and commit
+  `androidApp/src/release/generated/baselineProfiles/`.
 
 ## Adding features
 
@@ -115,9 +152,11 @@ Queries can be added freely; table changes need a migration.
 ## Tests
 
 - `commonTest`: use cases, ViewModels (Turbine + `Dispatchers.setMain`) and the Ktor
-  client (`MockEngine`). Hand-written fakes live in `commonTest/.../testing/`; MockK is
+  client (`MockEngine`). It runs on the desktop JVM and as Android host tests
+  (`testAndroidHostTest`). Hand-written fakes live in `commonTest/.../testing/`; MockK is
   not available on Kotlin/Native.
-- `desktopTest`: `NavigationGraphTest` and the Roborazzi screenshot tests in
+- `desktopTest`: `NavigationGraphTest`, `DataStoreAppPreferencesTest` (the real DataStore on a
+  temporary file), and the Roborazzi screenshot tests in
   `screenshots/ScreenshotTest.kt` (component gallery, light and dark). Plain `test` only
   composes the screens; `verifyRoborazziDesktop` compares them with the baselines in
   `composeApp/screenshots/desktop/`.
@@ -133,9 +172,10 @@ Queries can be added freely; table changes need a migration.
 - **ktlint** (`ktlintCheck`, `ktlintFormat`; settings in the root `.editorconfig`, version pinned
   in `gradle/libs.versions.toml`) on every source set and script; generated code under `build/`
   is excluded. Agents get the same check per file from the edit hook (`scripts/agent-hook.sh`).
-- **Android Lint** (`:androidApp:lintDebug`, `:composeApp:lintDebug`): new issues fail,
-  warnings included. `lint-baseline.xml` holds accepted findings only; never add to it to
-  make a change pass. AGP 9 lints `androidMain`, not `commonMain`.
+- **Android Lint** (`:androidApp:lintDebug`, `:composeApp:lintAndroidMain`,
+  `:shared:lintAndroidMain`): new issues fail, warnings included. `lint-baseline.xml` holds
+  accepted findings only; never add to it to make a change pass. Lint checks `androidMain`, not
+  `commonMain`.
 - **SwiftLint** (`iosApp/.swiftlint.yml`, run in strict mode) for the Swift shell.
 - `../scripts/check-architecture.sh` and `../scripts/check-resources.sh` (contracts, strings).
   The architecture check fails a file that declares a `*Screen(` composable without a `@Preview`.
@@ -152,7 +192,7 @@ screen without one is `WebViewScreen`, an `expect` declaration around a platform
 ## Coverage and screenshots
 
 - `:composeApp:koverXmlReportUnitTests` writes `build/reports/kover/reportUnitTests.xml` from
-  `desktopTest` and `testDebugUnitTest`. It measures logic (domain, data, ViewModels,
+  `desktopTest` and `testAndroidHostTest`. It measures logic (domain, data, ViewModels,
   navigation) and leaves out `@Composable` functions, the UI kit (`ui/components`, `ui/theme`,
   covered by screenshots), generated code, and platform glue. CI fails a pull request whose
   changed lines are below 80% covered, and `:composeApp:koverVerifyUnitTests` (in
@@ -167,7 +207,8 @@ screen without one is `WebViewScreen`, an `expect` declaration around a platform
 ## Verification
 
 ```bash
-./gradlew test detekt ktlintCheck :androidApp:lintDebug :composeApp:lintDebug \
+./gradlew test detekt ktlintCheck :androidApp:lintDebug :composeApp:lintAndroidMain \
+  :shared:lintAndroidMain \
   :androidApp:assembleDebug :androidApp:assembleRelease \
   :composeApp:compileKotlinDesktop \
   :composeApp:linkDebugFrameworkIosSimulatorArm64 \

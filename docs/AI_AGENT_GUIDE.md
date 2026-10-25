@@ -6,7 +6,7 @@ then the scoped guide (`mobile/AGENTS.md`, `backend/AGENTS.md`) for the module y
 ## System model
 
 ```text
-app.properties ──┬─ Android BuildConfig / desktop system properties (read at build time)
+app.properties ──┬─ androidApp BuildConfig → AndroidAppConfig (read at build time)
                  ├─ iOS Config.xcconfig → Info.plist (mirrored by scripts/sync-app-config.sh)
                  ├─ Fastlane identity (package / bundle id)
                  └─ backend version (build-info.properties)

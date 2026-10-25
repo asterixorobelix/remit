@@ -3,6 +3,7 @@ package com.asterixorobelix.remit.ui.theme
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import com.asterixorobelix.remit.domain.settings.ThemeMode
 
 /**
  * Application theme wrapper that sets up Material Design 3 theming.
@@ -75,4 +76,12 @@ fun AppTheme(
         shapes = AppShapes,
         content = content,
     )
+}
+
+/** Whether [mode] (the Settings choice) means dark colours, following the system for SYSTEM. */
+@Composable
+fun isDarkTheme(mode: ThemeMode): Boolean = when (mode) {
+    ThemeMode.SYSTEM -> isSystemInDarkTheme()
+    ThemeMode.LIGHT -> false
+    ThemeMode.DARK -> true
 }
