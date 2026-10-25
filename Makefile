@@ -45,11 +45,10 @@ ui-hot: ## Run the desktop gallery with Compose Hot Reload
 	@cd mobile && ./gradlew :composeApp:hotRunDesktop --mainClass com.asterixorobelix.remit.gallery.ComponentGalleryKt
 
 backend: ## Start the backend API on http://localhost:8085 in development mode
-	@cd backend && APP_ENVIRONMENT=development ./gradlew run
+	@./scripts/backend.sh
 
 backend-emulated: ## Start the backend against the Firebase emulators (make emulators first)
-	@cd backend && APP_ENVIRONMENT=development FIREBASE_PROJECT_ID=$(FIREBASE_PROJECT) \
-		FIRESTORE_EMULATOR_HOST=localhost:8080 FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 ./gradlew run
+	@./scripts/backend.sh --emulated $(FIREBASE_PROJECT)
 
 # ---------------------------------------------------------------- Firebase
 # The emulators use the real project id so the debug app's google-services.json matches; they
@@ -59,7 +58,7 @@ backend-emulated: ## Start the backend against the Firebase emulators (make emul
 FIREBASE_PROJECT ?= remit-payments
 
 emulators: ## Start the Firebase Auth and Firestore emulators (UI on http://localhost:4000)
-	@firebase emulators:start --only auth,firestore --project $(FIREBASE_PROJECT)
+	@./scripts/emulators.sh $(FIREBASE_PROJECT)
 
 # ---------------------------------------------------------------- Mobile
 mobile: apk-install ## Build, install, and launch the Android debug app

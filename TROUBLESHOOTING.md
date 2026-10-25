@@ -54,7 +54,9 @@ whether the iOS xcconfig matches `app.properties`.
 - **`Unsupported application environment` at startup:** set `APP_ENVIRONMENT` to
   `development`, `staging`, or `production`; unset means production. Locally, `make backend`
   and `./gradlew run` set `development`.
-- **Port 8085 in use:** `lsof -i :8085`, stop that process or set `PORT`.
+- **Port 8085 in use:** `make backend` and `make backend-emulated` say whether it is a backend
+  that is already running (and what it uses for payments) or another program, and how to stop it.
+  Otherwise `lsof -i :8085`, stop that process or set `PORT`.
 
 ## Mobile database
 
