@@ -28,8 +28,8 @@ if touches '^(backend/|gradle/libs\.versions\.toml|app\.properties)'; then
   (cd backend && ./gradlew test detekt ktlintCheck --quiet)
 fi
 if touches '^(mobile/|gradle/libs\.versions\.toml|app\.properties)'; then
-  step 'mobile: desktopTest detekt ktlintCheck compileDebugKotlinAndroid verifySqlDelightMigration'
-  (cd mobile && ./gradlew :composeApp:desktopTest detekt ktlintCheck :composeApp:compileDebugKotlinAndroid \
+  step 'mobile: desktopTest detekt ktlintCheck compileAndroidMain verifySqlDelightMigration'
+  (cd mobile && ./gradlew :composeApp:desktopTest detekt ktlintCheck :composeApp:compileAndroidMain \
     :composeApp:verifySqlDelightMigration --quiet)
   ./scripts/check-resources.sh
 fi

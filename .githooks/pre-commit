@@ -40,7 +40,7 @@ if staged | grep -qE '^backend/.*\.(kt|kts|sql)$'; then
   run_gradle backend ktlintCheck detekt compileKotlin
 fi
 if staged | grep -qE '^mobile/.*\.(kt|kts|sq|sqm|xml)$'; then
-  run_gradle mobile ktlintCheck detekt :composeApp:compileDebugKotlinAndroid
+  run_gradle mobile ktlintCheck detekt :composeApp:compileAndroidMain
 fi
 if staged | grep -qE '^(mobile|backend)/.*\.(kt|kts)$|^gradle/libs\.versions\.toml$'; then
   run_check 'architecture contracts' 'scripts/check-architecture.sh' ./scripts/check-architecture.sh
