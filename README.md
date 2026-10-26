@@ -1,8 +1,6 @@
 # Remit
 
-A Compose Multiplatform payments app: send money to an email address in USD or EUR, and watch
-your transaction history update live from Firestore. A Ktor backend processes each payment
-exactly once and records it in Firestore. Built as a take-home challenge on top of
+A Compose Multiplatform payments app: send money to an email address in USD or EUR. A Ktor backend processes each payment and records it in Firestore. I used my own mobile project template as a starting point.
 [my own project template](docs/TEMPLATE.md).
 
 ![Send with validation, confirmation, a live history update, and the history list](docs/images/remit-screens.png)
@@ -11,11 +9,10 @@ exactly once and records it in Firestore. Built as a take-home challenge on top 
 
 ## In brief
 
-- **The brief:** every requirement is met, including the optional Appium test. Five are met
-  differently on purpose; [Where this differs from the brief](#where-this-differs-from-the-brief)
-  says why.
+Create a simple FinTech app using Kotlin Multiplatform that allows users to send a payment to a recipient. The app should target Android (primary) and have a shared business logic layer which can support other platforms. Integrate a backend API for payment processing, and demonstrate automated testing using Behavior-Driven Development (BDD), JMeter for API performance testing, and Appium for UI testing.
+
 - **Reviewing:** the [reviewer's guide](docs/REVIEWING.md) maps each line of the brief to its code
-  and tests, lists the twelve files to read in order, and says which template parts to skip.
+  and tests, lists the twelve files to read in order, and says which template parts to skip, also note: [Where this differs from the brief](#where-this-differs-from-the-brief)
 - **Run it:** `make emulators`, `make backend-emulated`, and `make mobile` in three terminals. No
   Firebase account is needed ([details](#run-it)).
 - **Test it:** `make check` runs every CI gate; `make test-bdd`, `make test-appium`, and
@@ -39,10 +36,7 @@ exactly once and records it in Firestore. Built as a take-home challenge on top 
   The status and navigation bar icons follow the app's choice, and the screenshot tests render
   every component in both themes.
 - **Payments API.** `POST /api/v1/payments` takes
-  `{"recipientEmail": String, "amount": Number, "currency": String}`, validates it, processes it
-  (a mock processor that approves every valid payment), writes it to Firestore, and returns the
-  stored payment. Errors use `{"error", "code", "details"}`. Every call needs a Firebase ID token
-  (`Authorization: Bearer`) and an `Idempotency-Key` header; step 9 of the
+  `{"recipientEmail": String, "amount": Number, "currency": String}`, validates it, records it in Firestore as `COMPLETED` (there is no real payment processing; there is a `status` field and PENDING and FAILED states for payment failures), and returns the stored payment. Errors use `{"error", "code", "details"}`. Every call needs a Firebase ID token (`Authorization: Bearer`) and an `Idempotency-Key` header; step 9 of the
   [demo script](docs/DEMO.md) has a copy-paste curl that gets a token from the Auth emulator.
 
 ## Run it
@@ -51,6 +45,8 @@ Requirements: JDK 21+, Android SDK with an emulator, Node 22+, and the Firebase 
 (`npm install -g firebase-tools`). Everything runs locally against the Firebase Emulator Suite;
 no Firebase account, credentials, or `google-services.json` are needed: without
 `google-services.json`, the debug app starts Firebase for the emulators itself.
+
+If you want to use a hosted Firebase project instead, see [Hosted Firebase project](#hosted-firebase-project).
 
 ```bash
 make emulators            # terminal 1: Firebase Auth + Firestore emulators (UI on http://localhost:4000)
@@ -63,8 +59,6 @@ Then send a payment and open History. Swagger UI is at <http://localhost:8085/sw
 The debug app reaches the emulators and the API at `10.0.2.2`, your machine as seen from the
 Android emulator (a physical device needs `adb reverse`: see [TROUBLESHOOTING.md](TROUBLESHOOTING.md)).
 If History says the emulators aren't answering, start them with `make emulators` and retry.
-
-To use a hosted Firebase project instead, see [Hosted Firebase project](#hosted-firebase-project).
 
 ## Firebase
 
@@ -83,7 +77,7 @@ The hosted `remit-payments` project in the Firebase console: carol's €42.00 pa
 |---|---|
 | Firestore stores the payments | The backend writes each payment to `payments/{id}` in one Firestore transaction with its idempotency record: [`FirestorePaymentStore.kt`](backend/src/main/kotlin/com/asterixorobelix/remit/service/FirestorePaymentStore.kt) |
 | History comes from Firestore, in real time | A snapshot listener on the signed-in user's payments, newest first: [`FirestorePaymentHistorySource.kt`](mobile/shared/src/androidMain/kotlin/com/asterixorobelix/remit/shared/data/history/FirestorePaymentHistorySource.kt) |
-| Firebase logic in `shared`, expect/actual for the SDK | `expect fun firebaseBackendModule` in [`FirebaseBackend.kt`](mobile/shared/src/commonMain/kotlin/com/asterixorobelix/remit/shared/data/FirebaseBackend.kt); the Android actual binds the Firebase SDK, and iOS and desktop bind "not set up" implementations |
+| Firebase logic in `shared`, expect/actual for the SDK | `expect fun firebaseBackendModule` in [`FirebaseBackend.kt`](mobile/shared/src/commonMain/kotlin/com/asterixorobelix/remit/shared/data/FirebaseBackend.kt); the Android actual binds the Firebase SDK, and iOS and desktop use "not set up" implementations |
 | Firebase setup in `androidApp` | `google-services.json` and the emulator host, in [`build.gradle.kts`](mobile/androidApp/build.gradle.kts) |
 
 Firebase Auth identifies the user as well: the app signs in anonymously
@@ -100,10 +94,7 @@ its own (see the table below).
 
 ### Which backend writes to which Firebase
 
-Only the backend writes to Firestore: the Admin SDK, which security rules do not restrict, writes
-each payment and its idempotency record. The app never writes. It signs in to Firebase Auth, sends
-the ID token with each payment, and reads the signed-in user's payments. So the app and the
-backend must use the same Firebase: History shows only what the backend wrote there.
+Only the backend writes to Firestore: the Admin SDK, writes each payment and its idempotency record. The app never writes. It signs in to Firebase Auth, sends the ID token with each payment, and reads the signed-in user's payments. So the app and the backend must use the same Firebase: History shows only what the backend wrote there.
 
 | Setup | Start it with | The app signs in to and reads from | The backend verifies tokens from and writes to |
 |---|---|---|---|
@@ -116,16 +107,12 @@ The Cucumber scenarios use an in-memory Firestore, and Appium and JMeter run aga
 setup. The emulators keep everything in memory: stopping `make emulators` deletes its payments
 and anonymous users.
 
-If the app and the backend use different Firebases, Send fails or the payment lands where History
-isn't looking. The usual cause is a `google-services.json` left in `mobile/androidApp/` while
-`make backend-emulated` runs, which points the app at the hosted project and the backend at the
-emulators; `make backend-emulated` warns about it, and `make doctor` says which one the debug app
-uses.
+If the app and the backend use different Firebases, Send fails or the payment will not show in the History tab. The usual cause is a `google-services.json` left in `mobile/androidApp/` while `make backend-emulated` runs, which points the app at the hosted project and the backend at the
+emulators; `make backend-emulated` warns about it, and `make doctor` says which one the debug app uses.
 
 ### Hosted Firebase project
 
-The same build runs against a hosted project; `.firebaserc` names it (`remit-payments`). Reviewers
-don't need one.
+The same build runs against a hosted project; `.firebaserc` names it (`remit-payments`). A hosted Firebase project is not required.
 
 1. In the Firebase console, turn on **Anonymous** under Authentication → Sign-in method.
 2. Deploy the security rules and the index History needs:
@@ -250,19 +237,17 @@ State is a sealed `UiState` in a `StateFlow`; one-off events (snackbars) go thro
 
 ### Kotlin Multiplatform and its cross-platform potential
 
-Only Android is implemented, but almost everything except the UI shell and the Firebase SDK
-calls is common code. The `shared` module targets Android, iOS (arm64 and simulator), and the
-desktop JVM, and CI links the iOS framework whenever iOS-relevant code changes.
+Only Android is implemented but since most of the code is in shared, it would be quick and easy to implement other platforms such as ios or desktop.
 
 - **Shared:** models, money parsing, validation, idempotency handling, the HTTP client and its
   error mapping, the repository, use cases, and dependency injection. The Cucumber suite runs
-  on the desktop JVM against exactly this code.
+  on the desktop JVM against this code.
 - **expect/actual:** `firebaseBackendModule()` binds the `AuthSession` and `PaymentHistorySource`
   interfaces. Android uses the Firebase SDK; iOS and desktop bind implementations that fail with
   a clear "not set up" error instead of pretending to have data.
 - **To ship iOS:** add the Firebase iOS SDK (Swift Package Manager) and write the `iosMain`
   `firebaseBackendModule` with adapters for `AuthSession` and `PaymentHistorySource`, or use a
-  KMP Firebase wrapper such as GitLive's.
+  KMP Firebase wrapper such as GitLive.
   Because `shared` has no Compose dependency, an iOS team could also build the screens in
   SwiftUI and call the same use cases.
 - **UI:** the Compose screens are already multiplatform and render in the desktop gallery; the
@@ -286,10 +271,10 @@ and the list after it covers the places where the app deliberately does somethin
 
 | Area | What the app does | Where |
 |---|---|---|
-| Architecture | Layers per the Guide to app architecture: screens send events to ViewModels, which call use cases over a repository interface. State flows down as a sealed `UiState` in a `StateFlow`. | `presentation/`, `shared/.../domain` |
+| Architecture | Screens send events to ViewModels, which call use cases over a repository interface. State flows down as a sealed `UiState` in a `StateFlow`. | `presentation/`, `shared/.../domain` |
 | Lifecycle | Screens collect with `collectAsStateWithLifecycle`. The History Firestore listener uses `WhileSubscribed(5 s)`, so it stops reading when the app is in the background or another tab is open. One-off effects use `CollectEffects`, a `LaunchedEffect` with `repeatOnLifecycle(STARTED)`: a plain `LaunchedEffect` keeps collecting in the background and would show a snackbar nobody sees. | `PaymentHistoryViewModel`, `CollectEffects` |
 | Process death | What the user types is kept in `SavedStateHandle`. A payment already sent is written to SQLDelight before the request, so either survives the system ending the app. | `SendPaymentViewModel` |
-| Storage | Settings are in Jetpack DataStore, and every read is asynchronous; the old `SharedPreferences` file is migrated. The payment in flight is in SQLDelight. | `data/preferences`, `PendingPayment.sq` |
+| Storage | Settings are in Jetpack DataStore, and every read is asynchronous. The payments are stored in SQLDelight. | `data/preferences`, `PendingPayment.sq` |
 | Navigation | Compose Navigation with type-safe `@Serializable` routes and a back stack for each tab. | `navigation/` |
 | Startup and UI | The Splash Screen API keeps the splash up until the start screen and saved theme are known. The app draws edge to edge, and the bar icons follow the app's theme. Material 3, light and dark. | `MainActivity`, `ui/theme` |
 | Strings and accessibility | No literal UI text: every string is in [`strings.xml`](mobile/composeApp/src/commonMain/composeResources/values/strings.xml), shared by Android, iOS, and desktop. Icon buttons have spoken labels (decorative icons are hidden from TalkBack), and each History row reads as one sentence. | `composeResources/`, `PaymentHistoryScreen` |
@@ -310,10 +295,7 @@ Deliberate departures:
 
 ## Third-party services behind interfaces
 
-No screen, ViewModel, use case, or repository calls a vendor SDK. Each service is an interface in
-the app's own terms, a thin adapter implements it, and one place chooses the adapter, so a
-provider can be swapped without touching the rest of the app. `scripts/check-architecture.sh`
-fails the build if a vendor SDK (Firebase, Sentry, PostHog, and others) is imported anywhere else.
+No screen, ViewModel, use case, or repository calls a vendor SDK directly. Each service is an interface, and a thin adapter implements it, and one place chooses the adapter, so a provider can be swapped without touching the rest of the app. `scripts/check-architecture.sh` fails the build if a vendor SDK (Firebase, Sentry, PostHog, and others) is imported anywhere else.
 
 | Service | Interface | Firebase adapter today | Chosen in |
 |---|---|---|---|
@@ -344,7 +326,7 @@ is killed mid-send. The app then cannot tell whether the money moved. Retrying b
 twice; not retrying can tell the user a payment failed when it went through. An idempotency key
 removes the guess. The app generates one random key per payment and sends it with every attempt,
 and the server stores the key with the payment, so a repeat of that payment returns the one
-already made instead of making another. That makes retrying safe, for the app and for the user.
+already made instead of making another. That makes retrying safe, both for the app and the user.
 
 For example: you send $50.00 to bob@example.com, the server records it, and the connection drops
 before the response arrives. The app reports the failure and offers Retry. Without the key, Retry
@@ -354,15 +336,14 @@ payment.
 
 How it works:
 - *On the device:* `SendPaymentUseCase` keeps one key per payment. A retry after a timeout, or
-  a double tap (sends are serialized), reuses it; editing the details or starting a new payment
+  some other scenario reuses it; editing the details or starting a new payment
   after a success gets a new one. Because of the key, the POST can safely be retried
-  automatically: once, quickly, with a 10 s timeout, so a stopped or hung backend is reported in
+  automatically: so a stopped or hung backend is reported in
   seconds rather than leaving the button spinning.
 - *Across a crash:* the key and the payment are written to SQLDelight before the request goes
   out. If the app is killed mid-send, reopening it shows "Unfinished payment" with the form
   filled in; sending it again reuses the key, so the server returns the original if it already
-  processed it. This replaced the template's demo table, so the template's database tooling
-  serves a real purpose.
+  processed it.
 - *On the server:* the payment and an `idempotencyKeys/{uid}_{key}` record are written in one
   Firestore transaction. Written separately, a crash between the two could leave a payment
   without its key (a retry would pay again) or a key without its payment. The same key with the
@@ -381,11 +362,7 @@ missing from history, and anyone could write fake payments. Here a payment appea
 only when the server has recorded it, and Firestore rules let users read only their own
 documents and never write.
 
-**One set of validation rules on two platforms.** The backend is a separate Gradle build, so it
-cannot use the KMP module directly without dragging Android tooling into its Docker build.
-Instead both validators run `testdata/payment-validation-cases.json`; the file caught a real
-divergence during development. Validation codes are shared too: the server returns
-`details: ["EMAIL_INVALID"]`, and the app highlights that field.
+**One set of validation rules on two platforms.** Both the backend and the app have their own validation. Ideally, they should probably be shared, but that would require refactoring.
 
 **Authentication without a login screen.** The app signs in anonymously with Firebase, so every
 install has a stable user id. The backend verifies the ID token and stamps the uid on the payment;
@@ -420,11 +397,7 @@ instead of breaking the list.
 
 ## Production architecture: what I'd change next
 
-- **A relational ledger as the source of truth.** Firestore is enough here because nothing holds
-  a balance. Real money movement needs double-entry postings, database-enforced constraints
-  (`CHECK (balance >= 0)`, unique idempotency keys), exact `NUMERIC` amounts, and SQL for
-  reconciliation. I would record payments in PostgreSQL and publish them to Firestore through a
-  transactional outbox, keeping Firestore as the read model the app listens to.
+  - **A relational ledger as the source of truth.** Firestore fits this app because each payment is an independent record written once and nothing holds a balance. Moving real money between accounts needs a ledger: double-entry postings, constraints the database enforces on every write (`CHECK (balance >= 0)`, unique idempotency keys), exact `NUMERIC` amounts, and SQL for reconciliation, none of which Firestore offers. In order to get around this, you could record payments in PostgreSQL and publish them to Firestore through a transactional outbox (lets you change your database *and* publish that change to another system at the same time, meaning they wont be out of sync), so Firestore stays the read model that pushes live updates to the app.
 - **A real processor** called between validation and recording, with the same idempotency key so
   the processor deduplicates too, plus `PENDING` and `FAILED` states driven by its webhooks.
 - **Limits and abuse controls:** per-user rate limits, daily limits tied to verification level,
