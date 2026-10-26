@@ -9,7 +9,7 @@ A Compose Multiplatform payments app: send money to an email address in USD or E
 
 ## In brief
 
-Create a simple FinTech app using Kotlin Multiplatform that allows users to send a payment to a recipient. The app should target Android (primary) and have a shared business logic layer which can support other platforms. Integrate a backend API for payment processing, and demonstrate automated testing using Behavior-Driven Development (BDD), JMeter for API performance testing, and Appium for UI testing.
+Create a simple FinTech app using Kotlin Multiplatform which allows users to send a payment to a recipient. The app should target Android (primary) and have a shared business logic layer which can support other platforms. Integrate a backend API for payment processing, and demonstrate automated testing using Behavior-Driven Development (BDD), JMeter for API performance testing, and Appium for UI testing.
 
 - **Reviewing:** the [reviewer's guide](docs/REVIEWING.md) maps each line of the brief to its code
   and tests, lists the twelve files to read in order, and says which template parts to skip, also note: [Where this differs from the brief](#where-this-differs-from-the-brief)
@@ -26,7 +26,7 @@ Create a simple FinTech app using Kotlin Multiplatform that allows users to send
 - **Send a payment.** Recipient email, amount, and a USD/EUR picker. The amount field accepts only
   digits and one decimal separator (`.` or `,`). Validation runs on the device
   and again on the server, with the same rules, and every problem is shown next to its field.
-  Success shows "Sent $10.50 to bob@example.com" with a link to History; a failure explains
+  Success shows "Sent $10.50 to bob@example.com" with a link to History tab; a failure explains
   what happened and offers Retry when retrying can help.
 - **Transaction history.** Your payments from Firestore, newest first, each with recipient,
   amount, currency, time, and status. A Firestore snapshot listener keeps the list live while

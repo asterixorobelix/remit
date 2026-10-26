@@ -5,6 +5,9 @@ import com.asterixorobelix.remit.shared.domain.model.PaymentRequest
 import com.asterixorobelix.remit.shared.domain.validation.ValidationError
 import kotlinx.coroutines.flow.Flow
 
+/**
+ * For sending payments to backend and getting user payment history from backend
+ */
 interface PaymentRepository {
     /**
      * Sends [request] to the payments API. The server processes each [idempotencyKey] once:
