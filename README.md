@@ -402,7 +402,10 @@ instead of breaking the list.
   the processor deduplicates too, plus `PENDING` and `FAILED` states driven by its webhooks.
 - **Limits and abuse controls:** per-user rate limits, daily limits tied to verification level,
   and App Check so only the genuine app can call the API.
-- **Paging** for long histories, push notifications for incoming payments, and the iOS actuals.
+- **Transaction history.** Your newest 100 payments from Firestore, newest first.
+- **Paging** for histories over 100 payments (Firestore query result pagination)
+- **push notifications** for incoming payments 
+- **iOS** support.
 
 ## Repository guide
 

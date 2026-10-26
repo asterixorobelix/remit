@@ -1,8 +1,5 @@
 # Reviewer's guide
-
-A map of the challenge for reviewers: where each line of the brief is implemented and tested,
-the order to read the code in, and the parts of the repository you can skip. The
-[README](../README.md) has the full explanation; this page is for finding things fast.
+The [README](../README.md) has the full explanation; this page is for finding things fast.
 
 ## In five minutes
 
@@ -15,9 +12,6 @@ the order to read the code in, and the parts of the repository you can skip. The
   make backend-emulated     # the API on http://localhost:8085 (Swagger UI at /swagger)
   make mobile               # build, install, and launch the Android debug app
   ```
-
-- **Read it:** the twelve files under [Follow one payment](#follow-one-payment-through-the-code)
-  carry the whole feature. Everything else supports them or comes from the template.
 
 ## The brief, line by line
 
@@ -78,7 +72,7 @@ Read these in order; each step calls the next.
 ## What you can skip
 
 Remit is an instance of my app template ([docs/TEMPLATE.md](TEMPLATE.md)). The template parts
-work and are tested, but none of them is needed to judge the brief.
+work and are tested, but were simply left in to demonstrate that I am thinking about those things.
 
 | Path | What it is |
 |---|---|
@@ -89,10 +83,9 @@ work and are tested, but none of them is needed to judge the brief.
 | `AGENTS.md`, `CLAUDE.md`, `.claude/`, `.codex/`, `scripts/agent-hook.sh` | Guardrails for AI coding agents |
 | `scripts/test-initializer.sh`, `scripts/create-feature.sh`, `scripts/test-feature-generator.sh` | Template tooling and its tests |
 
-To see only the challenge work, start after the commits that set up the template:
+The commit that set up the template:
 
 ```bash
-git log --oneline 53b7cfa..main                 # every challenge commit
 git diff --stat 53b7cfa..main -- mobile/shared backend/src firebase e2e perf testdata
 ```
 
