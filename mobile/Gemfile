@@ -5,7 +5,7 @@
 source "https://rubygems.org"
 
 # Fastlane - the core automation tool
-gem "fastlane", "~> 2.226"
+gem "fastlane", "~> 2.241"
 
 # Plugins are managed via Pluginfile. The path stays a string literal (relative to this file)
 # because Dependabot cannot parse an interpolated eval_gemfile argument.
