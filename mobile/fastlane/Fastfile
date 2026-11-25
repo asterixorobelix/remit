@@ -403,7 +403,8 @@ platform :ios do
 
   desc "Sync App Store certificates and profiles"
   lane :certificates do
-    setup_ci if is_ci
+    # Not is_ci: an empty CI= counts as CI and would make a temporary keychain this Mac's default.
+    setup_ci if ENV["GITHUB_ACTIONS"] == "true"
     match(
       type: "appstore",
       readonly: is_ci,
@@ -413,7 +414,8 @@ platform :ios do
 
   desc "Sync development certificates and profiles"
   lane :certificates_dev do
-    setup_ci if is_ci
+    # Not is_ci: an empty CI= counts as CI and would make a temporary keychain this Mac's default.
+    setup_ci if ENV["GITHUB_ACTIONS"] == "true"
     match(
       type: "development",
       readonly: is_ci,
